@@ -19,7 +19,7 @@ def build_holidays_panel(holidays: list[dict]) -> html.Div:
     if not holidays:
         return html.Div([
             title,
-            html.Div("No upcoming holidays in the next 45 days.", style={
+            html.Div("No upcoming holidays in the next 30 days.", style={
                 "fontSize": "12px", "color": theme.TEXT_DIM, "padding": "12px 0",
             }),
         ], className="chart-card")

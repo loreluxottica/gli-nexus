@@ -20,6 +20,17 @@ def _id_options(df: pd.DataFrame) -> list[dict]:
     return [{"label": "All areas", "value": "__all__"}] + [{"label": i, "value": i} for i in ids]
 
 
+def _month_options(df: pd.DataFrame) -> list[dict]:
+    fct = df[df["Forecast"].notna()]
+    if fct.empty:
+        return [{"label": "All months", "value": "__all__"}]
+    months = fct["Date"].dt.to_period("M").drop_duplicates().sort_values()
+    opts = [{"label": "All months", "value": "__all__"}]
+    for m in months:
+        opts.append({"label": str(m), "value": str(m)})
+    return opts
+
+
 def _week_options(df: pd.DataFrame) -> list[dict]:
     fct = df[df["Forecast"].notna()]
     weeks = fct[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"])
@@ -116,17 +127,23 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                 html.Div("ABSENTEEISM FORECAST INTELLIGENCE", className="page-subtitle"),
             ], className="page-header"),
 
-            # Weather strip
-            html.Div(id="fct-weather-strip"),
-
             # KPI row
             html.Div(id="fct-kpi-row"),
+
+            # Weather (left) + events calendar (right) — above the graph
+            html.Div([
+                html.Div(id="fct-weather-strip", className="wx-col"),
+                html.Div(id="fct-holidays-panel", className="cal-col"),
+            ], className="wx-cal-row"),
 
             # Filter bar
             html.Div([
                 html.Span("AREA", className="filter-label"),
                 dcc.Dropdown(id="fct-area-dd", options=[], value="__all__",
                              clearable=False, style={"width": "200px"}),
+                html.Span("MONTH", className="filter-label"),
+                dcc.Dropdown(id="fct-month-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "150px"}),
                 html.Span("WEEK", className="filter-label"),
                 dcc.Dropdown(id="fct-week-dd", options=[], value="__all__",
                              clearable=False, style={"width": "150px"}),
@@ -173,9 +190,6 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                 ),
             ], className="chart-card"),
 
-            # Holidays panel
-            html.Div(id="fct-holidays-panel"),
-
         ], className="main-content"),
 
         dcc.Store(id="fct-warehouse-id", data=warehouse_id),
@@ -207,6 +221,7 @@ def register_callbacks(app):
 
     @app.callback(
         Output("fct-area-dd", "options"),
+        Output("fct-month-dd", "options"),
         Output("fct-week-dd", "options"),
         Output("fct-area-table", "columns"),
         Output("fct-area-table", "data"),
@@ -220,18 +235,19 @@ def register_callbacks(app):
         if df is None:
             raise PreventUpdate
         cols, tdata, style = _build_pivot_table(df)
-        return _id_options(df), _week_options(df), cols, tdata, style
+        return _id_options(df), _month_options(df), _week_options(df), cols, tdata, style
 
     @app.callback(
         Output("fct-bar-chart", "figure"),
         Output("fct-kpi-row", "children"),
         Input("fct-warehouse-id", "data"),
         Input("fct-area-dd", "value"),
+        Input("fct-month-dd", "value"),
         Input("fct-week-dd", "value"),
         Input("fct-area-table", "selected_rows"),
         State("fct-area-table", "data"),
     )
-    def update_chart(warehouse_id, area_val, week_val, selected_rows, table_data):
+    def update_chart(warehouse_id, area_val, month_val, week_val, selected_rows, table_data):
         if not warehouse_id:
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
@@ -242,6 +258,13 @@ def register_callbacks(app):
             area_val = table_data[selected_rows[0]]["AREA"]
         if area_val and area_val != "__all__":
             df = df[df["ID"] == area_val]
+
+        if month_val and month_val != "__all__":
+            try:
+                p = pd.Period(month_val, freq="M")
+                df = df[(df["Date"].dt.year == p.year) & (df["Date"].dt.month == p.month)]
+            except Exception:
+                pass
 
         if week_val and week_val != "__all__":
             try:

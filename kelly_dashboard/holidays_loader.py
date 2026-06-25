@@ -30,7 +30,7 @@ def _fetch_year(country: str, year: int) -> list[dict]:
         return []
 
 
-def get_upcoming_holidays(warehouse_id: str, days_ahead: int = 45) -> list[dict]:
+def get_upcoming_holidays(warehouse_id: str, days_ahead: int = 30) -> list[dict]:
     country = COUNTRY_MAP.get(warehouse_id, "US")
     today = pd.Timestamp.today().normalize()
     cutoff = today + pd.Timedelta(days=days_ahead)

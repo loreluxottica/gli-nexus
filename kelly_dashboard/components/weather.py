@@ -44,8 +44,6 @@ def build_weather_strip(df: pd.DataFrame | None) -> html.Div:
             cols.append(html.Div(className="weather-divider"))
 
     return html.Div([
-        html.Div("7 DAYS WEATHER FORECAST", className="section-label"),
-        html.Div([
-            html.Div(cols, style={"display": "flex", "alignItems": "flex-start", "overflowX": "auto"}),
-        ], className="weather-card"),
-    ], style={"marginBottom": "24px"})
+        html.Div("7 DAYS WEATHER FORECAST", className="chart-card-title"),
+        html.Div(cols, style={"display": "flex", "alignItems": "flex-start", "overflowX": "auto"}),
+    ], className="weather-card")

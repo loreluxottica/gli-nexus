@@ -17,11 +17,21 @@ def _id_options(df: pd.DataFrame) -> list[dict]:
 def _month_options(df: pd.DataFrame) -> list[dict]:
     drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]
     if drift.empty:
-        return [{"label": "All", "value": "__all__"}]
+        return [{"label": "All months", "value": "__all__"}]
     months = drift["Date"].dt.to_period("M").drop_duplicates().sort_values(ascending=False)
-    opts = [{"label": "All", "value": "__all__"}]
+    opts = [{"label": "All months", "value": "__all__"}]
     for m in months:
         opts.append({"label": str(m), "value": str(m)})
+    return opts
+
+
+def _week_options(df: pd.DataFrame) -> list[dict]:
+    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]
+    weeks = drift[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"])
+    opts = [{"label": "All weeks", "value": "__all__"}]
+    for _, row in weeks.iterrows():
+        opts.append({"label": f"{int(row['Year'])}-W{int(row['Week']):02d}",
+                     "value": f"{int(row['Year'])}-W{int(row['Week']):02d}"})
     return opts
 
 
@@ -61,6 +71,9 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                 html.Span("MONTH", className="filter-label"),
                 dcc.Dropdown(id="perf-month-dd", options=[], value="__all__",
                              clearable=False, style={"width": "150px"}),
+                html.Span("WEEK", className="filter-label"),
+                dcc.Dropdown(id="perf-week-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "150px"}),
             ], className="filter-bar"),
 
             # Drift chart
@@ -82,6 +95,7 @@ def register_callbacks(app):
     @app.callback(
         Output("perf-area-dd", "options"),
         Output("perf-month-dd", "options"),
+        Output("perf-week-dd", "options"),
         Input("perf-warehouse-id", "data"),
     )
     def populate_controls(warehouse_id):
@@ -90,7 +104,7 @@ def register_callbacks(app):
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
-        return _id_options(df), _month_options(df)
+        return _id_options(df), _month_options(df), _week_options(df)
 
     @app.callback(
         Output("perf-drift-chart", "figure"),
@@ -100,8 +114,9 @@ def register_callbacks(app):
         Input("perf-warehouse-id", "data"),
         Input("perf-area-dd", "value"),
         Input("perf-month-dd", "value"),
+        Input("perf-week-dd", "value"),
     )
-    def update_chart(warehouse_id, area_val, month_val):
+    def update_chart(warehouse_id, area_val, month_val, week_val):
         if not warehouse_id:
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
@@ -116,6 +131,13 @@ def register_callbacks(app):
                 p = pd.Period(month_val, freq="M")
                 df = df[(df["Date"].dt.year == p.year) & (df["Date"].dt.month == p.month)]
             except Exception:
+                pass
+
+        if week_val and week_val != "__all__":
+            try:
+                yr, wk = week_val.split("-W")
+                df = df[(df["Year"] == int(yr)) & (df["Week"] == int(wk))]
+            except (ValueError, KeyError):
                 pass
 
         drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]

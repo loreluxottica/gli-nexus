@@ -341,15 +341,15 @@ body {
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255,255,255,0.85);
     border-radius: 0;
-    padding: 22px 24px;
+    padding: 16px 18px;
     margin-bottom: 20px;
 }
 
 .weather-day {
     flex: 1;
-    min-width: 80px;
+    min-width: 56px;
     text-align: center;
-    padding: 12px 8px;
+    padding: 12px 6px;
     border-radius: 0;
     transition: background 0.25s ease;
 }
@@ -380,14 +380,14 @@ body {
 }
 
 .weather-icon {
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 22px;
+    margin-bottom: 8px;
     line-height: 1;
     display: block;
 }
 
 .weather-temp-hi {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--el-cream);
     display: block;
@@ -418,6 +418,25 @@ body {
     flex-shrink: 0;
     align-self: stretch;
 }
+
+/* ── Weather + calendar row (above the graph) ───────────── */
+.wx-cal-row {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.wx-col, .cal-col {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-width: 320px;
+}
+
+/* Each column's direct child is the card; stretch so both boxes match height */
+.wx-col > .weather-card, .cal-col > .chart-card { flex: 1; margin-bottom: 0; }
 
 /* ── Filter bar ─────────────────────────────────────────── */
 .filter-bar {
@@ -493,6 +512,54 @@ body {
 .Select-arrow { border-top-color: var(--el-silver) !important; }
 .is-open .Select-arrow { border-bottom-color: var(--el-silver) !important; }
 
+/* ── Dash 4 dropdown (new `.dash-dropdown-*` component) ──────
+   Dash 4.1 ships a custom dropdown themed by `--Dash-*` tokens on :root.
+   Override those tokens (with !important so they win over dash's own :root
+   rule) to the EL dark palette, then add targeted class rules as a safety net. */
+:root {
+    --Dash-Fill-Inverse-Strong: rgba(10,10,10,0.96) !important;  /* control + menu bg */
+    --Dash-Text-Primary: #FFFBF9 !important;
+    --Dash-Text-Strong: #FFFBF9 !important;
+    --Dash-Text-Weak: #A9ABAC !important;
+    --Dash-Text-Disabled: #6b6c6e !important;
+    --Dash-Stroke-Strong: rgba(255,255,255,0.85) !important;
+    --Dash-Stroke-Weak: rgba(255,255,255,0.15) !important;
+    --Dash-Fill-Primary-Hover: rgba(255,255,255,0.10) !important;
+    --Dash-Fill-Primary-Active: rgba(255,255,255,0.16) !important;
+    --Dash-Fill-Interactive-Strong: #FFFFFF !important;
+}
+
+.dash-dropdown-trigger {
+    background-color: rgba(255,255,255,0.10) !important;
+    border: 1px solid rgba(255,255,255,0.85) !important;
+    border-radius: 0 !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dash-dropdown-value,
+.dash-dropdown-value-item { color: var(--el-cream) !important; font-size: 13px !important; }
+
+.dash-dropdown-placeholder { color: var(--el-silver) !important; font-size: 13px !important; }
+.dash-dropdown-trigger-icon, .dash-dropdown-clear { color: var(--el-silver) !important; }
+
+.dash-dropdown-options {
+    background-color: rgba(10,10,10,0.96) !important;
+    border: 1px solid rgba(255,255,255,0.85) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important;
+}
+
+.dash-dropdown-option { color: var(--el-silver) !important; font-size: 13px !important; }
+.dash-dropdown-option:hover {
+    background-color: rgba(255,255,255,0.10) !important;
+    color: var(--el-cream) !important;
+}
+.dash-dropdown-option.selected {
+    background-color: rgba(255,255,255,0.16) !important;
+    color: #FFFFFF !important;
+}
+
 /* ── Plotly chart container (avoid white flash on load) ─── */
 .js-plotly-plot,
 .js-plotly-plot .plot-container,
@@ -506,6 +573,16 @@ body {
 .dash-spreadsheet-container .dash-spreadsheet-inner th {
     font-family: 'Avenir LT Std', 'Segoe UI', sans-serif !important;
     font-size: 12px !important;
+}
+
+/* Row hover / selection — dash_table drives these via CSS vars (defaults are
+   near-white: --hover:#fdfdfd, --accent:hotpink). Override to dark theme so the
+   hovered row is a subtle translucent highlight and text stays readable. */
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table {
+    --hover: rgba(255,255,255,0.08) !important;
+    --background-color-ellipses: rgba(10,10,10,0.96) !important;
+    --accent: #FFFFFF !important;
+    --border: rgba(255,255,255,0.85) !important;
 }
 
 /* ── Globe landing ──────────────────────────────────────── */
