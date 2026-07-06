@@ -1,81 +1,144 @@
-# Project Kelly — Absenteeism Forecast Dashboard
+# GLI Nexus
 
-Dashboard interattiva per il monitoraggio e la previsione dell'assenteismo nei magazzini Luxottica/EssilorLuxottica.
+Databricks App unica che espone il **portale GLI Nexus** come front-end e ospita
+più sotto-progetti sotto un singolo server (un solo deploy).
 
----
-
-## Prerequisiti
-
-- **Python 3.11** (consigliato) o Python 3.10+
-- Connessione internet (solo al primo avvio, per scaricare i dati meteo)
-
----
-
-## Installazione (solo la prima volta)
-
-Apri un terminale nella cartella `kelly_dashboard/` ed esegui:
-
-```bash
-cd kelly_dashboard
-pip install -r requirements.txt
-```
-
-> Consiglio: usa un ambiente virtuale per non sporcare il tuo Python di sistema.
->
-> ```bash
-> python -m venv .venv
-> # Windows:
-> .venv\Scripts\activate
-> # Mac/Linux:
-> source .venv/bin/activate
->
-> pip install -r requirements.txt
-> ```
-
----
-
-## Avvio
-
-```bash
-cd kelly_dashboard
-python app.py
-```
-
-Poi apri il browser su **http://localhost:8050**
+Il portale (`portal/gli_nexus_portal.html`) è servito a `/`; ogni progetto è
+montato a un subpath (es. Project Kelly a `/kelly/`).
 
 ---
 
 ## Struttura
 
 ```
-kelly_dashboard/          ← entra qui prima di eseguire
-├── app.py                ← entry point
-├── requirements.txt
-├── theme.py              ← palette colori e layout Plotly
-├── warehouses.py         ← lista magazzini (id, città, lat/lon)
-├── data_loader.py        ← carica Excel o genera dati mock
-├── weather_loader.py     ← API Open-Meteo (meteo 8 giorni, CSV cache)
-├── holidays_loader.py    ← API Nager.Date (festività per paese)
-├── pages/
-│   ├── landing.py        ← pagina globo (selezione magazzino)
-│   ├── forecast.py       ← dashboard previsione assenteismo
-│   └── performance.py    ← analisi drift AI vs reale
-├── components/           ← widget riusabili (grafici, meteo, festività)
-├── assets/               ← CSS, font, JS
-└── weather_data/         ← CSV generati automaticamente (cache meteo)
+gli-nexus/
+├── app.py                 ← entry point unificato: portale a / + mount subapp
+├── app.yaml               ← command Databricks (gunicorn app:application)
+├── requirements.txt       ← deps root + include quelle dei progetti
+├── portal/
+│   └── gli_nexus_portal.html   ← front-end (coverflow launcher)
+├── projects/
+│   └── kelly_dashboard/   ← Project Kelly — forecast assenteismo (Dash)
+│       ├── app.py         ← app Dash (standalone o montata a subpath)
+│       ├── requirements.txt
+│       ├── pages/ components/ assets/ ...
+└── reference/             ← materiale frontend di riferimento (gitignored)
 ```
 
 ---
 
-## Dati
+## Prerequisiti
 
-- **Columbus (OH)**: dati reali da file Excel (`Kelly_Columbus_v1.3_daily_05-24-2026.xlsx`). Posiziona il file nella cartella `kelly_dashboard/`.
-- **Atlanta, Dallas, Sedico, Tijuana**: dati mock generati automaticamente.
+- **Python 3.11** (consigliato) o 3.10+
+- Connessione internet al primo avvio (dati meteo di Project Kelly)
+
+---
+
+## Avvio locale — app unificata
+
+Dalla root `gli-nexus/`:
+
+```bash
+pip install -r requirements.txt
+
+# server production-style
+gunicorn app:application -b 0.0.0.0:8000
+
+# oppure dev server rapido
+python app.py
+```
+
+Poi apri:
+- **http://localhost:8000/** → portale GLI Nexus
+- **http://localhost:8000/kelly/** → Project Kelly
+
+> Consiglio: usa un virtualenv.
+> ```bash
+> python -m venv .venv
+> .venv\Scripts\activate      # Windows
+> source .venv/bin/activate   # Mac/Linux
+> pip install -r requirements.txt
+> ```
+
+---
+
+## Avvio locale — un solo progetto (standalone)
+
+Ogni progetto resta eseguibile da solo, senza il portale:
+
+```bash
+cd projects/kelly_dashboard
+pip install -r requirements.txt
+python app.py
+# → http://localhost:8050
+```
+
+In standalone Project Kelly usa il prefix di default `/` (comportamento
+identico a prima della ristrutturazione).
+
+---
+
+## Deploy Databricks Apps
+
+Il file `app.yaml` definisce il comando di avvio (gunicorn sul WSGI
+`app:application`, porta 8000). Databricks Apps avvia il processo e instrada il
+traffico verso di esso.
+
+### Passi per collegare l'app
+
+1. **GitHub → Databricks**: in *User Settings → Linked accounts* collega
+   GitHub, poi crea una *Git folder* nel workspace puntando a questo repo
+   (branch `main`).
+2. **Crea l'app**: *Compute → Apps → Create app* (custom), source = la Git
+   folder. Per i redeploy: pull della Git folder + Deploy.
+3. **Risorse app** (opzionali finché si usa il mock):
+   - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*);
+   - secret con resource key `mapbox-token` (token Mapbox).
+   Poi decommenta le voci `valueFrom` corrispondenti in `app.yaml`.
+4. **Dati reali**: quando la tabella esiste, concedi al service principal
+   dell'app `USE CATALOG` / `USE SCHEMA` / `SELECT`, imposta `KELLY_TABLE` in
+   `app.yaml`, commit + redeploy.
+
+### Variabili d'ambiente
+
+| Variabile | Default | Descrizione |
+|---|---|---|
+| `KELLY_DATA_SOURCE` | `excel` in locale, `delta` su Databricks (auto) | Sorgente dati: `excel` (xlsx locale, fallback mock) o `delta` (tabella UC) |
+| `KELLY_TABLE` | — | Tabella Unity Catalog `catalog.schema.table`. Vuota ⇒ mock |
+| `KELLY_WAREHOUSE_COLUMN` | `Warehouse` | Colonna che filtra il plant (`columbus`, `atlanta`, …) |
+| `DATABRICKS_WAREHOUSE_ID` | — | ID SQL warehouse (via resource `valueFrom`) |
+| `KELLY_SQL_HTTP_PATH` | — | Alternativa esplicita all'ID warehouse (http path completo) |
+| `MAPBOX_TOKEN`, `MAPBOX_STYLE` | `""` | Token pubblico Mapbox per il globo (vedi `.env.example`) |
+| `KELLY_URL_PREFIX` | `/kelly/` | Prefix di mount di Project Kelly (impostato da `app.py`) |
+| `WEATHER_CACHE_DIR` | `projects/kelly_dashboard/weather_data` | Dir cache meteo; se non scrivibile si usa la temp dir |
+
+Schema atteso della tabella dati: `Date`, `ID` (area/turno), `Actual`,
+`Forecast`, `Forecast_Vintage`, più la colonna plant (`KELLY_WAREHOUSE_COLUMN`).
+Se `KELLY_TABLE` è vuota o la query fallisce, l'app degrada a dati mock
+generati (nessun crash).
+
+---
+
+## Aggiungere un nuovo progetto
+
+1. Crea `projects/<nome>/` con la sua app che espone un WSGI `server`.
+2. Rendi il progetto prefix-aware via env var (come `KELLY_URL_PREFIX`).
+3. In `app.py`: imposta l'env var, importa il `server`, aggiungilo a `MOUNTS`.
+4. (Opzionale) aggiungi/aggiorna la card nel portale (`DATA[]` in
+   `portal/gli_nexus_portal.html`).
 
 ---
 
 ## Note
 
-- Il meteo viene scaricato automaticamente la prima volta che apri un magazzino e salvato in `weather_data/`. Le chiamate successive usano la cache locale.
-- Le festività vengono caricate in tempo reale dall'API pubblica [Nager.Date](https://date.nager.at) (no token richiesto).
-- Per Databricks Apps: usa la variabile `server` esportata da `app.py`.
+- **Asset dei progetti Dash** (CSS/JS/font) sono serviti con il prefix corretto
+  automaticamente (`requests_pathname_prefix`).
+- **Navigazione deep-link interna** dei progetti (es. link `/forecast/...` in
+  Project Kelly) usa ancora path assoluti: sotto mount va cablata in una fase
+  successiva. La landing e gli asset funzionano; i link interni sono il prossimo
+  passo di wiring.
+- Le card del portale non navigano ancora ai progetti (nessun `url`): wiring
+  click → subpath previsto in un intervento successivo.
+- `reference/` contiene build frontend di riferimento con token Mapbox
+  hardcoded: è gitignored e non fa parte del deploy.
+```

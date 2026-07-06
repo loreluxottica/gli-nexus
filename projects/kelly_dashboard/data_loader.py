@@ -1,10 +1,14 @@
 from __future__ import annotations
+import logging
 import os
+import re
 import zlib
 import numpy as np
 import pandas as pd
 import kelly_dashboard.config as config
 from kelly_dashboard.warehouses import get_warehouse
+
+_log = logging.getLogger(__name__)
 
 _cache: dict[str, pd.DataFrame] = {}
 
@@ -40,6 +44,8 @@ def load_data(warehouse_id: str) -> pd.DataFrame | None:
             df = _generate_mock_data(warehouse_id)
     elif config.DATA_SOURCE == "delta":
         df = _load_delta(warehouse_id)
+        if df is None:
+            df = _generate_mock_data(warehouse_id)
     else:
         raise ValueError(f"Unknown DATA_SOURCE: {config.DATA_SOURCE}")
 
@@ -71,8 +77,55 @@ def _load_excel(warehouse_id: str) -> pd.DataFrame | None:
     return pd.read_excel(path, engine="openpyxl")
 
 
+def _sql_http_path() -> str | None:
+    explicit = os.environ.get("KELLY_SQL_HTTP_PATH")
+    if explicit:
+        return explicit
+    wh_id = os.environ.get("DATABRICKS_WAREHOUSE_ID")
+    return f"/sql/1.0/warehouses/{wh_id}" if wh_id else None
+
+
+# Identifiers can't be bound as query parameters, so table/column names coming
+# from the environment are validated against this pattern before interpolation.
+_IDENTIFIER_RE = re.compile(r"[A-Za-z0-9_.`]+")
+
+
 def _load_delta(warehouse_id: str) -> pd.DataFrame | None:
-    raise NotImplementedError("Delta source not yet configured")
+    """Load from a Unity Catalog table via a Databricks SQL warehouse.
+
+    Returns None (=> caller falls back to mock data) when the connection is
+    not configured (KELLY_TABLE / warehouse path unset) or on any failure.
+    Auth relies on the service-principal credentials that Databricks Apps
+    inject automatically (DATABRICKS_HOST / CLIENT_ID / CLIENT_SECRET).
+    """
+    table = os.environ.get("KELLY_TABLE")  # e.g. catalog.schema.absenteeism
+    http_path = _sql_http_path()
+    if not table or not http_path:
+        return None
+    wh_col = os.environ.get("KELLY_WAREHOUSE_COLUMN", "Warehouse")
+    if not _IDENTIFIER_RE.fullmatch(table) or not _IDENTIFIER_RE.fullmatch(wh_col):
+        _log.warning("Rejected KELLY_TABLE=%r / KELLY_WAREHOUSE_COLUMN=%r", table, wh_col)
+        return None
+    try:
+        from databricks import sql as dbsql
+        from databricks.sdk.core import Config, oauth_service_principal
+
+        cfg = Config()
+        with dbsql.connect(
+            server_hostname=cfg.host.removeprefix("https://"),
+            http_path=http_path,
+            credentials_provider=lambda: oauth_service_principal(cfg),
+        ) as conn, conn.cursor() as cur:
+            cur.execute(
+                f"SELECT Date, ID, Actual, Forecast, Forecast_Vintage "
+                f"FROM {table} WHERE {wh_col} = :wh",
+                {"wh": warehouse_id},
+            )
+            df = cur.fetchall_arrow().to_pandas()
+        return df if not df.empty else None
+    except Exception:
+        _log.exception("Delta load failed for %s; falling back to mock data", warehouse_id)
+        return None
 
 
 def _generate_mock_data(warehouse_id: str) -> pd.DataFrame:

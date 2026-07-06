@@ -1,12 +1,33 @@
 from __future__ import annotations
 import os
+import tempfile
 import requests
 import pandas as pd
 from kelly_dashboard.warehouses import get_warehouse
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_WEATHER_DIR = os.path.join(_BASE_DIR, "weather_data")
+# Seed cache committed with the repo — read-only fallback when the app runs
+# on a filesystem where the source dir is not writable (e.g. Databricks Apps).
+_SEED_DIR = os.path.join(_BASE_DIR, "weather_data")
 _OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+
+
+def _resolve_weather_dir() -> str:
+    d = os.environ.get("WEATHER_CACHE_DIR", _SEED_DIR)
+    try:
+        os.makedirs(d, exist_ok=True)
+        probe = os.path.join(d, ".write_probe")
+        with open(probe, "w"):
+            pass
+        os.remove(probe)
+        return d
+    except OSError:
+        fallback = os.path.join(tempfile.gettempdir(), "kelly_weather")
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
+
+
+_WEATHER_DIR = _resolve_weather_dir()
 
 _WMO_EMOJI = {
     0: ("☀", "Clear"),
@@ -37,8 +58,18 @@ _WMO_EMOJI = {
 
 
 def _csv_path(warehouse_id: str) -> str:
-    os.makedirs(_WEATHER_DIR, exist_ok=True)
     return os.path.join(_WEATHER_DIR, f"weather_{warehouse_id}.csv")
+
+
+def _read_cached(warehouse_id: str) -> pd.DataFrame | None:
+    """Read the cache CSV, falling back to the committed seed copy."""
+    for path in (_csv_path(warehouse_id),
+                 os.path.join(_SEED_DIR, f"weather_{warehouse_id}.csv")):
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            if not df.empty:
+                return df
+    return None
 
 
 def _today() -> str:
@@ -55,11 +86,10 @@ def fetch_and_store(warehouse_id: str) -> pd.DataFrame | None:
     today = _today()
 
     # Return cached if already fetched today
-    if os.path.exists(csv):
-        df_existing = pd.read_csv(csv)
-        if today in df_existing["fetch_date"].values:
-            latest = df_existing[df_existing["fetch_date"] == df_existing["fetch_date"].max()]
-            return _enrich(latest)
+    df_existing = _read_cached(warehouse_id)
+    if df_existing is not None and today in df_existing["fetch_date"].values:
+        latest = df_existing[df_existing["fetch_date"] == df_existing["fetch_date"].max()]
+        return _enrich(latest)
 
     # Fetch from API
     try:
@@ -74,8 +104,7 @@ def fetch_and_store(warehouse_id: str) -> pd.DataFrame | None:
         data = resp.json()
     except Exception:
         # Fall back to latest stored data if API fails
-        if os.path.exists(csv):
-            df_existing = pd.read_csv(csv)
+        if df_existing is not None:
             latest = df_existing[df_existing["fetch_date"] == df_existing["fetch_date"].max()]
             return _enrich(latest)
         return None
@@ -96,22 +125,22 @@ def fetch_and_store(warehouse_id: str) -> pd.DataFrame | None:
 
     df_new = pd.DataFrame(rows)
 
-    # Append to CSV
-    if os.path.exists(csv):
-        df_new.to_csv(csv, mode="a", header=False, index=False)
-    else:
-        df_new.to_csv(csv, index=False)
+    # Append to CSV; a failed cache write must not lose the fetched data
+    try:
+        if os.path.exists(csv):
+            df_new.to_csv(csv, mode="a", header=False, index=False)
+        else:
+            df_new.to_csv(csv, index=False)
+    except OSError:
+        pass
 
     return _enrich(df_new)
 
 
 def get_latest_forecast(warehouse_id: str) -> pd.DataFrame | None:
     """Return most recently fetched 8-day forecast from CSV."""
-    csv = _csv_path(warehouse_id)
-    if not os.path.exists(csv):
-        return None
-    df = pd.read_csv(csv)
-    if df.empty:
+    df = _read_cached(warehouse_id)
+    if df is None:
         return None
     latest_date = df["fetch_date"].max()
     return _enrich(df[df["fetch_date"] == latest_date])
