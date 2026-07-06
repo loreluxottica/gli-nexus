@@ -21,6 +21,6 @@ env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: "sql-warehouse"       # app resource key (SQL warehouse, "Can use")
   - name: MAPBOX_TOKEN
-    valueFrom: "mapbox-token"        # app resource key -> secret kelly/mapbox_token
+    valueFrom: "secret"              # app resource key -> secret kelly/mapbox_token
   - name: MAPBOX_STYLE
     value: "mapbox://styles/eyetechroomradar/cljwwv07z026501pk33kp1g93"

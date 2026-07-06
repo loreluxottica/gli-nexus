@@ -93,7 +93,7 @@ traffico verso di esso.
    folder. Per i redeploy: pull della Git folder + Deploy.
 3. **Risorse app** (opzionali finché si usa il mock):
    - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*);
-   - secret con resource key `mapbox-token` (token Mapbox).
+   - secret con resource key `secret` → `kelly/mapbox_token` (token Mapbox).
    Poi decommenta le voci `valueFrom` corrispondenti in `app.yaml`.
 4. **Dati reali**: concedi al service principal dell'app `USE CATALOG` su
    `sbx-logistics` e `USE SCHEMA` + `SELECT` sullo schema `kelly`. Le tabelle
