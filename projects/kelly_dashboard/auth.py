@@ -28,6 +28,8 @@ _FAIL_TTL_S = 30
 
 # email -> (fetched_at, scopes). scopes None = lookup failed.
 _cache: dict[str, tuple[float, frozenset[str] | None]] = {}
+# email -> (fetched_at, projects). Same semantics.
+_projects_cache: dict[str, tuple[float, frozenset[str] | None]] = {}
 _lock = threading.Lock()
 
 
@@ -68,7 +70,7 @@ def _query_scopes(email: str) -> frozenset[str] | None:
     http_path = _sql_http_path()
     if not table or not http_path:
         return None
-    project = os.environ.get("KELLY_PROJECT_KEY", "kelly").strip().lower()
+    project = os.environ.get("KELLY_PROJECT_KEY", "KELLY").strip().lower()
     try:
         from databricks import sql as dbsql
 
@@ -87,23 +89,53 @@ def _query_scopes(email: str) -> frozenset[str] | None:
         return None
 
 
-def get_user_scopes(email: str) -> frozenset[str] | None:
-    email = email.strip().lower()
+def _query_projects(email: str) -> frozenset[str] | None:
+    """All project keys granted to this user (uppercase, may include '*')."""
+    table = _access_table()
+    http_path = _sql_http_path()
+    if not table or not http_path:
+        return None
+    try:
+        from databricks import sql as dbsql
+
+        with dbsql.connect(
+            http_path=http_path, **_sql_connect_kwargs()
+        ) as conn, conn.cursor() as cur:
+            cur.execute(
+                f"SELECT DISTINCT upper(trim(project)) FROM {table} "
+                f"WHERE lower(trim(user_email)) = :email",
+                {"email": email},
+            )
+            return frozenset(r[0] for r in cur.fetchall() if r[0])
+    except Exception:
+        _log.exception("Project lookup failed for %s", email)
+        return None
+
+
+def _cached_lookup(email, cache, query):
     now = time.time()
     with _lock:
-        hit = _cache.get(email)
+        hit = cache.get(email)
     if hit is not None:
-        ts, scopes = hit
-        if now - ts < (_TTL_S if scopes is not None else _FAIL_TTL_S):
-            return scopes
-    fresh = _query_scopes(email)
+        ts, value = hit
+        if now - ts < (_TTL_S if value is not None else _FAIL_TTL_S):
+            return value
+    fresh = query(email)
     if fresh is None and hit is not None and hit[1] is not None:
-        # Lookup outage: keep serving the last good scopes instead of locking
+        # Lookup outage: keep serving the last good value instead of locking
         # everyone out; the failed attempt is not cached.
         return hit[1]
     with _lock:
-        _cache[email] = (now, fresh)
+        cache[email] = (now, fresh)
     return fresh
+
+
+def get_user_scopes(email: str) -> frozenset[str] | None:
+    return _cached_lookup(email.strip().lower(), _cache, _query_scopes)
+
+
+def get_user_projects(email: str) -> frozenset[str] | None:
+    return _cached_lookup(email.strip().lower(), _projects_cache, _query_projects)
 
 
 def is_authorized(warehouse_id: str) -> bool:

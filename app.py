@@ -45,6 +45,22 @@ def healthz():
     return "ok", 200
 
 
+@root.route("/api/my-access")
+def my_access():
+    """Project grants of the current user, read from the central access
+    table (see kelly_dashboard.auth). The portal uses this to enable or
+    restrict its cards. ["*"] = everything; [] = nothing / lookup failed."""
+    from kelly_dashboard import auth
+
+    email = auth.get_current_email()
+    if email is None:
+        # No identity: dev run gets everything, deployed gets nothing.
+        projects = ["*"] if not auth._in_databricks_app() else []
+    else:
+        projects = sorted(auth.get_user_projects(email) or [])
+    return {"projects": projects}
+
+
 # ---- Mount sub-projects ----------------------------------------------------
 # Each project's Dash app must be created with a matching *_URL_PREFIX so its
 # assets/routes resolve under the subpath. Set the env var BEFORE importing.

@@ -142,8 +142,17 @@ DELETE FROM `sbx-logistics`.gli_nexus.user_access
 
 Le modifiche si propagano senza redeploy (cache TTL ~3 min, env
 `KELLY_AUTH_TTL_S`). Env: `GLI_ACCESS_TABLE` (default
-`sbx-logistics.gli_nexus.user_access`), `KELLY_PROJECT_KEY` (default `kelly`),
+`sbx-logistics.gli_nexus.user_access`), `KELLY_PROJECT_KEY` (default `KELLY`),
 `KELLY_DEV_USER_EMAIL` (solo sviluppo locale, ignorata quando deployata).
+
+Chiavi progetto canoniche (colonna `project`): `KELLY`,
+`VOLUMESDATAENTRY`, `CORTANA`, `LAPLACE`, `*`.
+
+**Card del portale**: l'endpoint `/api/my-access` restituisce i progetti
+dell'utente; le card senza grant mostrano "Access restricted" (bottone
+disabilitato). ⚠ È solo UX: per le app esterne (es. Volume Data Entry)
+l'enforcement reale è il permesso *Can use* sull'app Databricks di
+destinazione — rimuoverlo agli utenti non autorizzati.
 
 ---
 
