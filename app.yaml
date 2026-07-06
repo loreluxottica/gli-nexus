@@ -20,6 +20,7 @@ env:
     value: "sbx-logistics.kelly"     # per-warehouse tables mapped in warehouses.py
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: "sql-warehouse"       # app resource key (SQL warehouse, "Can use")
-  # Uncomment once the secret resource exists:
-  # - name: MAPBOX_TOKEN
-  #   valueFrom: "mapbox-token"      # app resource key (secret)
+  - name: MAPBOX_TOKEN
+    valueFrom: "mapbox-token"        # app resource key -> secret kelly/mapbox_token
+  - name: MAPBOX_STYLE
+    value: "mapbox://styles/eyetechroomradar/cljwwv07z026501pk33kp1g93"
