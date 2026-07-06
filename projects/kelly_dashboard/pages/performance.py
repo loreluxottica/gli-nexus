@@ -2,6 +2,7 @@ from __future__ import annotations
 import pandas as pd
 from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
+import kelly_dashboard.auth as auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.data_loader as data_loader
 from kelly_dashboard.warehouses import WAREHOUSES
@@ -99,7 +100,7 @@ def register_callbacks(app):
         Input("perf-warehouse-id", "data"),
     )
     def populate_controls(warehouse_id):
-        if not warehouse_id:
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:
@@ -117,7 +118,7 @@ def register_callbacks(app):
         Input("perf-week-dd", "value"),
     )
     def update_chart(warehouse_id, area_val, month_val, week_val):
-        if not warehouse_id:
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:

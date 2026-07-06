@@ -8,7 +8,8 @@ if _ROOT not in sys.path:
 import threading
 import dash
 from dash import html, dcc, Input, Output
-from kelly_dashboard.pages import forecast, landing
+from kelly_dashboard.pages import denied, forecast, landing
+import kelly_dashboard.auth as auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.weather_loader as weather_loader
 from kelly_dashboard.warehouses import WAREHOUSES
@@ -68,17 +69,13 @@ def route(pathname: str):
         return landing.layout()
 
     parts = [p for p in pathname.split("/") if p]
-    # /forecast/<warehouse_id>
-    if len(parts) >= 2 and parts[0] == "forecast":
-        return forecast.layout(warehouse_id=parts[1])
-    # /performance/<warehouse_id>
-    if len(parts) >= 2 and parts[0] == "performance":
-        return performance.layout(warehouse_id=parts[1])
-    # /forecast (no id) → default columbus
-    if parts and parts[0] == "forecast":
-        return forecast.layout()
-    if parts and parts[0] == "performance":
-        return performance.layout()
+    # /forecast[/<warehouse_id>] and /performance[/<warehouse_id>]
+    if parts and parts[0] in ("forecast", "performance"):
+        warehouse_id = parts[1] if len(parts) >= 2 else "columbus"
+        if not auth.is_authorized(warehouse_id):
+            return denied.layout(warehouse_id)
+        page = forecast if parts[0] == "forecast" else performance
+        return page.layout(warehouse_id=warehouse_id)
 
     return landing.layout()
 

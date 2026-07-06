@@ -118,6 +118,33 @@ Schema atteso delle tabelle: `ds` (timestamp), `ID` (area/turno), `Actual`,
 Se il warehouse SQL non è configurato o la query fallisce, l'app degrada a
 dati mock generati (nessun crash).
 
+### Autorizzazioni utente (user scopes)
+
+Tabella centrale per tutti i progetti GLI Nexus:
+`sbx-logistics.gli_nexus.user_access (user_email, project, scope)` — una riga
+per grant, più righe per utente. `project` = `kelly`, `vde`, … o `*`;
+`scope` = `*` oppure valore specifico del progetto (per Kelly: `COLUMBUS`,
+`ATLANTA`, `DALLAS`, `SEDICO`, `TIJUANA`). Utente senza righe ⇒ **negato**
+(modal "Access restricted" al click sul plant). Identità dall'header
+`X-Forwarded-Email` iniettato dal proxy Databricks Apps.
+
+```sql
+-- dare a un utente il plant Atlanta su Kelly
+INSERT INTO `sbx-logistics`.gli_nexus.user_access VALUES
+  ('user1@luxottica.com', 'kelly', 'ATLANTA');
+-- admin di Kelly (tutti i plant)
+INSERT INTO `sbx-logistics`.gli_nexus.user_access VALUES
+  ('user2@luxottica.com', 'kelly', '*');
+-- revoca
+DELETE FROM `sbx-logistics`.gli_nexus.user_access
+  WHERE user_email = 'user1@luxottica.com' AND project = 'kelly';
+```
+
+Le modifiche si propagano senza redeploy (cache TTL ~3 min, env
+`KELLY_AUTH_TTL_S`). Env: `GLI_ACCESS_TABLE` (default
+`sbx-logistics.gli_nexus.user_access`), `KELLY_PROJECT_KEY` (default `kelly`),
+`KELLY_DEV_USER_EMAIL` (solo sviluppo locale, ignorata quando deployata).
+
 ---
 
 ## Aggiungere un nuovo progetto

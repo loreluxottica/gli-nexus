@@ -3,6 +3,7 @@ import pandas as pd
 import dash
 from dash import html, dcc, Input, Output, State, dash_table
 from dash.exceptions import PreventUpdate
+import kelly_dashboard.auth as auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.data_loader as data_loader
 import kelly_dashboard.weather_loader as weather_loader
@@ -207,7 +208,7 @@ def register_callbacks(app):
         Input("fct-warehouse-id", "data"),
     )
     def update_weather(warehouse_id):
-        if not warehouse_id:
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
             return build_weather_strip(None)
         df = weather_loader.fetch_and_store(warehouse_id)
         return build_weather_strip(df)
@@ -217,7 +218,10 @@ def register_callbacks(app):
         Input("fct-warehouse-id", "data"),
     )
     def update_holidays(warehouse_id):
-        holidays = holidays_loader.get_upcoming_holidays(warehouse_id or "columbus")
+        warehouse_id = warehouse_id or "columbus"
+        if not auth.is_authorized(warehouse_id):
+            raise PreventUpdate
+        holidays = holidays_loader.get_upcoming_holidays(warehouse_id)
         return build_holidays_panel(holidays)
 
     @app.callback(
@@ -230,7 +234,7 @@ def register_callbacks(app):
         Input("fct-warehouse-id", "data"),
     )
     def populate_controls(warehouse_id):
-        if not warehouse_id:
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:
@@ -249,7 +253,7 @@ def register_callbacks(app):
         State("fct-area-table", "data"),
     )
     def update_chart(warehouse_id, area_val, month_val, week_val, selected_rows, table_data):
-        if not warehouse_id:
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:
