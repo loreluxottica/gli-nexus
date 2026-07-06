@@ -35,8 +35,10 @@ def _mock_ids_for(warehouse_id: str, rng: np.random.Generator) -> list[str]:
 
 
 def load_data(warehouse_id: str) -> pd.DataFrame | None:
-    if warehouse_id in _cache:
-        return _cache[warehouse_id]
+    # Key by day so a long-lived process picks up fresh data after midnight
+    cache_key = f"{warehouse_id}:{pd.Timestamp.today():%Y-%m-%d}"
+    if cache_key in _cache:
+        return _cache[cache_key]
 
     if config.DATA_SOURCE == "excel":
         df = _load_excel(warehouse_id)
@@ -54,7 +56,7 @@ def load_data(warehouse_id: str) -> pd.DataFrame | None:
         df["Date"] = pd.to_datetime(df["Date"])
         df["Year"] = df["Date"].dt.year
         df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
-        _cache[warehouse_id] = df
+        _cache[cache_key] = df
 
     return df
 
@@ -85,41 +87,61 @@ def _sql_http_path() -> str | None:
     return f"/sql/1.0/warehouses/{wh_id}" if wh_id else None
 
 
-# Identifiers can't be bound as query parameters, so table/column names coming
-# from the environment are validated against this pattern before interpolation.
-_IDENTIFIER_RE = re.compile(r"[A-Za-z0-9_.`]+")
+# Identifiers can't be bound as query parameters, so name parts coming from
+# the environment are validated and backtick-quoted before interpolation
+# (catalog names like "sbx-logistics" contain hyphens).
+_IDENTIFIER_PART_RE = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def _qualified_table(warehouse_id: str) -> str | None:
+    wh = get_warehouse(warehouse_id)
+    table = (wh or {}).get("table")
+    uc_schema = os.environ.get("KELLY_UC_SCHEMA", "sbx-logistics.kelly")
+    parts = uc_schema.split(".") + [table] if table else []
+    if len(parts) != 3 or not all(_IDENTIFIER_PART_RE.fullmatch(p) for p in parts):
+        _log.warning("Invalid UC identifiers: schema=%r table=%r", uc_schema, table)
+        return None
+    return ".".join(f"`{p}`" for p in parts)
+
+
+def _sql_connect_kwargs() -> dict:
+    """Auth for databricks-sql-connector across runtimes: Databricks Apps
+    (service-principal env creds), local PAT, or local CLI OAuth profile."""
+    from databricks.sdk.core import Config, oauth_service_principal
+
+    profile = os.environ.get("DATABRICKS_CONFIG_PROFILE")
+    cfg = Config(profile=profile) if profile else Config()
+    kwargs = {"server_hostname": cfg.host.removeprefix("https://")}
+    if cfg.client_id and cfg.client_secret:
+        kwargs["credentials_provider"] = lambda: oauth_service_principal(cfg)
+    elif cfg.token:
+        kwargs["access_token"] = cfg.token
+    else:
+        kwargs["credentials_provider"] = lambda: cfg.authenticate
+    return kwargs
 
 
 def _load_delta(warehouse_id: str) -> pd.DataFrame | None:
-    """Load from a Unity Catalog table via a Databricks SQL warehouse.
+    """Load a warehouse's forecast table from Unity Catalog via a SQL warehouse.
 
-    Returns None (=> caller falls back to mock data) when the connection is
-    not configured (KELLY_TABLE / warehouse path unset) or on any failure.
-    Auth relies on the service-principal credentials that Databricks Apps
-    inject automatically (DATABRICKS_HOST / CLIENT_ID / CLIENT_SECRET).
+    Returns None (=> caller falls back to mock data) when unconfigured
+    (no table mapped / no warehouse path) or on any failure.
     """
-    table = os.environ.get("KELLY_TABLE")  # e.g. catalog.schema.absenteeism
+    table = _qualified_table(warehouse_id)
     http_path = _sql_http_path()
     if not table or not http_path:
         return None
-    wh_col = os.environ.get("KELLY_WAREHOUSE_COLUMN", "Warehouse")
-    if not _IDENTIFIER_RE.fullmatch(table) or not _IDENTIFIER_RE.fullmatch(wh_col):
-        _log.warning("Rejected KELLY_TABLE=%r / KELLY_WAREHOUSE_COLUMN=%r", table, wh_col)
-        return None
     try:
         from databricks import sql as dbsql
-        from databricks.sdk.core import Config, oauth_service_principal
 
-        cfg = Config()
         with dbsql.connect(
-            server_hostname=cfg.host.removeprefix("https://"),
-            http_path=http_path,
-            credentials_provider=lambda: oauth_service_principal(cfg),
+            http_path=http_path, **_sql_connect_kwargs()
         ) as conn, conn.cursor() as cur:
+            # CAST strips the UTC timezone: the rest of the app works with
+            # naive dates (mock/excel parity)
             cur.execute(
-                f"SELECT Date, ID, Actual, Forecast, Forecast_Vintage "
-                f"FROM {table} WHERE {wh_col} = :wh",
-                {"wh": warehouse_id},
+                f"SELECT CAST(ds AS DATE) AS Date, ID, Actual, Forecast, "
+                f"Forecast_Vintage FROM {table}"
             )
             df = cur.fetchall_arrow().to_pandas()
         return df if not df.empty else None

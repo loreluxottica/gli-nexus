@@ -1,6 +1,7 @@
 WAREHOUSES = [
     {
         "id": "columbus",
+        "table": "kelly_col_forecast",
         "label": "Columbus",
         "city": "Columbus, OH",
         "lat": 39.961,
@@ -9,6 +10,7 @@ WAREHOUSES = [
     },
     {
         "id": "atlanta",
+        "table": "kelly_atl_forecast",
         "label": "Atlanta",
         "city": "Atlanta, GA",
         "lat": 33.749,
@@ -17,6 +19,7 @@ WAREHOUSES = [
     },
     {
         "id": "dallas",
+        "table": "kelly_da_forecast",
         "label": "Dallas",
         "city": "Dallas, TX",
         "lat": 32.776,
@@ -25,6 +28,7 @@ WAREHOUSES = [
     },
     {
         "id": "sedico",
+        "table": "kelly_it_forecast",
         "label": "Sedico",
         "city": "Sedico, Italy",
         "lat": 46.117,
@@ -33,6 +37,7 @@ WAREHOUSES = [
     },
     {
         "id": "tijuana",
+        "table": "kelly_mx_forecast",
         "label": "Tijuana",
         "city": "Tijuana, MX",
         "lat": 32.514,

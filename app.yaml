@@ -16,13 +16,10 @@ command:
 env:
   - name: KELLY_DATA_SOURCE
     value: "delta"
-  - name: KELLY_WAREHOUSE_COLUMN
-    value: "Warehouse"
-  # Fill/uncomment once the real table and app resources exist.
-  # Empty/missing values keep the app on generated mock data.
-  # - name: KELLY_TABLE
-  #   value: "catalog.schema.absenteeism"
-  # - name: DATABRICKS_WAREHOUSE_ID
-  #   valueFrom: "sql-warehouse"     # app resource key (SQL warehouse)
+  - name: KELLY_UC_SCHEMA
+    value: "sbx-logistics.kelly"     # per-warehouse tables mapped in warehouses.py
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: "sql-warehouse"       # app resource key (SQL warehouse, "Can use")
+  # Uncomment once the secret resource exists:
   # - name: MAPBOX_TOKEN
   #   valueFrom: "mapbox-token"      # app resource key (secret)

@@ -95,27 +95,28 @@ traffico verso di esso.
    - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*);
    - secret con resource key `mapbox-token` (token Mapbox).
    Poi decommenta le voci `valueFrom` corrispondenti in `app.yaml`.
-4. **Dati reali**: quando la tabella esiste, concedi al service principal
-   dell'app `USE CATALOG` / `USE SCHEMA` / `SELECT`, imposta `KELLY_TABLE` in
-   `app.yaml`, commit + redeploy.
+4. **Dati reali**: concedi al service principal dell'app `USE CATALOG` su
+   `sbx-logistics` e `USE SCHEMA` + `SELECT` sullo schema `kelly`. Le tabelle
+   per-plant (`kelly_col_forecast`, `kelly_atl_forecast`, …) sono mappate in
+   `projects/kelly_dashboard/warehouses.py`.
 
 ### Variabili d'ambiente
 
 | Variabile | Default | Descrizione |
 |---|---|---|
-| `KELLY_DATA_SOURCE` | `excel` in locale, `delta` su Databricks (auto) | Sorgente dati: `excel` (xlsx locale, fallback mock) o `delta` (tabella UC) |
-| `KELLY_TABLE` | — | Tabella Unity Catalog `catalog.schema.table`. Vuota ⇒ mock |
-| `KELLY_WAREHOUSE_COLUMN` | `Warehouse` | Colonna che filtra il plant (`columbus`, `atlanta`, …) |
+| `KELLY_DATA_SOURCE` | `excel` in locale, `delta` su Databricks (auto) | Sorgente dati: `excel` (xlsx locale, fallback mock) o `delta` (tabelle UC) |
+| `KELLY_UC_SCHEMA` | `sbx-logistics.kelly` | Catalog.schema delle tabelle per-plant (nomi tabella in `warehouses.py`) |
 | `DATABRICKS_WAREHOUSE_ID` | — | ID SQL warehouse (via resource `valueFrom`) |
 | `KELLY_SQL_HTTP_PATH` | — | Alternativa esplicita all'ID warehouse (http path completo) |
+| `DATABRICKS_CONFIG_PROFILE` | — | Solo sviluppo locale: profilo CLI per auth OAuth/PAT |
 | `MAPBOX_TOKEN`, `MAPBOX_STYLE` | `""` | Token pubblico Mapbox per il globo (vedi `.env.example`) |
 | `KELLY_URL_PREFIX` | `/kelly/` | Prefix di mount di Project Kelly (impostato da `app.py`) |
 | `WEATHER_CACHE_DIR` | `projects/kelly_dashboard/weather_data` | Dir cache meteo; se non scrivibile si usa la temp dir |
 
-Schema atteso della tabella dati: `Date`, `ID` (area/turno), `Actual`,
-`Forecast`, `Forecast_Vintage`, più la colonna plant (`KELLY_WAREHOUSE_COLUMN`).
-Se `KELLY_TABLE` è vuota o la query fallisce, l'app degrada a dati mock
-generati (nessun crash).
+Schema atteso delle tabelle: `ds` (timestamp), `ID` (area/turno), `Actual`,
+`Forecast`, `Forecast_Vintage` (`ds` viene alias-ata a `Date` nella query).
+Se il warehouse SQL non è configurato o la query fallisce, l'app degrada a
+dati mock generati (nessun crash).
 
 ---
 
