@@ -19,11 +19,25 @@ FONT_DATA = "'Avenir LT Std', 'Segoe UI', monospace"
 import os
 
 
+def _find_env() -> str | None:
+    """Search upward from this file for a .env, so secrets load whether Kelly
+    runs standalone or mounted under the GLI Nexus portal (nested one level
+    deeper). Returns the first .env found, else None."""
+    d = os.path.dirname(os.path.abspath(__file__))
+    while True:
+        candidate = os.path.join(d, ".env")
+        if os.path.exists(candidate):
+            return candidate
+        parent = os.path.dirname(d)
+        if parent == d:            # reached filesystem root
+            return None
+        d = parent
+
+
 def _load_env() -> None:
-    """Minimal .env loader (repo root) so secrets stay out of source control."""
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    env_path = os.path.join(root, ".env")
-    if not os.path.exists(env_path):
+    """Minimal .env loader so secrets stay out of source control."""
+    env_path = _find_env()
+    if not env_path:
         return
     with open(env_path, encoding="utf-8") as fh:
         for line in fh:

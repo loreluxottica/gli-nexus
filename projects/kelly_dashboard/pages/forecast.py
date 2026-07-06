@@ -1,5 +1,6 @@
 from __future__ import annotations
 import pandas as pd
+import dash
 from dash import html, dcc, Input, Output, State, dash_table
 from dash.exceptions import PreventUpdate
 import kelly_dashboard.theme as theme
@@ -97,18 +98,18 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
 
     return html.Div([
         html.Div([
-            html.Img(src="/assets/logo.svg", className="sidebar-logo-img", alt="EssilorLuxottica"),
+            html.Img(src=dash.get_asset_url("logo.svg"), className="sidebar-logo-img", alt="EssilorLuxottica"),
             html.Div("PROJECT KELLY", className="sidebar-logo-title"),
             html.Div(wh_label, className="sidebar-logo-sub"),
         ], className="sidebar-logo"),
         html.Div("NAVIGATION", className="sidebar-section-label"),
         dcc.Link([html.Span(className="sidebar-dot"), " Forecast"],
-                 href=f"/forecast/{warehouse_id}",
+                 href=dash.get_relative_path(f"/forecast/{warehouse_id}"),
                  className=f"sidebar-nav-item {'active' if active_page == 'forecast' else ''}"),
         dcc.Link([html.Span(className="sidebar-dot"), " Performance"],
-                 href=f"/performance/{warehouse_id}",
+                 href=dash.get_relative_path(f"/performance/{warehouse_id}"),
                  className=f"sidebar-nav-item {'active' if active_page == 'performance' else ''}"),
-        html.Div(html.A("← Back to Globe", href="/"), className="sidebar-back"),
+        html.Div(html.A("← Back to Globe", href=dash.get_relative_path("/")), className="sidebar-back"),
     ], className="sidebar")
 
 

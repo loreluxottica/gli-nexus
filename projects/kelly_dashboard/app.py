@@ -27,6 +27,10 @@ threading.Thread(target=_prefetch_weather, daemon=True).start()
 
 _MGL = "v3.6.0"  # Mapbox GL JS (globe projection needs >= v2.9)
 
+# URL prefix for subpath mounting under the GLI Nexus portal (e.g. "/kelly/").
+# Defaults to "/" so `python app.py` still runs the app standalone at the root.
+_PREFIX = _os.environ.get("KELLY_URL_PREFIX", "/")
+
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -34,6 +38,13 @@ app = dash.Dash(
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     external_scripts=[f"https://api.mapbox.com/mapbox-gl-js/{_MGL}/mapbox-gl.js"],
     external_stylesheets=[f"https://api.mapbox.com/mapbox-gl-js/{_MGL}/mapbox-gl.css"],
+    # requests_pathname_prefix = external URL prefix (browser + asset URLs).
+    # routes_pathname_prefix = where Flask registers routes. When mounted under
+    # the GLI Nexus DispatcherMiddleware, the "/kelly" mount is already stripped
+    # from PATH_INFO, so Flask must serve at "/" — not at _PREFIX (that caused a
+    # 404 on "/kelly/"). Dash requires requests to end with routes ("/kelly/" → "/").
+    requests_pathname_prefix=_PREFIX,
+    routes_pathname_prefix="/",
 )
 server = app.server  # for Databricks Apps
 
@@ -48,6 +59,11 @@ app.layout = html.Div([
     Input("url", "pathname"),
 )
 def route(pathname: str):
+    # Strip the mount prefix so routing works both standalone ("/") and when
+    # mounted under a subpath (e.g. "/kelly/") by the GLI Nexus portal.
+    if pathname and _PREFIX != "/" and pathname.startswith(_PREFIX.rstrip("/")):
+        pathname = pathname[len(_PREFIX.rstrip("/")):]
+
     if not pathname or pathname == "/":
         return landing.layout()
 

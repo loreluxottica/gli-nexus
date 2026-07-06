@@ -614,6 +614,20 @@ body {
     -webkit-backdrop-filter: blur(16px);
 }
 
+.globe-portal-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    color: var(--el-silver);
+    font-size: 12px;
+    letter-spacing: 0.4px;
+    text-decoration: none;
+    opacity: 0.75;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+.globe-portal-link:hover { color: #FFFFFF; opacity: 1; }
+
 /* ── Mapbox globe ───────────────────────────────────────── */
 .mapbox-globe {
     flex: 1;

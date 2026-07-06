@@ -52,7 +52,7 @@ window.dash_clientside.mapboxGlobe = {
             d.addEventListener("mouseleave", function () { popup.remove(); });
             d.addEventListener("click", function (e) {
                 e.stopPropagation();
-                window.location.href = "/forecast/" + w.id;
+                window.location.href = (cfg.prefix || "/") + "forecast/" + w.id;
             });
         });
 

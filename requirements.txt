@@ -1,0 +1,7 @@
+# GLI Nexus — root deps (unified server) + all sub-project deps.
+flask>=3.0
+werkzeug>=3.0
+gunicorn>=21.2
+
+# Sub-projects
+-r projects/kelly_dashboard/requirements.txt

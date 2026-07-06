@@ -1,16 +1,24 @@
 from __future__ import annotations
+import dash
 from dash import html, dcc, Input, Output, ClientsideFunction
 import kelly_dashboard.theme as theme
 from kelly_dashboard.warehouses import WAREHOUSES
 
 
 def layout() -> html.Div:
+    # Portal lives at the site root ("/"), above the "/kelly/" mount. Only show
+    # the back-to-portal link when actually mounted (prefix != "/"), not in
+    # standalone mode where "/" is the globe itself.
+    mounted = dash.get_relative_path("/") != "/"
+
     return html.Div([
         dcc.Location(id="landing-url", refresh=True),
 
         html.Div([
             html.Div([
-                html.Img(src="/assets/logo.svg", className="globe-logo-img", alt="EssilorLuxottica"),
+                (html.A("← All Projects", href="/", className="globe-portal-link")
+                 if mounted else None),
+                html.Img(src=dash.get_asset_url("logo.svg"), className="globe-logo-img", alt="EssilorLuxottica"),
                 html.Div("PROJECT KELLY", className="globe-title"),
                 html.Div("ABSENTEEISM FORECAST INTELLIGENCE SYSTEM", className="globe-subtitle"),
             ]),
@@ -36,6 +44,7 @@ def layout() -> html.Div:
             "token": theme.MAPBOX_TOKEN,
             "style": theme.MAPBOX_STYLE,
             "warehouses": WAREHOUSES,
+            "prefix": dash.get_relative_path("/"),
         }),
         html.Div(id="globe-dummy", style={"display": "none"}),
 
