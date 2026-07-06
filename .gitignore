@@ -23,13 +23,20 @@ node_modules/
 /400
 /500
 
-# Vendor / reference frontend builds (not part of the dashboard; bundles contain
+# Vendor / reference frontend builds (not part of the app; bundles contain
 # a hardcoded Mapbox token, so they are excluded from the repo)
-luxottica-package/
-monitor_codice/
+reference/
+
+# Dev agent tooling (not app code)
+.agents/
+.claude/
+
+# Real data files must never be committed
+*.xlsx
 
 # OS / editor
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+*.code-workspace
