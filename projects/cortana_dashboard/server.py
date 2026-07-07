@@ -210,18 +210,21 @@ def _render(data: dict) -> str:
     last_update = loaded.strftime("%d %b %Y %H:%M UTC") if loaded else "—"
 
     with open(os.path.join(_DIR, "cortana.html"), encoding="utf-8") as f:
-        template = f.read()
-    body = template.format(
-        last_update=last_update,
-        total_messages=total_messages,
-        total_users=total_users,
-        total_queries=total_queries,
-        total_spaces=total_spaces,
-        chart_json=chart_json,
-        space_bars_html="".join(space_bars),
-        legend_html=legend,
-        user_rows_html="".join(user_rows),
-    )
+        body = f.read()
+    # The template is valid standalone HTML with __TOKEN__ placeholders
+    # (keeps IDE/linters happy — no str.format brace escaping).
+    for token, value in {
+        "__LAST_UPDATE__": last_update,
+        "__TOTAL_MESSAGES__": f"{total_messages:,}",
+        "__TOTAL_USERS__": f"{total_users:,}",
+        "__TOTAL_QUERIES__": f"{total_queries:,}",
+        "__TOTAL_SPACES__": str(total_spaces),
+        "__CHART_JSON__": chart_json,
+        "__SPACE_BARS__": "".join(space_bars),
+        "__LEGEND__": legend,
+        "__USER_ROWS__": "".join(user_rows),
+    }.items():
+        body = body.replace(token, value)
     return _page(body)
 
 
