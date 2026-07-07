@@ -18,10 +18,13 @@ gli-nexus/
 ├── portal/
 │   └── gli_nexus_portal.html   ← front-end (coverflow launcher)
 ├── projects/
-│   └── kelly_dashboard/   ← Project Kelly — forecast assenteismo (Dash)
-│       ├── app.py         ← app Dash (standalone o montata a subpath)
-│       ├── requirements.txt
-│       ├── pages/ components/ assets/ ...
+│   ├── kelly_dashboard/   ← Project Kelly — forecast assenteismo (Dash)
+│   │   ├── app.py         ← app Dash (standalone o montata a subpath)
+│   │   ├── requirements.txt
+│   │   ├── pages/ components/ assets/ ...
+│   └── cortana_dashboard/ ← Cortana Usage Monitor (HTML + render server-side)
+│       ├── server.py      ← blueprint Flask: /cortana/ (gated, project CORTANA)
+│       └── cortana.html   ← template str.format (Chart.js, tema neon)
 └── reference/             ← materiale frontend di riferimento (gitignored)
 ```
 
@@ -153,6 +156,11 @@ dell'utente; le card senza grant mostrano "Access restricted" (bottone
 disabilitato). ⚠ È solo UX: per le app esterne (es. Volume Data Entry)
 l'enforcement reale è il permesso *Can use* sull'app Databricks di
 destinazione — rimuoverlo agli utenti non autorizzati.
+
+**Cortana Usage Monitor** (`/cortana/`): legge
+`sbx-logistics.gli_nexus.cortana_usage` (env `CORTANA_USAGE_TABLE`), cache
+5 min (`CORTANA_CACHE_TTL_S`). Pagina gated dal progetto `CORTANA` nella
+tabella accessi (403 con box "Access restricted" altrimenti).
 
 ---
 

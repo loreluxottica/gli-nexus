@@ -66,6 +66,9 @@ def my_access():
 # assets/routes resolve under the subpath. Set the env var BEFORE importing.
 os.environ.setdefault("KELLY_URL_PREFIX", "/kelly/")
 from kelly_dashboard.app import server as kelly_server  # noqa: E402
+from cortana_dashboard.server import bp as cortana_bp  # noqa: E402
+
+root.register_blueprint(cortana_bp, url_prefix="/cortana")
 
 MOUNTS = {
     "/kelly": kelly_server,
