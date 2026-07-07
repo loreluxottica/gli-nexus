@@ -74,7 +74,8 @@ def _query() -> dict | None:
                 for r in cur.fetchall()
             ]
             cur.execute(f"SELECT MAX(_loaded_at) FROM {table}")
-            loaded = cur.fetchone()[0]
+            row = cur.fetchone()
+            loaded = row[0] if row and len(row) > 0 and row[0] is not None else None
         return {"rows": rows, "loaded_at": loaded}
     except Exception:
         _log.exception("Cortana usage query failed")
