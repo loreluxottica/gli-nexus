@@ -211,7 +211,7 @@ def register_callbacks(app):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             return build_weather_strip(None)
         df = weather_loader.fetch_and_store(warehouse_id)
-        return build_weather_strip(df)
+        return build_weather_strip(df, warehouse_id)
 
     @app.callback(
         Output("fct-holidays-panel", "children"),
