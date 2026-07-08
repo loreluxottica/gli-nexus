@@ -1,0 +1,57 @@
+/* Underline tabs on a light frosted bar (continues the masthead). */
+.pagetabs {
+  position: fixed;
+  top: var(--top-h);
+  left: 0;
+  right: 0;
+  height: var(--tabs-h);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
+  z-index: var(--z-pagetabs);
+}
+
+.pagetab {
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 0 22px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--ink-faint);
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color var(--dur-micro);
+}
+
+.pagetab::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 0;
+  height: 2px;
+  background: transparent;
+  transition: background 0.18s;
+}
+
+.pagetab:hover {
+  color: var(--ink);
+}
+
+.active {
+  color: var(--accent-deep);
+}
+
+.active::after {
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+}

@@ -1,0 +1,54 @@
+/* Light segmented control — recessed track, ultramarine active segment. */
+.areatabs {
+  justify-self: center;
+  display: flex;
+  gap: 2px;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  position: relative;
+}
+
+.areatab {
+  border: 0;
+  background: transparent;
+  padding: 6px 17px;
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  color: var(--on-night-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-micro), background var(--dur-micro),
+    box-shadow var(--dur-micro);
+}
+
+.areatab:hover {
+  color: var(--on-night);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.active,
+.active:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px var(--accent-glow);
+}
+
+@media (max-width: 900px) {
+  /* Full-width, horizontally scrollable on mobile (placed on row 2 by Masthead). */
+  .areatabs {
+    justify-self: stretch;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .areatabs::-webkit-scrollbar {
+    display: none;
+  }
+}

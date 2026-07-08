@@ -1,0 +1,239 @@
+/* Content V2 table — augmented, low-density: one market/metric at a time, with
+   a paired YoY bar + sparkline replacing the 12 raw number columns. */
+.wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.wrap::-webkit-scrollbar { height: 9px; width: 9px; }
+.wrap::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 9px; }
+.wrap::-webkit-scrollbar-track { background: transparent; }
+
+/* Accounting perimeter: recolour the frame amber (+ soft halo) so the current
+   selection is unmistakable at a glance. Matches the amber accounting button. */
+.wrapAcct {
+  border-color: var(--cat-amber-ink);
+  border-width: 2px;
+  box-shadow: 0 0 0 4px var(--cat-amber-surface);
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13px;
+}
+.table th,
+.table td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.table tbody tr { transition: box-shadow 0.12s; }
+
+/* Per-category pastel band (same two-azure scheme as the V1 table for
+   continuity); every cell inherits it so the row reads as one zone. */
+.table tbody td { background: var(--row-tint, var(--surface)); }
+.catType1 { --row-tint: #EDF3FA; }
+.catType2 { --row-tint: #DCE8F5; }
+.table tbody tr:hover td { box-shadow: inset 0 0 0 999px rgba(21, 33, 46, 0.045); }
+
+.table thead th {
+  background: var(--surface);
+  font-family: var(--mono), monospace;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.thHint {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* Row-columns | metrics separator (after Sub-category). */
+.table thead th:nth-child(2),
+.table tbody td:nth-child(2) { border-right: 1px solid var(--line); }
+
+.barCol { width: 220px; min-width: 200px; }
+.yoyCol { width: 96px; }
+.trendCol { width: 168px; }
+.covCol { width: 96px; padding-left: 10px; padding-right: 8px; }
+
+.num { font-variant-numeric: tabular-nums; }
+.cat { font-weight: 600; }
+.muted { color: var(--ink-faint); font-size: 12px; }
+
+/* Efficiency mode: the ratio bar is a button that opens the explorer. */
+.effBtn {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius);
+  padding: 4px 6px;
+  margin: -4px -6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background var(--dur-micro), border-color var(--dur-micro);
+}
+.effBtn:hover,
+.effBtn:focus-visible {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}
+.effRaw {
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.explore {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+
+/* YoY chip — coloured pill, glyph carries direction without colour. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+}
+.trendGlyph { font-size: 9px; }
+
+/* Any main-row YoY chip opens the metric explorer — same affordance family as
+   .effBtn; the ↗ hint fades in on hover / focus. */
+.chipBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius);
+  padding: 3px 7px;
+  margin: -3px -7px;
+  cursor: pointer;
+  font: inherit;
+}
+.chipBtn:hover,
+.chipBtn:focus-visible {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}
+.chipGo {
+  font-size: 10px;
+  color: var(--accent-deep);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.chipBtn:hover .chipGo,
+.chipBtn:focus-visible .chipGo { opacity: 1; }
+
+.pos { color: var(--pos); }
+.neg { color: var(--neg); }
+.muted.chip,
+.chip.muted { color: var(--ink-faint); }
+
+/* Expandable parent (Export Labs). */
+.expandable { cursor: pointer; }
+.chevBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.chev {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 10px;
+  width: 11px;
+  transition: transform 0.18s ease;
+}
+.chevOpen { transform: rotate(90deg); }
+
+/* Drill children. */
+.drillRow td {
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.drillSite {
+  padding-left: 32px !important;
+  color: var(--ink) !important;
+  font-weight: 500;
+  position: relative;
+}
+.drillSite::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-left: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/* Named LM flow highlight (Glassed Direct / Brille 24) — only meaningful under
+   the LM market in the EMEA scope. */
+.flowGlassed { --flow-bd: #1B41C2; }
+.flowBrille  { --flow-bd: #9A6A0A; }
+.flowSite { box-shadow: inset 4px 0 0 var(--flow-bd); }
+.flowPill {
+  display: inline-block;
+  margin-left: 9px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--flow-bd);
+  vertical-align: middle;
+}
+
+@media (max-width: 900px) {
+  .table th:first-child,
+  .table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    border-right: 1px solid var(--line-strong);
+  }
+  .table tbody td:first-child { background: var(--row-tint, var(--surface)); }
+  .table thead th:first-child { background: var(--surface); z-index: 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chev { transition: none; }
+}

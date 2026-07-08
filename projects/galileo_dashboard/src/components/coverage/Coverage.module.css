@@ -1,0 +1,381 @@
+/* ---- Hero ---- */
+.hero {
+  border-top: 2px solid var(--accent);
+}
+.heroHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.lede {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 82ch;
+  font-size: 13.5px;
+}
+.status {
+  font-size: 13px;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.status b {
+  color: var(--ink);
+}
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.dotActive {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ---- Map ---- */
+.mapPanel {
+  padding: 16px 20px 20px;
+}
+.mapBar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.mapTitle {
+  margin: 0;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.mapLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mapHost {
+  background: radial-gradient(120% 120% at 50% 0%, var(--map-canvas-1), var(--map-canvas-2));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  line-height: 0;
+  text-align: center;
+}
+.mapSkeleton {
+  height: 300px;
+  animation: shimmerMap 1.2s ease-in-out infinite;
+}
+@keyframes shimmerMap {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+
+/* The injected SVG uses global class names (.world-map, .region) — target them
+   from this module via :global so the dangerouslySetInnerHTML markup matches. */
+.mapHost :global(svg.world-map) {
+  display: inline-block;
+  width: auto;
+  height: 300px;
+  max-width: 100%;
+  vertical-align: top;
+}
+.mapHost :global(svg.world-map .ocean) {
+  fill: transparent;
+}
+.mapHost :global(svg.world-map .region path) {
+  fill: var(--map-land);
+  stroke: var(--map-stroke);
+  stroke-width: 0.4;
+  stroke-linejoin: round;
+  transition: fill 0.2s ease;
+  cursor: pointer;
+}
+.mapHost :global(svg.world-map .region[data-region="OTHER"] path) {
+  fill: var(--map-land-dim);
+  cursor: default;
+}
+.mapHost :global(svg.world-map .region.hover path) {
+  fill: var(--map-land-hover);
+}
+.mapHost :global(svg.world-map .region.dim path) {
+  fill: var(--map-land-dim);
+}
+/* Selected area — unmistakable solid accent fill + crisp deep stroke; wins
+   over .hover (declared later) so it persists after the click. */
+.mapHost :global(svg.world-map .region.active path) {
+  fill: var(--accent) !important;
+  stroke: var(--accent-deep);
+  stroke-width: 1;
+}
+.mapHost :global(svg.world-map .region:focus-visible) {
+  outline: none;
+}
+.mapHost :global(svg.world-map .region:focus-visible path) {
+  fill: var(--accent-bright);
+  stroke: var(--accent-deep);
+  stroke-width: 0.8;
+}
+
+/* ---- Coverage / efficiency block ---- */
+.covBlock {
+  padding: 20px 24px 16px;
+}
+.blockHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 14px;
+}
+.blockHead h3 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 19px;
+  letter-spacing: 0.2px;
+}
+.marker {
+  display: inline-block;
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+/* Products share one uniform marker colour (no per-product hue). */
+.covBlock[data-product] .marker { background: var(--accent); }
+.covBlock[data-area="EMEA"] .marker { background: var(--marker-emea); }
+.covBlock[data-area="LATAM"] .marker { background: var(--marker-latam); }
+.covBlock[data-area="APAC"] .marker { background: var(--marker-apac); }
+.covBlock[data-area="NA"] .marker { background: var(--marker-na); }
+
+/* ---- Efficiency table ---- */
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13px;
+}
+.table th,
+.table td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.table thead th {
+  background: var(--surface);
+  font-family: var(--mono), monospace;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line-strong);
+}
+.table tbody tr:hover {
+  background: var(--surface-2);
+}
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.table td.num {
+  font-family: var(--mono), monospace;
+}
+.firstCell {
+  font-weight: 600;
+}
+.covCell {
+  white-space: nowrap;
+}
+.chipArea {
+  min-width: 92px;
+  justify-content: center;
+}
+.chipProduct {
+  min-width: 144px;
+  justify-content: center;
+}
+
+/* tier columns */
+.lmhHead {
+  font-family: var(--mono), monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+}
+.headLow { background: var(--tier-low-bg); color: var(--tier-low-fg); }
+.headMid { background: var(--tier-mid-bg); color: var(--tier-mid-fg); }
+.headHigh { background: var(--tier-high-bg); color: var(--tier-high-fg); }
+.tier {
+  font-family: var(--mono), monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.low { background: var(--tier-low-cell); color: var(--tier-low-fg); }
+.mid { background: var(--tier-mid-cell); color: var(--tier-mid-fg); }
+.high { background: var(--tier-high-cell); color: var(--tier-high-fg); }
+.tierZero { color: var(--ink-faint); font-weight: 450; }
+.tierMuted { color: var(--ink-faint); font-weight: 450; background: var(--surface); }
+
+/* ---- Top sites ---- */
+.topSites {
+  padding: 18px 22px 20px;
+}
+.topHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.topHead h3 {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 18px;
+}
+.topArea {
+  color: var(--accent-deep);
+}
+.topSub {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.topGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: start;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--accent);
+}
+.rank1::before { background: linear-gradient(180deg, var(--accent-bright), var(--accent)); }
+.rank2::before { background: var(--rank-2); }
+.rank3::before { background: var(--rank-3); }
+.rankNum {
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.rank1 .rankNum { color: var(--accent); }
+.rank2 .rankNum { color: var(--rank-2); }
+.rank3 .rankNum { color: var(--rank-3); }
+.site {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  margin-bottom: 7px;
+}
+.ship {
+  font-size: 13px;
+  margin-bottom: 9px;
+  color: var(--ink);
+}
+.ship b {
+  font-family: var(--mono), monospace;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  margin-right: 5px;
+}
+.unit {
+  color: var(--ink-faint);
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.products {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.prodTag {
+  min-width: 0;
+}
+.share {
+  margin-top: 6px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+.shareHead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+.sharePct {
+  font-family: var(--mono), monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.shareLabel {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+.shareBar {
+  position: relative;
+  height: 5px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.shareBar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+  border-radius: 3px;
+}
+
+@media (max-width: 900px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+}

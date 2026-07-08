@@ -1,0 +1,235 @@
+/* ===================================================================
+ *  GALILEO — global tokens & base  ·  DAYLIGHT theme (light, single)
+ *  Direction: precision light fintech / "daylight instrument".
+ *  Cool-white canvas, pure-white panels with hairline grids, ONE
+ *  ultramarine accent, monospace numerics, pale categorical washes
+ *  with deep inks. Single light theme — no prefers-color-scheme block.
+ *  Source of truth: docs/design-system/MASTER.md §2.
+ *  Font family vars (--font-display / --font / --mono) are provided by
+ *  next/font in layout.tsx; --font-display is aliased to --font below.
+ * =================================================================== */
+
+:root {
+  /* --- Ink & surfaces (role names; values are light) --- */
+  --ink:        #15212E;   /* primary text (cool near-black) */
+  --ink-soft:   #51647A;   /* secondary text / muted labels */
+  --ink-faint:  #8295A9;   /* captions, tertiary, disabled */
+  --paper:      #F2F5F8;   /* page background (cool off-white) */
+  --surface:    #FFFFFF;   /* panels, cards */
+  --surface-2:  #F3F6FA;   /* hover / zebra */
+  --surface-3:  #E9EEF4;   /* sticky header / footer bands */
+  --line:        #E2E8EF;  /* hairline grid / borders */
+  --line-strong: #C3CEDA;  /* emphasis borders, scrollbar thumb */
+
+  /* --- Accent (single brand accent — ultramarine) --- */
+  --accent:        #2553E9;   /* base: bars, markers, active fill */
+  --accent-bright: #4F79F2;   /* highlights, gradient top */
+  --accent-deep:   #1B41C2;   /* accent TEXT / links on light */
+  --accent-tint:   #ECF1FE;   /* accent fill / wash on light */
+  --accent-glow:   rgba(37,83,233,.18);   /* focus ring glow */
+
+  /* --- Chrome (masthead / segmented controls) — light, same as canvas --- */
+  --night:    #FFFFFF;
+  --night-2:  #FBFCFE;
+  --night-ln: rgba(21,33,46,.10);   /* hairlines on chrome */
+  --on-night: #15212E;
+  --on-night-soft: #51647A;
+  --on-accent: #FFFFFF;          /* text on an ultramarine fill */
+
+  /* --- Semantic deltas --- */
+  --pos: #0E7A46;               /* positive YoY (up) */
+  --neg: #C62F2F;               /* negative YoY (down) */
+  --danger: #B91C1C;            /* error states */
+
+  /* --- Categorical hues (products / geos / markets) — pale surface,
+     deep ink, soft line. Five hues kept apart on white: azure / sage /
+     terracotta / plum / amber. "brass" tag tone maps to AMBER so it
+     stays distinct from sage-green and from the ultramarine accent. --- */
+  --cat-azure-surface: #E3EEF6; --cat-azure-ink: #19567C; --cat-azure-line: #C4DAE9; /* RX · EMEA · REP */
+  --cat-sage-surface:  #E2F0E6; --cat-sage-ink:  #1F6B40; --cat-sage-line:  #C2DECB; /* Stock Lenses · NA */
+  --cat-terra-surface: #FBE9E0; --cat-terra-ink: #A14318; --cat-terra-line: #EFCDBC; /* Finished Frames */
+  --cat-clay-surface:  #F7E6EE; --cat-clay-ink:  #97316B; --cat-clay-line:  #E8C6D8; /* LATAM */
+  --cat-amber-surface: #FCF0D7; --cat-amber-ink: #92600A; --cat-amber-line: #EFD9A8; /* GV Frames · APAC · LM */
+
+  /* --- Named LM flows (Export Labs drill highlight) --- */
+  --flow-glassed-tint: #E3EEF6; --flow-glassed-bd: #8DB9D9;
+  --flow-brille-tint:  #FCF0D7; --flow-brille-bd:  #D9B25E;
+
+  /* --- Saturated category markers (Coverage block stripes) --- */
+  --marker-rx:     #2E76A6;
+  --marker-stock:  #2F8A55;
+  --marker-frames: #C75A33;
+  --marker-gv:     #C9920E;
+  --marker-emea:   #3A66A8;
+  --marker-latam:  #B0488A;
+  --marker-apac:   #C9920E;
+  --marker-na:     #1F7A4D;
+
+  /* --- Map canvas (light) --- */
+  --map-canvas-1: #FFFFFF;
+  --map-canvas-2: #EFF4F9;
+  --map-land:       #D7E0EA;
+  --map-land-hover: #BCCBDB;
+  --map-land-dim:   #E9EEF4;
+  --map-stroke:     #FFFFFF;
+
+  /* --- Ranks (top-site cards) --- */
+  --rank-2: #8B98A8;   /* silver */
+  --rank-3: #B07A4A;   /* bronze */
+
+  /* --- Tier washes (Low / Mid / High automation) --- */
+  --tier-low-bg:  #FBE9E0;  --tier-low-fg:  #A14318;  --tier-low-cell:  rgba(199,90,51,.08);
+  --tier-mid-bg:  #FCF0D7;  --tier-mid-fg:  #92600A;  --tier-mid-cell:  rgba(201,146,14,.09);
+  --tier-high-bg: #E2F0E6;  --tier-high-fg: #1F6B40;  --tier-high-cell: rgba(47,138,85,.09);
+
+  /* --- Radius / elevation (soft light depth, crisp hairlines) --- */
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow:        0 1px 2px rgba(21,33,46,.04), 0 12px 32px -18px rgba(21,33,46,.16);
+  --shadow-card:   0 1px 2px rgba(21,33,46,.05);
+  --shadow-modal:  0 32px 80px -24px rgba(21,33,46,.35);
+  --edge-hi:       rgba(255,255,255,.7);   /* catch-light (page-tab bar) */
+
+  /* --- Motion --- */
+  --dur-micro: 140ms;
+  --dur-enter: 280ms;
+  --dur-exit:  180ms;
+  --ease-out:  cubic-bezier(.2,.7,.2,1);
+
+  /* --- Layout --- */
+  --top-h: 70px;
+  --tabs-h: 50px;
+  --content-max: 1460px;
+
+  /* --- Z-index ladder --- */
+  --z-grain: 1;
+  --z-content: 2;
+  --z-pagetabs: 19;
+  --z-topbar: 20;
+  --z-modal: 60;
+  --z-tour: 80;
+}
+
+* { box-sizing: border-box; }
+/* Light UA rendering of native controls (/database selects+inputs) + scrollbars. */
+html { color-scheme: light; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font), system-ui, sans-serif;
+  color: var(--ink);
+  /* Quiet atmosphere: a faint ultramarine wash bleeding in from the top
+     corner, over the cool-white paper. Decoration never competes with data. */
+  background:
+    radial-gradient(1100px 480px at 88% -180px, rgba(37,83,233,.06), transparent 70%),
+    var(--paper);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* --font-display has no separate face in the daylight theme (no editorial
+   serif) — alias it to the UI sans so any existing references resolve. */
+:root { --font-display: var(--font); }
+
+b, strong { font-weight: 600; }
+
+/* Thin light scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 6px;
+  border: 2px solid var(--paper);
+}
+::-webkit-scrollbar-thumb:hover { background: #A9B7C6; }
+
+/* === Accessibility contract (MASTER §5) — baked in globally === */
+
+/* #1: visible focus ring on EVERY interactive element */
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* #8: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Skip link — first tab stop for keyboard users (MASTER §5 / a11y skip-links) */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 999;
+  transform: translateY(-150%);
+  transition: transform var(--dur-micro) var(--ease-out);
+  background: var(--surface);
+  color: var(--accent-deep);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Anchor target offset so #main isn't hidden under the fixed chrome */
+#main {
+  scroll-margin-top: calc(var(--top-h) + var(--tabs-h));
+  outline: none;
+}
+
+/* === Page shell layout === */
+.content {
+  margin: calc(var(--top-h) + var(--tabs-h)) auto 0;
+  padding: 34px 30px 90px;
+  max-width: var(--content-max);
+  position: relative; z-index: var(--z-content);
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* === Panel (white card: hairline border, soft lifted shadow) === */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+  position: relative;
+  animation: rise var(--dur-enter) var(--ease-out) both;
+}
+.panel h2 {
+  margin: 0 0 6px;
+  font-family: var(--font), system-ui, sans-serif;
+  font-weight: 650;
+  font-size: 18px;
+  letter-spacing: -0.1px;
+  color: var(--ink);
+}
+.panel p { margin: 0; color: var(--ink-soft); max-width: 82ch; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .content { padding: 26px 16px 80px; }
+}

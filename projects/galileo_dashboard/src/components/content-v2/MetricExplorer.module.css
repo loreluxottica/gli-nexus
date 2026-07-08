@@ -1,0 +1,374 @@
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.headLeft {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 19px;
+  line-height: 1.15;
+}
+.scope {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--ink-faint);
+}
+
+/* Solid market badge — REP vs LM, always visible and colour-coded. */
+.mkt {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: var(--radius);
+  font-family: var(--mono), monospace;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #fff;
+  vertical-align: middle;
+}
+.mktLg {
+  padding: 7px 14px;
+  font-size: 16px;
+  border-radius: var(--radius-lg);
+}
+.mktRep { background: var(--accent); }
+.mktLm { background: #92600A; }
+
+/* Headline: big ratio + one-line narrative side by side. */
+.headline {
+  display: grid;
+  grid-template-columns: minmax(190px, 240px) 1fr;
+  gap: 22px;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+}
+.bigBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bigVal {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--mono), monospace;
+  font-size: 34px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  color: var(--ink);
+  line-height: 1;
+}
+.bigChip {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.bigSub {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+.narrative {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.section {
+  margin-bottom: 18px;
+}
+.h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-family: var(--mono), monospace;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.h3Title {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--accent-deep);
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+.sw {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  margin-left: 4px;
+}
+.swCur { background: var(--accent); }
+.swPy { background: var(--ink-faint); opacity: 0.55; }
+
+/* Over-time chart */
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.grid { stroke: var(--line); stroke-width: 1; }
+.axis {
+  fill: var(--ink-faint);
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+}
+.py {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+.cy {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.dot { fill: var(--accent); }
+
+/* Two-column comparison area */
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+}
+
+/* Shared column geometry for the header + rows so they line up exactly:
+   label (flex) | diverging bar | current ratio | YoY chip. */
+.effHeadRow,
+.effRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 62px 64px;
+  gap: 14px;
+}
+.effHeadRow {
+  padding: 0 10px 6px;
+  border-bottom: 1px solid var(--line-strong);
+  margin-bottom: 2px;
+}
+.effHeadNum {
+  font-family: var(--mono), monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+/* Comparison rows — fixed-width numeric columns so every row aligns; the label
+   column flexes and truncates. Each row is its own grid, but identical fixed
+   track + ratio + chip widths make the columns line up across rows. */
+.effRow {
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+}
+.effRow + .effRow {
+  border-top: 1px solid var(--line);
+}
+.effRow.focus {
+  background: var(--accent-tint);
+  border-top-color: transparent;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.effLabel {
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Centred diverging track: a hairline marks zero; fills grow out from it. */
+.effBarTrack {
+  position: relative;
+  height: 10px;
+  width: 100%;
+  background: var(--surface-3);
+  border-radius: 2px;
+}
+.effBarTrack::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  bottom: -1px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.effBar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+.barPos { background: var(--pos); }
+.barNeg { background: var(--neg); }
+
+.effRatio {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+  text-align: right;
+}
+.effChip {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+.effNa {
+  grid-column: 2 / -1;
+  text-align: right;
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* Area rows are buttons: click reveals the top driver sites behind the number. */
+.effRowBtn {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.effRowBtn:hover {
+  background: var(--accent-tint);
+}
+.chev {
+  display: inline-block;
+  margin-right: 7px;
+  font-size: 9px;
+  color: var(--ink-faint);
+  transition: transform 0.15s ease;
+}
+.chevOpen {
+  transform: rotate(90deg);
+}
+.siteDrill {
+  margin: 2px 0 8px;
+  padding: 8px 10px 10px 27px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.siteDrillHead {
+  margin: 0 0 4px;
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* Same fixed numeric tracks as .effRow so the figures line up with the areas. */
+.siteRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 62px 64px;
+  gap: 14px;
+  align-items: center;
+  padding: 5px 0;
+}
+.siteRow + .siteRow {
+  border-top: 1px solid var(--line);
+}
+.siteBtn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent-deep);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.siteBtn:hover {
+  text-decoration: underline;
+}
+.siteVal {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+}
+.siteDelta {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+.siteNone {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chev {
+    transition: none;
+  }
+}
+
+.pos { color: var(--pos); }
+.neg { color: var(--neg); }
+.muted { color: var(--ink-faint); font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .headline { grid-template-columns: 1fr; gap: 14px; }
+  .cols { grid-template-columns: 1fr; gap: 18px; }
+}

@@ -1,0 +1,51 @@
+{
+  "stops": [
+    {
+      "id": "network",
+      "kind": "overview",
+      "href": "/content/",
+      "title": "The network at a glance",
+      "body": "Where global shipment flows stand today, against the same period last year."
+    },
+    {
+      "id": "content",
+      "href": "/content/",
+      "target": "[data-tour=\"v2-bar\"]",
+      "title": "Every flow vs last year",
+      "body": "Solid bar = this year, ghost = same period last year, on one shared scale. The sparkline shows exactly where the year diverges."
+    },
+    {
+      "id": "why",
+      "href": "/content/?explore=Stock%20Lenses%7CMass%20Production%20%7C%20DCs",
+      "title": "Every number explains itself",
+      "body": "One click on a YoY chip answers the why: a one-line explanation, the monthly trend and the areas driving the move."
+    },
+    {
+      "id": "efficiency",
+      "href": "/content/?metric=efficiency",
+      "target": "[data-tour=\"v2-toggle\"]",
+      "title": "Efficiency: pieces per shipment",
+      "body": "Batch size shows where logistics consolidates or fragments: rising means each shipment carries more."
+    },
+    {
+      "id": "database",
+      "href": "/database/",
+      "target": "[data-tour=\"db-controls\"]",
+      "title": "Every figure is backed by the source",
+      "body": "The full shipment database behind every number: searchable, filterable and exportable to CSV."
+    },
+    {
+      "id": "coverage",
+      "href": "/coverage/",
+      "target": "[data-tour=\"cov-map\"]",
+      "title": "Coverage on the world map",
+      "body": "How much of each area's estimated volume the network already observes, area by area."
+    },
+    {
+      "id": "close",
+      "href": "/content/",
+      "title": "Explore freely",
+      "body": "Refreshed monthly. Every view is a link you can share: area, market and metric all live in the URL."
+    }
+  ]
+}

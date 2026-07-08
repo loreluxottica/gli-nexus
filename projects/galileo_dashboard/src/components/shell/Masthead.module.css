@@ -1,0 +1,108 @@
+/* Light frosted header bar — content scrolls beneath it. */
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--top-h);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 30px;
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
+  z-index: var(--z-topbar);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-self: start;
+  position: relative;
+  text-decoration: none;
+  border-radius: var(--radius);
+}
+.brand:hover .brandMark {
+  color: var(--accent-deep);
+}
+.brandMark {
+  font-family: var(--font), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--on-night);
+}
+.brandRule {
+  width: 1px;
+  height: 30px;
+  background: var(--night-ln);
+}
+.brandMeta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.brandOrg {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--on-night);
+}
+.brandTag {
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+
+.right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+  position: relative;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    grid-template-columns: 1fr auto;
+    padding: 8px 16px 10px;
+    height: auto;
+    row-gap: 8px;
+  }
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  /* Period chip relocates to the top row instead of being hidden (MASTER §6). */
+  .right {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+  }
+  /* AreaTabs (the nav child) drops to a full-width second row. */
+  .topbar > nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .brandMark {
+    font-size: 26px;
+  }
+}

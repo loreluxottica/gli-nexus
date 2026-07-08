@@ -1,0 +1,54 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  margin: 14px 0 16px;
+}
+.group {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.label {
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.track {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+}
+.seg {
+  border: 0;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  color: var(--on-night-soft);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-micro), background var(--dur-micro), box-shadow var(--dur-micro);
+}
+.seg:hover {
+  color: var(--on-night);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.active,
+.active:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px var(--accent-glow);
+}

@@ -1,0 +1,43 @@
+.pair {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 150px;
+}
+.track {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 11px;
+}
+.barCur,
+.barPy {
+  height: 9px;
+  border-radius: 2px;
+  min-width: 1px;
+  transition: width var(--dur-enter) var(--ease-out);
+}
+.barCur {
+  background: var(--accent);
+}
+.barPy {
+  background: var(--line-strong);
+}
+.val {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.valPy {
+  color: var(--ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barCur,
+  .barPy {
+    transition: none;
+  }
+}

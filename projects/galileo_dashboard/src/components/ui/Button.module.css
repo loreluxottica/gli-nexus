@@ -1,0 +1,60 @@
+.btn {
+  font-family: var(--font), sans-serif;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+/* Accent — the contextual "View by Accounting Area" trigger */
+.accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--surface);
+  border: 1px solid var(--accent-bright);
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+  transition: background var(--dur-micro), box-shadow var(--dur-micro),
+    transform 0.12s;
+}
+.accent:hover {
+  background: var(--accent-tint);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px -6px var(--accent-glow);
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-deep);
+  background: var(--accent-tint);
+}
+
+/* Icon — modal close (× ) */
+.icon {
+  border: 0;
+  background: transparent;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--ink-faint);
+  padding: 0 4px;
+  border-radius: 4px;
+  /* keep a 44px target without growing the glyph */
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon:hover {
+  color: var(--ink);
+}

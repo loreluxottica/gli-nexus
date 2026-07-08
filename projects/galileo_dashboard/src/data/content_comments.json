@@ -1,0 +1,22 @@
+{
+  "comments": [
+    {
+      "id": "seed-1",
+      "flow": "RX Lenses|Nearshore Labs",
+      "market": "REP",
+      "area": "ALL",
+      "author": "M. Mamino",
+      "date": "2026-06-30",
+      "text": "Batch size in calo: i nearshore lab spediscono piu' spesso e con lotti piu' piccoli per ridurre i lead time verso gli ECP. Atteso, ma monitorare l'impatto sul costo per spedizione."
+    },
+    {
+      "id": "seed-2",
+      "flow": "RX Lenses|Export Labs",
+      "market": "REP",
+      "area": "EMEA",
+      "author": "M. Mamino",
+      "date": "2026-06-30",
+      "text": "EMEA stabile (~2.880 pz/spedizione) nonostante +12% di volumi: la rete Export Labs assorbe la crescita senza frammentare. Driver: consolidamento su @[VRX INDIA] e @[ELTL]."
+    }
+  ]
+}

@@ -22,9 +22,14 @@ gli-nexus/
 │   │   ├── app.py         ← app Dash (standalone o montata a subpath)
 │   │   ├── requirements.txt
 │   │   ├── pages/ components/ assets/ ...
-│   └── cortana_dashboard/ ← Cortana Usage Monitor (HTML + render server-side)
-│       ├── server.py      ← blueprint Flask: /cortana/ (gated, project CORTANA)
-│       └── cortana.html   ← template str.format (Chart.js, tema neon)
+│   ├── cortana_dashboard/ ← Cortana Usage Monitor (HTML + render server-side)
+│   │   ├── server.py      ← blueprint Flask: /cortana/ (gated, project CORTANA)
+│   │   └── cortana.html   ← template str.format (Chart.js, tema neon)
+│   └── galileo_dashboard/ ← Galileo Observatory (Next.js static export)
+│       ├── server.py      ← blueprint Flask: /galileo/ (gated, project GALILEO)
+│       ├── out/           ← build statico committato (servito così com'è)
+│       ├── src/data/*.json← dati "baked" a build-time (rigenerati dal pipeline)
+│       └── data_pipeline/ ← offline: Databricks → JSON (dev, non a runtime)
 └── reference/             ← materiale frontend di riferimento (gitignored)
 ```
 
@@ -161,6 +166,24 @@ destinazione — rimuoverlo agli utenti non autorizzati.
 `sbx-logistics.gli_nexus.cortana_usage` (env `CORTANA_USAGE_TABLE`), cache
 5 min (`CORTANA_CACHE_TTL_S`). Pagina gated dal progetto `CORTANA` nella
 tabella accessi (403 con box "Access restricted" altrimenti).
+
+**Galileo Observatory** (`/galileo/`): dashboard Next.js esportata come sito
+statico. Il blueprint (`projects/galileo_dashboard/server.py`) serve la cartella
+`out/` committata — Databricks Apps non esegue build Node — gated dal progetto
+`GALILEO`. **Nessuna query a runtime**: i dati sono "baked" in `src/data/*.json`
+a build-time. Per aggiornarli (offline, con Node ≥18 e un profilo Databricks):
+
+```bash
+cd projects/galileo_dashboard
+DATABRICKS_CONFIG_PROFILE=luxottica DATABRICKS_WAREHOUSE_ID=<wh> \
+  python data_pipeline/run.py     # legge galileo / coverage_galileo / mapping_galileo → JSON
+npm install && npm run build      # rigenera out/ (basePath /galileo)
+# committa src/data/*.json + out/
+```
+
+Dettagli e assunzioni (finestra YTD, coverage %) in
+`projects/galileo_dashboard/data_pipeline/README.md`. Il pipeline usa
+`databricks-sql-connector` **solo offline**: non è nelle deps di runtime.
 
 ---
 

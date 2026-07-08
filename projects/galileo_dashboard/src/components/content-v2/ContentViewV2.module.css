@@ -1,0 +1,155 @@
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sub {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  color: var(--ink-faint);
+}
+
+/* Area title + period picker sit on one line, optically centred. */
+.headLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.headTitle {
+  margin: 0;
+  line-height: 1.1;
+  display: flex;
+  align-items: center;
+}
+.lede {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 82ch;
+  font-size: 13.5px;
+}
+.lede em {
+  color: var(--accent-deep);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Legend for the bar/sparkline encodings + an inline REP/LM/ECP glossary. */
+.legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 2px 12px;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.term {
+  color: var(--accent-deep);
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* Accounting-perimeter toggle. When active the trigger turns solid amber (the
+   accounting identity colour) to match the amber table frame, so the current
+   selection reads instantly. Element-qualified to beat the .accent variant. */
+button.acctBtnOn {
+  background: var(--cat-amber-ink);
+  border-color: var(--cat-amber-ink);
+  color: #fff;
+  box-shadow: 0 4px 14px -6px rgba(146, 96, 10, 0.5);
+}
+button.acctBtnOn:hover {
+  background: var(--cat-amber-ink);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* Amber context banner above the table when the accounting view is active. */
+.acctBanner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0 2px 12px;
+  padding: 8px 14px;
+  background: var(--cat-amber-surface);
+  border: 1px solid var(--cat-amber-line);
+  border-left: 4px solid var(--cat-amber-ink);
+  border-radius: var(--radius-md, 6px);
+  font-size: 13px;
+  color: var(--cat-amber-ink);
+}
+.acctBanner strong {
+  font-weight: 700;
+}
+.acctBannerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cat-amber-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-amber-ink) 25%, transparent);
+}
+.acctBannerNote {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.legItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+}
+.swCur { background: var(--accent); }
+.swPy { background: var(--line-strong); }
+.legSep { color: var(--ink-faint); }
+
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+.modalTitle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 20px;
+}
+.footnote {
+  color: var(--ink-faint);
+  font-size: 12px;
+  margin-top: 10px;
+  font-family: var(--mono), monospace;
+}
+
+@media (max-width: 900px) {
+  .headRow {
+    flex-direction: column;
+  }
+}

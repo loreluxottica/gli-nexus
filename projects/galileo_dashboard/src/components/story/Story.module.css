@@ -1,0 +1,247 @@
+/* Story mode (guided pitch) chrome: fixed narration bar + optional spotlight
+   or overview card. Only the bar and the card catch pointer events — the page
+   stays operable mid-stop, which is the point of presenting live. */
+
+/* --- Narration bar -------------------------------------------------------- */
+.bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: var(--z-tour);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(880px, calc(100vw - 28px));
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 18px 44px -18px rgba(15, 26, 40, 0.35);
+}
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stopTitle {
+  font-size: 14px;
+  color: var(--ink);
+}
+.stopBody {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dots {
+  display: inline-flex;
+  gap: 5px;
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.dotOn {
+  background: var(--accent);
+}
+.count {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.navBtn,
+.closeBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.navBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.navBtn:not(:disabled):hover,
+.closeBtn:hover {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.navNext {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.navNext:not(:disabled):hover {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+/* --- Spotlight ------------------------------------------------------------ */
+/* Below the modal (60): a stop that opens the explorer must not be dimmed. */
+.dimPanel {
+  position: fixed;
+  z-index: 55;
+  pointer-events: none;
+  background: rgba(15, 26, 40, 0.45);
+}
+.spot {
+  position: fixed;
+  z-index: 55;
+  pointer-events: none;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 24px rgba(37, 83, 233, 0.35);
+  transition:
+    top 0.22s ease,
+    left 0.22s ease,
+    width 0.22s ease,
+    height 0.22s ease;
+}
+
+/* --- Overview card (first stop) ------------------------------------------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: 24px 24px 130px;
+  background: rgba(15, 26, 40, 0.45);
+  pointer-events: none;
+}
+.card {
+  pointer-events: auto;
+  width: min(680px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 30px 80px -30px rgba(15, 26, 40, 0.5);
+  padding: 30px 34px;
+}
+.kicker {
+  margin: 0;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.cardTitle {
+  margin: 6px 0 14px;
+  font-size: 26px;
+  line-height: 1.15;
+}
+.big {
+  margin: 0 0 18px;
+  font-family: var(--mono), monospace;
+  font-size: clamp(40px, 6vw, 56px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  color: var(--ink);
+}
+.bigUnit {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.tileLabel {
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.tileVal {
+  font-family: var(--mono), monospace;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.tileChip {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tileNote {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.cardNote {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.pos {
+  color: var(--pos);
+}
+.neg {
+  color: var(--neg);
+}
+.muted {
+  color: var(--ink-faint);
+}
+
+/* --- Small screens / reduced motion --------------------------------------- */
+@media (max-width: 640px) {
+  .stopBody {
+    display: none;
+  }
+  .dots {
+    display: none;
+  }
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+  .card {
+    padding: 22px 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spot {
+    transition: none;
+  }
+}

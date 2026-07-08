@@ -1,0 +1,151 @@
+.wrap {
+  display: inline-block;
+  line-height: 0;
+  cursor: crosshair;
+}
+.spark {
+  display: block;
+  overflow: visible;
+}
+
+/* baseline: one-step-off-surface, hairline, recessive */
+.base {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+/* area wash under the current year — a hint of fill, ~10% not a block */
+.gradTop {
+  stop-color: var(--accent);
+  stop-opacity: 0.14;
+}
+.gradBottom {
+  stop-color: var(--accent);
+  stop-opacity: 0;
+}
+
+/* prior year: de-emphasis series (muted, thin, solid) */
+.py {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+/* current year: 2px accent line */
+.cy {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.pt {
+  fill: var(--accent);
+}
+/* end-dot with a 2px surface ring so it reads where it crosses the line */
+.dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+/* hover crosshair + emphasised points (surface ring on each) */
+.guide {
+  stroke: var(--accent);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+.hcy {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.hpy {
+  fill: var(--ink-faint);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.empty {
+  display: inline-block;
+  color: var(--ink-faint);
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  text-align: center;
+  width: 140px;
+}
+
+/* ---- tooltip (portalled to <body>, fixed to the viewport) --------------- */
+.tip {
+  position: fixed;
+  z-index: 90;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  display: grid;
+  gap: 4px;
+  min-width: 128px;
+  padding: 9px 11px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 34px -14px rgba(15, 26, 40, 0.4);
+}
+.tipMonth {
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 2px;
+}
+/* line-key | year (secondary) | value (strong, leads) */
+.tipRow {
+  display: grid;
+  grid-template-columns: 14px auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.sw {
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+}
+.swCy {
+  background: var(--accent);
+}
+.swPy {
+  background: var(--ink-faint);
+}
+.tipYear {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.tipVal {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-align: right;
+}
+.tipDelta {
+  margin-top: 1px;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.pos {
+  color: var(--pos);
+}
+.neg {
+  color: var(--neg);
+}
+.muted {
+  color: var(--ink-faint);
+}

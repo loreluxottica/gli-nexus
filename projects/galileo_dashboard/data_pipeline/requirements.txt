@@ -1,0 +1,4 @@
+# Offline data pipeline only (NOT needed by the deployed app, which serves the
+# prebuilt static export). Mirrors kelly_dashboard's Databricks driver pins.
+databricks-sql-connector>=3.7,<4
+databricks-sdk>=0.38

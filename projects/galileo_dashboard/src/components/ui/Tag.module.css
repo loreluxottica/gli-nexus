@@ -1,0 +1,71 @@
+/* One pill, tone-driven. Consolidates 7 prototype classes. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius);
+  font-family: var(--mono), monospace;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* --- sizes --- */
+.sm {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+.md {
+  font-size: 10.5px;
+  padding: 3px 9px;
+}
+
+/* --- emphasis (status / dimension badges) --- */
+.uppercase {
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+/* --- tones (soft = filled pale) --- */
+.azure {
+  background: var(--cat-azure-surface);
+  color: var(--cat-azure-ink);
+  border-color: var(--cat-azure-line);
+}
+.sage {
+  background: var(--cat-sage-surface);
+  color: var(--cat-sage-ink);
+  border-color: var(--cat-sage-line);
+}
+.terracotta {
+  background: var(--cat-terra-surface);
+  color: var(--cat-terra-ink);
+  border-color: var(--cat-terra-line);
+}
+.clay {
+  background: var(--cat-clay-surface);
+  color: var(--cat-clay-ink);
+  border-color: var(--cat-clay-line);
+}
+/* "brass" tone = amber/gold (GV Frames · APAC · LM). Decoupled from the
+   green interactive --accent so it stays distinct from sage-green tags. */
+.brass {
+  background: var(--cat-amber-surface);
+  color: var(--cat-amber-ink);
+  border-color: var(--cat-amber-line);
+}
+.neutral {
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  border-color: var(--line);
+}
+
+/* --- outline variant: keep tone text/border, swap fill to surface ---
+   (must follow the tone rules so it overrides their background) */
+.outline {
+  background: var(--surface);
+}

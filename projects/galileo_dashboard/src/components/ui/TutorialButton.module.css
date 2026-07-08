@@ -1,0 +1,72 @@
+/* The section's learning entry point — deliberately the loudest control in the
+   header: solid accent pill, soft glow, and a brief pulse on mount so a new
+   visitor cannot miss it. */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 20px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 10px 26px -10px rgba(37, 83, 233, 0.65);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: tutorialPulse 2.4s ease-in-out 0.8s 3;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px -10px rgba(37, 83, 233, 0.78);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.iconWrap {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  font-size: 14.5px;
+}
+.sub {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* A few gentle rings on arrival, then it rests. */
+@keyframes tutorialPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 26px -10px rgba(37, 83, 233, 0.65),
+      0 0 0 0 rgba(37, 83, 233, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 10px 26px -10px rgba(37, 83, 233, 0.65),
+      0 0 0 9px rgba(37, 83, 233, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    animation: none;
+    transition: none;
+  }
+}
