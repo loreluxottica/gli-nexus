@@ -98,7 +98,9 @@ traffico verso di esso.
    GitHub, poi crea una *Git folder* nel workspace puntando a questo repo
    (branch `main`).
 2. **Crea l'app**: *Compute → Apps → Create app* (custom), source = la Git
-   folder. Per i redeploy: pull della Git folder + Deploy.
+   folder. Per i redeploy dopo un push: UI (pull Git folder + Deploy) oppure
+   CLI `databricks apps deploy gli-nexus --profile luxottica` (risolve
+   l'ultimo commit di `main`).
 3. **Risorse app** (opzionali finché si usa il mock):
    - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*);
    - secret con resource key `secret` → `kelly/mapbox_token` (token Mapbox).
@@ -154,7 +156,7 @@ Le modifiche si propagano senza redeploy (cache TTL ~3 min, env
 `KELLY_DEV_USER_EMAIL` (solo sviluppo locale, ignorata quando deployata).
 
 Chiavi progetto canoniche (colonna `project`): `KELLY`,
-`VOLUMESDATAENTRY`, `CORTANA`, `LAPLACE`, `*`.
+`VOLUMESDATAENTRY`, `CORTANA`, `GALILEO`, `LAPLACE`, `*`.
 
 **Card del portale**: l'endpoint `/api/my-access` restituisce i progetti
 dell'utente; le card senza grant mostrano "Access restricted" (bottone
@@ -189,11 +191,19 @@ Dettagli e assunzioni (finestra YTD, coverage %) in
 
 ## Aggiungere un nuovo progetto
 
-1. Crea `projects/<nome>/` con la sua app che espone un WSGI `server`.
-2. Rendi il progetto prefix-aware via env var (come `KELLY_URL_PREFIX`).
-3. In `app.py`: imposta l'env var, importa il `server`, aggiungilo a `MOUNTS`.
-4. (Opzionale) aggiungi/aggiorna la card nel portale (`DATA[]` in
-   `portal/gli_nexus_portal.html`).
+Due pattern possibili:
+
+- **Sub-app WSGI completa** (es. Kelly, Dash): esponi un WSGI `server`,
+  rendi il progetto prefix-aware via env var (come `KELLY_URL_PREFIX`) e in
+  `app.py` aggiungilo a `MOUNTS`.
+- **Blueprint Flask** (es. Cortana, Galileo — pagine server-rendered o siti
+  statici): esponi un `bp` in `projects/<nome>/server.py`, gate con
+  `kelly_dashboard.auth` e in `app.py` fai
+  `root.register_blueprint(bp, url_prefix="/<nome>")`.
+
+Poi aggiungi la card nel portale (`DATA[]` in `portal/gli_nexus_portal.html`)
+con `link` e `project` (chiave della tabella accessi) e inserisci i grant in
+`user_access`.
 
 ---
 
@@ -205,8 +215,5 @@ Dettagli e assunzioni (finestra YTD, coverage %) in
   Project Kelly) usa ancora path assoluti: sotto mount va cablata in una fase
   successiva. La landing e gli asset funzionano; i link interni sono il prossimo
   passo di wiring.
-- Le card del portale non navigano ancora ai progetti (nessun `url`): wiring
-  click → subpath previsto in un intervento successivo.
 - `reference/` contiene build frontend di riferimento con token Mapbox
   hardcoded: è gitignored e non fa parte del deploy.
-```
