@@ -314,7 +314,12 @@ function revealCascade() {
     }
     d._dot.classList.toggle('active', j === 0);
   });
-  [0, 1, 3, 2].forEach((di, step) => {
+  // Reveal center-out (pos 0, then ±1, then ±2) so every card leaves .pre,
+  // whatever DATA.length is.
+  const pos = j => { let p = j; if (p > 2) p -= DATA.length; if (p < -2) p += DATA.length; return p; };
+  const revealOrder = DATA.map((_, j) => j)
+    .sort((a, b) => (Math.abs(pos(a)) - Math.abs(pos(b))) || (pos(b) - pos(a)));
+  revealOrder.forEach((di, step) => {
     setTimeout(() => {
       DATA[di]._el.style.transition = 'transform 1.2s cubic-bezier(.15,.7,.1,1),opacity 1.1s ease,filter 1s ease,box-shadow .8s';
       DATA[di]._el.classList.remove('pre');
