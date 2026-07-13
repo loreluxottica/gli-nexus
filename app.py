@@ -68,9 +68,11 @@ os.environ.setdefault("KELLY_URL_PREFIX", "/kelly/")
 from kelly_dashboard.app import server as kelly_server  # noqa: E402
 from cortana_dashboard.server import bp as cortana_bp  # noqa: E402
 from galileo_dashboard.server import bp as galileo_bp  # noqa: E402
+from laplace_dashboard.server import bp as laplace_bp  # noqa: E402
 
 root.register_blueprint(cortana_bp, url_prefix="/cortana")
 root.register_blueprint(galileo_bp, url_prefix="/galileo")
+root.register_blueprint(laplace_bp, url_prefix="/laplace")
 
 MOUNTS = {
     "/kelly": kelly_server,

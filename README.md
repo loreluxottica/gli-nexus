@@ -25,11 +25,14 @@ gli-nexus/
 │   ├── cortana_dashboard/ ← Cortana Usage Monitor (HTML + render server-side)
 │   │   ├── server.py      ← blueprint Flask: /cortana/ (gated, project CORTANA)
 │   │   └── cortana.html   ← template str.format (Chart.js, tema neon)
-│   └── galileo_dashboard/ ← Galileo Observatory (Next.js static export)
-│       ├── server.py      ← blueprint Flask: /galileo/ (gated, project GALILEO)
-│       ├── out/           ← build statico committato (servito così com'è)
-│       ├── src/data/*.json← dati "baked" a build-time (rigenerati dal pipeline)
-│       └── data_pipeline/ ← offline: Databricks → JSON (dev, non a runtime)
+│   ├── galileo_dashboard/ ← Galileo Observatory (Next.js static export)
+│   │   ├── server.py      ← blueprint Flask: /galileo/ (gated, project GALILEO)
+│   │   ├── out/           ← build statico committato (servito così com'è)
+│   │   ├── src/data/*.json← dati "baked" a build-time (rigenerati dal pipeline)
+│   │   └── data_pipeline/ ← offline: Databricks → JSON (dev, non a runtime)
+│   └── laplace_dashboard/ ← Laplace Pipeline Monitor (report HTML da tabella UC)
+│       ├── server.py      ← blueprint Flask: /laplace/ (gated, project LAPLACE)
+│       └── data_pipeline/ ← publish_to_nexus.py: cella notebook di publish
 └── reference/             ← materiale frontend di riferimento (gitignored)
 ```
 
@@ -186,6 +189,15 @@ npm install && npm run build      # rigenera out/ (basePath /galileo)
 Dettagli e assunzioni (finestra YTD, coverage %) in
 `projects/galileo_dashboard/data_pipeline/README.md`. Il pipeline usa
 `databricks-sql-connector` **solo offline**: non è nelle deps di runtime.
+
+**Laplace Pipeline Monitor** (`/laplace/`): report doganale (pipeline
+LAPLACE → THAI → REGIONS → PENDING → GARAGE) generato dal notebook Databricks
+"Laplace Pipeline Monitor". Il notebook, nell'ultima cella (vedi
+`projects/laplace_dashboard/data_pipeline/publish_to_nexus.py`), appende l'HTML
+completo a `sbx-logistics.gli_nexus.laplace_report` (env
+`LAPLACE_REPORT_TABLE`); il blueprint serve l'ultima riga con cache 5 min
+(`LAPLACE_CACHE_TTL_S`). Ogni run del notebook (manuale o job schedulato)
+aggiorna la dashboard **senza redeploy**. Pagina gated dal progetto `LAPLACE`.
 
 ---
 
