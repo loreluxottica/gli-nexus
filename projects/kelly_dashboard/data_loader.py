@@ -12,6 +12,13 @@ _log = logging.getLogger(__name__)
 
 _cache: dict[str, pd.DataFrame] = {}
 
+# A closed facility-day is recorded as 100% absenteeism (or missing). Days at or
+# above this level are treated as non-working (closure), not real absenteeism.
+CLOSED_THRESHOLD = 0.99
+# A (plant-area, weekday) is classified non-working when at least this share of
+# its historical days are closed (NaN or >= CLOSED_THRESHOLD).
+CLOSED_DOW_FRACTION = 0.5
+
 # Pool of invented departments + shifts — areas are sampled per warehouse so
 # each location shows a different (deterministic) set in the Area selector.
 _DEPARTMENTS = [
@@ -56,8 +63,51 @@ def load_data(warehouse_id: str) -> pd.DataFrame | None:
         df["Date"] = pd.to_datetime(df["Date"])
         df["Year"] = df["Date"].dt.year
         df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
+        df = _add_working_flag(df, warehouse_id)
         _cache[cache_key] = df
 
+    return df
+
+
+def _add_working_flag(df: pd.DataFrame, warehouse_id: str) -> pd.DataFrame:
+    """Tag each row with a boolean ``Working`` for its (plant-area, weekday).
+
+    Working status is inferred from *historical* Actual: a (ID, weekday) is
+    non-working when the majority of its past days are closed — Actual missing
+    or at/above CLOSED_THRESHOLD (100% "absent"). Closure is marked
+    inconsistently across plants (NaN for weekday-only sites, 1.0 for sites that
+    log closed weekends), so this single rule covers both. A (ID, weekday) with
+    no history defaults to Working=True so new areas are never over-filtered.
+
+    A matching entry in ``working_schedule.AREA_WORKDAY_OVERRIDES`` overrides the
+    inferred schedule for that (warehouse_id, area) — the escape hatch for areas
+    whose source rows can't reveal their true schedule.
+    """
+    from kelly_dashboard.working_schedule import AREA_WORKDAY_OVERRIDES
+
+    df = df.copy()
+    dow = df["Date"].dt.dayofweek
+
+    today = pd.Timestamp.today().normalize()
+    hist = df[df["Date"] < today]
+    if hist.empty:
+        df["Working"] = True
+    else:
+        hist_dow = hist["Date"].dt.dayofweek
+        closed = hist["Actual"].isna() | (hist["Actual"] >= CLOSED_THRESHOLD)
+        frac_closed = closed.groupby([hist["ID"], hist_dow]).mean()
+        non_working = set(frac_closed[frac_closed >= CLOSED_DOW_FRACTION].index)
+
+        keys = pd.MultiIndex.from_arrays([df["ID"], dow])
+        df["Working"] = ~keys.isin(non_working)
+
+    # Apply explicit per-area overrides (win over inference).
+    for (wh, area), workdays in AREA_WORKDAY_OVERRIDES.items():
+        if wh != warehouse_id:
+            continue
+        mask = df["ID"] == area
+        if mask.any():
+            df.loc[mask, "Working"] = dow[mask].isin(workdays)
     return df
 
 
