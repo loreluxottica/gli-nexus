@@ -111,7 +111,13 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
         dcc.Link([html.Span(className="sidebar-dot"), " Performance"],
                  href=dash.get_relative_path(f"/performance/{warehouse_id}"),
                  className=f"sidebar-nav-item {'active' if active_page == 'performance' else ''}"),
-        html.Div(html.A("← Back to Globe", href=dash.get_relative_path("/")), className="sidebar-back"),
+        # Portal ("/") sits above the "/kelly/" mount; show the Nexus link only
+        # when mounted (mirrors landing.py), alongside the Kelly-internal Globe link.
+        html.Div([
+            (html.A("← All Projects", href="/")
+             if dash.get_relative_path("/") != "/" else None),
+            html.A("← Back to Globe", href=dash.get_relative_path("/")),
+        ], className="sidebar-back"),
     ], className="sidebar")
 
 
