@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 
-from flask import Blueprint, abort, send_from_directory
+from flask import Blueprint, Response, abort, send_from_directory
 
 from kelly_dashboard import auth
 
@@ -50,6 +50,21 @@ def _denied_page() -> str:
     )
 
 
+# Portal back link, styled to Galileo's cosmic theme (cyan on translucent dark).
+# Fixed top-left so it overlays the SPA; href is the absolute portal root because
+# Galileo has nested pages (/galileo/content/, /database/, …) where "../" wouldn't
+# reach the root. Injected before </body> at serve time — see _serve().
+_BACK_LINK = (
+    '<a href="/" style="position:fixed;top:16px;left:16px;z-index:2147483647;'
+    "display:inline-flex;align-items:center;gap:6px;"
+    "font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;letter-spacing:1px;"
+    "color:#7fe8ff;text-decoration:none;background:rgba(5,6,10,0.72);"
+    "-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);"
+    'border:1px solid rgba(127,232,255,0.3);padding:8px 14px;border-radius:8px;">'
+    "&larr; All Projects</a>"
+)
+
+
 def _is_page(subpath: str) -> bool:
     """A page navigation (serve index.html + gate) vs a static asset.
     Assets have a file extension in their last segment; pages don't (or end /)."""
@@ -62,7 +77,8 @@ def _is_page(subpath: str) -> bool:
 def _serve(subpath: str):
     if not os.path.isdir(_OUT):
         abort(503)  # site not built yet
-    if _is_page(subpath):
+    is_page = _is_page(subpath)
+    if is_page:
         if not _authorized():
             return _denied_page(), 403
         rel = os.path.join(subpath, "index.html") if subpath else "index.html"
@@ -71,6 +87,15 @@ def _serve(subpath: str):
     full = os.path.normpath(os.path.join(_OUT, rel))
     if not full.startswith(os.path.normpath(_OUT)) or not os.path.isfile(full):
         abort(404)
+    if is_page:
+        # Patch the prebuilt export at serve time to add the portal back link
+        # (no Node build step available). Injected as the last <body> child so
+        # React hydration leaves it in place and it survives client-side nav.
+        with open(full, encoding="utf-8") as fh:
+            html = fh.read()
+        i = html.rfind("</body>")
+        html = html[:i] + _BACK_LINK + html[i:] if i != -1 else html + _BACK_LINK
+        return Response(html, mimetype="text/html")
     return send_from_directory(_OUT, rel.replace(os.sep, "/"))
 
 
