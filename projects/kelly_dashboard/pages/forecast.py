@@ -44,17 +44,18 @@ def _week_options(df: pd.DataFrame) -> list[dict]:
 
 
 def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
-    actual = df[df["Actual"].notna()].copy()
+    actual = df[df["Actual"].notna() & df["Working"]
+                & (df["Actual"] < data_loader.CLOSED_THRESHOLD)].copy()
     if actual.empty:
         return [], [], []
 
     pivot = actual.groupby(["ID", "Year"])["Actual"].mean().unstack()
     years = sorted(pivot.columns)
-    short = [str(y)[-2:] for y in years]
+    year_cols = [str(y) for y in years]
     pivot = pivot.reset_index()
-    pivot.columns = ["AREA"] + short
+    pivot.columns = ["AREA"] + year_cols
 
-    for col in short:
+    for col in year_cols:
         pivot[col] = pivot[col].apply(lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—")
 
     columns = [{"name": c, "id": c} for c in pivot.columns]
@@ -62,7 +63,7 @@ def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
 
     style = []
     for i, row in enumerate(data):
-        for col in short:
+        for col in year_cols:
             val_str = row.get(col, "—")
             if val_str == "—":
                 continue

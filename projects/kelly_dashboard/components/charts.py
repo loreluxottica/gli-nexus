@@ -2,6 +2,7 @@ from __future__ import annotations
 import plotly.graph_objects as go
 import pandas as pd
 import kelly_dashboard.theme as theme
+from kelly_dashboard.data_loader import CLOSED_THRESHOLD
 
 
 def build_bar_chart(df: pd.DataFrame | None) -> go.Figure:
@@ -9,7 +10,7 @@ def build_bar_chart(df: pd.DataFrame | None) -> go.Figure:
     if df is None or df.empty:
         return _empty_figure("No forecast data available")
 
-    fct = df[df["Forecast"].notna()].copy()
+    fct = df[df["Forecast"].notna() & df["Working"] & (df["Forecast"] < CLOSED_THRESHOLD)].copy()
     if fct.empty:
         return _empty_figure("No forecast data available")
 
@@ -61,7 +62,8 @@ def build_drift_chart(df: pd.DataFrame | None) -> go.Figure:
     if df is None or df.empty:
         return _empty_figure("No drift data available")
 
-    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()].copy()
+    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()
+               & df["Working"] & (df["Actual"] < CLOSED_THRESHOLD)].copy()
     if drift.empty:
         return _empty_figure("No overlapping Actual / Forecast_Vintage data")
 

@@ -16,7 +16,8 @@ def _id_options(df: pd.DataFrame) -> list[dict]:
 
 
 def _month_options(df: pd.DataFrame) -> list[dict]:
-    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]
+    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()
+               & df["Working"] & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
     if drift.empty:
         return [{"label": "All months", "value": "__all__"}]
     months = drift["Date"].dt.to_period("M").drop_duplicates().sort_values(ascending=False)
@@ -27,7 +28,8 @@ def _month_options(df: pd.DataFrame) -> list[dict]:
 
 
 def _week_options(df: pd.DataFrame) -> list[dict]:
-    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]
+    drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()
+               & df["Working"] & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
     weeks = drift[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"])
     opts = [{"label": "All weeks", "value": "__all__"}]
     for _, row in weeks.iterrows():
@@ -141,7 +143,8 @@ def register_callbacks(app):
             except (ValueError, KeyError):
                 pass
 
-        drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()]
+        drift = df[df["Actual"].notna() & df["Forecast_Vintage"].notna()
+                   & df["Working"] & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
         avg_actual = drift["Actual"].mean() if not drift.empty else None
         avg_fct = drift["Forecast_Vintage"].mean() if not drift.empty else None
 
