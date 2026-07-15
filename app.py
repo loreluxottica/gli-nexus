@@ -18,11 +18,12 @@ from __future__ import annotations
 import os
 import sys
 
-from flask import Flask, send_file
+from flask import Flask, send_file, send_from_directory
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
-_PORTAL = os.path.join(_ROOT, "portal", "gli_nexus_portal.html")
+_PORTAL_DIR = os.path.join(_ROOT, "portal")
+_PORTAL = os.path.join(_PORTAL_DIR, "index-single.html")
 
 # Make the sub-projects importable as top-level packages
 # (e.g. `import kelly_dashboard`), matching each project's own sys.path shim.
@@ -38,6 +39,23 @@ root = Flask(__name__)
 @root.route("/")
 def portal():
     return send_file(_PORTAL)
+
+
+# Portal static assets. Explicit prefix routes (not a greedy catch-all) so they
+# can't shadow /healthz, /api/*, or the mounted sub-project blueprints.
+@root.route("/css/<path:filename>")
+def portal_css(filename):
+    return send_from_directory(os.path.join(_PORTAL_DIR, "css"), filename)
+
+
+@root.route("/js/<path:filename>")
+def portal_js(filename):
+    return send_from_directory(os.path.join(_PORTAL_DIR, "js"), filename)
+
+
+@root.route("/GLI-Branding/<path:filename>")
+def portal_branding(filename):
+    return send_from_directory(os.path.join(_PORTAL_DIR, "GLI-Branding"), filename)
 
 
 @root.route("/healthz")
