@@ -27,6 +27,9 @@ node_modules/
 # a hardcoded Mapbox token, so they are excluded from the repo)
 reference/
 
+# Retired code kept locally as a backup, not part of the app
+old/
+
 # Dev agent tooling (not app code)
 .agents/
 .claude/
