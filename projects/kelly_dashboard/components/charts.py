@@ -112,6 +112,7 @@ def build_drift_chart(df: pd.DataFrame | None) -> go.Figure:
     layout["yaxis"] = {
         **theme.CHART_LAYOUT["yaxis"],
         "ticksuffix": "%",
+        "range": [0, 100],
         "title": dict(text="Absenteeism %", font=dict(color=theme.TEXT_DIM, size=10)),
     }
     layout["height"] = 360
