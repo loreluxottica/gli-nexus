@@ -64,7 +64,15 @@ const NEXUS_WORLDS = [
     logo: "GLI-Branding/assets/web/gli-laplace.png",
     icon: "docs",
     link: "/laplace/",
-    project: "LAPLACE"
+    project: "LAPLACEPIPELINE",
+    // Laplace ha più destinazioni: la CTA apre un menu a tendina invece di
+    // aprire un unico link. Ogni voce ha il proprio grant (accesso indipendente).
+    links: [
+      { label: "Pipeline Monitor", href: "/laplace/", project: "LAPLACEPIPELINE" },
+      { label: "Multidocument CT",
+        href: "https://laplace-multidocument-cockpit-8661566820370235.15.azure.databricksapps.com/",
+        project: "LAPLACEMULTIDOC" }
+    ]
   },
   {
     id: "data-entry",
