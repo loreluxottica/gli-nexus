@@ -1,15 +1,18 @@
 from __future__ import annotations
 import sys, os as _os
-# Allow running as "python app.py" from this folder
-_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
+# Allow running as "python app.py" from this folder: put both projects/ (for
+# `import kelly_dashboard`) and the repo root (for `import shared`) on the path.
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))  # projects/
+_REPO = _os.path.dirname(_ROOT)  # repo root
+for _p in (_REPO, _ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 import threading
 import dash
 from dash import html, dcc, Input, Output
 from kelly_dashboard.pages import denied, forecast, landing
-import kelly_dashboard.auth as auth
+from shared import auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.weather_loader as weather_loader
 from kelly_dashboard.warehouses import WAREHOUSES

@@ -1,4 +1,7 @@
-"""Per-user plant authorization backed by the central GLI Nexus access table.
+"""Per-user project/plant authorization backed by the central GLI Nexus access table.
+
+Shared across every GLI Nexus project (portal, Kelly, Cortana, Galileo, Laplace);
+imported as `from shared import auth`.
 
 Table (env GLI_ACCESS_TABLE, default sbx-logistics.gli_nexus.user_access):
     user_email STRING | project STRING | scope STRING
@@ -15,7 +18,7 @@ import time
 
 import flask
 
-from kelly_dashboard.data_loader import (
+from shared.db import (
     _IDENTIFIER_PART_RE,
     _sql_connect_kwargs,
     _sql_http_path,
@@ -136,6 +139,20 @@ def get_user_scopes(email: str) -> frozenset[str] | None:
 
 def get_user_projects(email: str) -> frozenset[str] | None:
     return _cached_lookup(email.strip().lower(), _projects_cache, _query_projects)
+
+
+def authorized(project_key: str) -> bool:
+    """True if the current user may access `project_key` (e.g. "GALILEO").
+
+    No identity + not deployed = local dev = allow. Shared project-level gate
+    used by the blueprint projects (Cortana/Galileo/Laplace)."""
+    email = get_current_email()
+    if email is None:
+        return not _in_databricks_app()
+    projects = get_user_projects(email)
+    return bool(projects) and (
+        "*" in projects or project_key.strip().upper() in projects
+    )
 
 
 def is_authorized(warehouse_id: str) -> bool:

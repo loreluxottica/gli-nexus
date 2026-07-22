@@ -14,8 +14,8 @@ import time
 
 from flask import Blueprint
 
-from kelly_dashboard import auth
-from kelly_dashboard.data_loader import (
+from shared import auth
+from shared.db import (
     _IDENTIFIER_PART_RE,
     _sql_connect_kwargs,
     _sql_http_path,
@@ -93,14 +93,6 @@ def _get_data() -> dict | None:
         with _lock:
             _cache = (now, data)
     return data
-
-
-def _authorized() -> bool:
-    email = auth.get_current_email()
-    if email is None:
-        return not auth._in_databricks_app()  # local dev = allow
-    projects = auth.get_user_projects(email)
-    return bool(projects) and ("*" in projects or _PROJECT_KEY in projects)
 
 
 def _space_color(space: str, spaces_sorted: list[str]) -> str:
@@ -262,7 +254,7 @@ _UNAVAILABLE = _DENIED.replace("ACCESS RESTRICTED", "DATA UNAVAILABLE").replace(
 
 @bp.route("/")
 def page():
-    if not _authorized():
+    if not auth.authorized(_PROJECT_KEY):
         return _page(_DENIED), 403
     data = _get_data()
     if data is None:

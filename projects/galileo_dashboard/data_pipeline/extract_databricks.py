@@ -29,12 +29,14 @@ import os
 import sys
 from pathlib import Path
 
-# Make kelly_dashboard importable as a top-level package (mirrors app.py).
+# Put projects/ and the repo root on the path so `shared` resolves (mirrors app.py).
 _PROJECTS = Path(__file__).resolve().parents[2]
-if str(_PROJECTS) not in sys.path:
-    sys.path.insert(0, str(_PROJECTS))
+_REPO = _PROJECTS.parent
+for _p in (str(_REPO), str(_PROJECTS)):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
-from kelly_dashboard.data_loader import (  # noqa: E402
+from shared.db import (  # noqa: E402
     _IDENTIFIER_PART_RE,
     _sql_connect_kwargs,
     _sql_http_path,

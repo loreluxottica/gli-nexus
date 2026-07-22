@@ -3,7 +3,7 @@ import pandas as pd
 import dash
 from dash import html, dcc, Input, Output, State, dash_table
 from dash.exceptions import PreventUpdate
-import kelly_dashboard.auth as auth
+from shared import auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.data_loader as data_loader
 import kelly_dashboard.weather_loader as weather_loader

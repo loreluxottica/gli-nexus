@@ -14,21 +14,13 @@ import os
 
 from flask import Blueprint, Response, abort, send_from_directory
 
-from kelly_dashboard import auth
+from shared import auth
 
 bp = Blueprint("galileo", __name__)
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _OUT = os.path.join(_DIR, "out")
 _PROJECT_KEY = "GALILEO"
-
-
-def _authorized() -> bool:
-    email = auth.get_current_email()
-    if email is None:
-        return not auth._in_databricks_app()  # local dev = allow
-    projects = auth.get_user_projects(email)
-    return bool(projects) and ("*" in projects or _PROJECT_KEY in projects)
 
 
 def _denied_page() -> str:
@@ -79,7 +71,7 @@ def _serve(subpath: str):
         abort(503)  # site not built yet
     is_page = _is_page(subpath)
     if is_page:
-        if not _authorized():
+        if not auth.authorized(_PROJECT_KEY):
             return _denied_page(), 403
         rel = os.path.join(subpath, "index.html") if subpath else "index.html"
     else:

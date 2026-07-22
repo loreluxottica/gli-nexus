@@ -2,7 +2,7 @@ from __future__ import annotations
 import pandas as pd
 from dash import html, dcc, Input, Output
 from dash.exceptions import PreventUpdate
-import kelly_dashboard.auth as auth
+from shared import auth
 import kelly_dashboard.theme as theme
 import kelly_dashboard.data_loader as data_loader
 from kelly_dashboard.warehouses import WAREHOUSES

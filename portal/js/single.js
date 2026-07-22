@@ -14,6 +14,8 @@
   const nameEl = document.getElementById("heroName");
   const ctaEl = document.getElementById("heroCta");
   const ctaLabel = document.getElementById("heroCtaLabel");
+  const ctaWrap = document.getElementById("heroCtaWrap");
+  const ctaMenu = document.getElementById("heroCtaMenu");
   const counterEl = document.getElementById("singleCounter");
   const dotsBox = document.getElementById("singleDots");
   const liveEl = document.getElementById("worldLive");
@@ -123,15 +125,94 @@
          autorizzato (grant o "*"). I prodotti senza `project` non sono
          gated; quelli con link "#" non hanno ancora una destinazione. --- */
   const access = () => window.NexusAccess;
-  function isOpenable(p) {
-    if (!p.link || p.link === "#") return false;
-    if (!p.project) return true;
-    return !!access() && access().canOpen(p.project);
+
+  /* Apribilità di una destinazione (link + grant). Usata sia per la CTA
+     a link singolo sia per ogni voce di un menu multi-destinazione. */
+  function canOpenTarget(href, project) {
+    if (!href || href === "#") return false;
+    if (!project) return true;
+    return !!access() && access().canOpen(project);
+  }
+  const isOpenable = p => canOpenTarget(p.link, p.project);
+  const isItemOpenable = item => canOpenTarget(item.href, item.project);
+
+  /* Un prodotto con più destinazioni: la CTA apre un menu a tendina. */
+  const hasMenu = p => Array.isArray(p.links) && p.links.length > 0;
+
+  /* --- Menu a tendina (prodotti multi-destinazione) --- */
+  function closeMenu() {
+    ctaMenu.hidden = true;
+    ctaMenu.setAttribute("aria-hidden", "true");
+    ctaEl.setAttribute("aria-expanded", "false");
+  }
+
+  function openMenu() {
+    ctaMenu.hidden = false;
+    ctaMenu.setAttribute("aria-hidden", "false");
+    ctaEl.setAttribute("aria-expanded", "true");
+  }
+
+  const menuOpen = () => !ctaMenu.hidden;
+
+  function toggleMenu() {
+    if (ctaEl.classList.contains("is-disabled")) return;
+    menuOpen() ? closeMenu() : openMenu();
+  }
+
+  /* Ricostruisce le voci del menu per il prodotto corrente. */
+  function buildMenu(p) {
+    ctaMenu.textContent = "";
+    p.links.forEach(item => {
+      const a = document.createElement("a");
+      a.className = "cta-menu-item";
+      a.setAttribute("role", "menuitem");
+      const label = document.createElement("span");
+      label.className = "cta-menu-label";
+      label.textContent = item.label;
+      a.appendChild(label);
+
+      const allowed = isItemOpenable(item);
+      const external = /^https?:/i.test(item.href);
+      a.classList.toggle("is-disabled", !allowed);
+      if (allowed) {
+        a.href = item.href;
+        if (external) { a.target = "_blank"; a.rel = "noopener"; }
+        a.removeAttribute("aria-disabled");
+      } else {
+        a.href = "#";
+        a.setAttribute("aria-disabled", "true");
+        a.addEventListener("click", e => e.preventDefault());
+      }
+      // La navigazione avvenuta chiude il menu (utile in same-tab).
+      a.addEventListener("click", () => { if (allowed) closeMenu(); });
+      ctaMenu.appendChild(a);
+    });
   }
 
   /* Stato della CTA in base all'accesso: attiva, "Access restricted"
-     o "Coming soon". */
+     o "Coming soon". Per i prodotti a menu la CTA è un toggle. */
   function applyCta(p) {
+    closeMenu();
+    if (hasMenu(p)) {
+      buildMenu(p);
+      const anyOpenable = p.links.some(isItemOpenable);
+      ctaLabel.textContent = p.cta;
+      ctaEl.href = "#";
+      ctaEl.setAttribute("aria-haspopup", "menu");
+      ctaEl.setAttribute("aria-expanded", "false");
+      ctaEl.classList.toggle("is-disabled", !anyOpenable);
+      if (anyOpenable) ctaEl.removeAttribute("aria-disabled");
+      else {
+        ctaEl.setAttribute("aria-disabled", "true");
+        // Prima dei grant teniamo l'etichetta prodotto (nessun flash).
+        ctaLabel.textContent = access() && access().ready ? "Access restricted" : p.cta;
+      }
+      return;
+    }
+
+    // Prodotto a destinazione singola: comportamento storico.
+    ctaEl.removeAttribute("aria-haspopup");
+    ctaEl.removeAttribute("aria-expanded");
     const hasRoute = p.link && p.link !== "#";
     const allowed = isOpenable(p);
     ctaEl.classList.toggle("is-disabled", !allowed);
@@ -152,6 +233,7 @@
   /* --- Applica il prodotto (contenuto dell'hero + sfondo) --- */
   function applyProduct(i) {
     current = i;
+    closeMenu();
     const p = projects[i];
     stage.style.setProperty("--accent", p.accent);
     document.body.dataset.world = p.backgroundType;
@@ -177,6 +259,7 @@
   function goTo(i, dir) {
     if (!visibleIndices.includes(i) || i === current || warping) return;
     dir = dir || 1;                       // +1 = avanti (esce verso sinistra)
+    closeMenu();
 
     if (reduced) { applyProduct(i); return; }
 
@@ -224,13 +307,22 @@
 
   function openCurrent() {
     const p = projects[current];
+    if (hasMenu(p)) { toggleMenu(); return; }
     if (isOpenable(p)) window.location.href = p.link;
   }
 
-  // Blocca l'anchor quando il prodotto non è apribile (grant mancante,
-  // "Coming soon", o grant non ancora arrivati).
+  // Per i prodotti a menu la CTA è un toggle; altrimenti blocca l'anchor
+  // quando il prodotto non è apribile (grant mancante, "Coming soon", o
+  // grant non ancora arrivati).
   ctaEl.addEventListener("click", e => {
-    if (!isOpenable(projects[current])) e.preventDefault();
+    const p = projects[current];
+    if (hasMenu(p)) { e.preventDefault(); toggleMenu(); return; }
+    if (!isOpenable(p)) e.preventDefault();
+  });
+
+  // Chiudi il menu al click fuori dalla CTA/menu.
+  document.addEventListener("pointerdown", e => {
+    if (menuOpen() && !ctaWrap.contains(e.target)) closeMenu();
   });
 
   // Quando arrivano i grant da api/my-access, riallinea la CTA corrente.
@@ -243,6 +335,7 @@
   /* --- Tastiera --- */
   document.addEventListener("keydown", e => {
     if (!gateDone()) return;              // durante il gate comanda gate.js
+    if (e.key === "Escape" && menuOpen()) { e.preventDefault(); closeMenu(); return; }
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); next(); }
     else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); prev(); }
