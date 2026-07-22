@@ -16,7 +16,7 @@ import re
 import threading
 import time
 
-from flask import Blueprint
+from flask import Blueprint, Response
 
 from shared import auth
 from shared.db import (
@@ -31,6 +31,16 @@ bp = Blueprint("laplace", __name__)
 
 _PROJECT_KEY = "LAPLACEPIPELINE"
 _TTL_S = int(os.environ.get("LAPLACE_CACHE_TTL_S", "300"))
+
+# Ruby: Excel download served from a Unity Catalog volume via the Databricks
+# Files API (no /Volumes filesystem mount assumed in the App container).
+_RUBY_PROJECT_KEY = "RUBY"
+_RUBY_VOLUME_PATH = os.environ.get(
+    "RUBY_XLSX_PATH",
+    "/Volumes/sbx-logistics/gli_nexus/nexus_volume/package_flags_2026.xlsx",
+)
+_RUBY_DOWNLOAD_NAME = "package_flags_2026.xlsx"
+_XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 _cache: tuple[float, dict] | None = None
 _lock = threading.Lock()
@@ -144,3 +154,42 @@ def page():
             "The Laplace report could not be loaded. Try again later.",
         ), 503
     return _page(report["html"])
+
+
+def _read_volume_file(path: str) -> bytes | None:
+    """Read a Unity Catalog volume file via the Databricks Files API. Auth
+    mirrors shared.db (Config across Apps SP creds / local PAT / CLI OAuth)."""
+    try:
+        from databricks.sdk import WorkspaceClient
+        from databricks.sdk.core import Config
+
+        profile = os.environ.get("DATABRICKS_CONFIG_PROFILE")
+        cfg = Config(profile=profile) if profile else Config()
+        w = WorkspaceClient(config=cfg)
+        return w.files.download(path).contents.read()
+    except Exception:
+        _log.exception("Ruby download read failed")
+        return None
+
+
+@bp.route("/ruby-download")
+def ruby_download():
+    if not auth.authorized(_RUBY_PROJECT_KEY):
+        return _message_page(
+            "ACCESS RESTRICTED",
+            "You don't have permission to download this file.<br>"
+            "If you think you should, please contact the admin.",
+        ), 403
+    data = _read_volume_file(_RUBY_VOLUME_PATH)
+    if data is None:
+        return _message_page(
+            "DATA UNAVAILABLE",
+            "The Ruby file could not be loaded. Try again later.",
+        ), 503
+    return Response(
+        data,
+        mimetype=_XLSX_MIME,
+        headers={
+            "Content-Disposition": f'attachment; filename="{_RUBY_DOWNLOAD_NAME}"'
+        },
+    )
