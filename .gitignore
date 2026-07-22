@@ -34,6 +34,9 @@ old/
 .agents/
 .claude/
 
+# Local working notes, not part of the repo
+GUIDE.md
+
 # Real data files must never be committed
 *.xlsx
 

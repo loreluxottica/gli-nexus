@@ -210,7 +210,7 @@ Due pattern possibili:
   `app.py` aggiungilo a `MOUNTS`.
 - **Blueprint Flask** (es. Cortana, Galileo — pagine server-rendered o siti
   statici): esponi un `bp` in `projects/<nome>/server.py`, gate con
-  `kelly_dashboard.auth` e in `app.py` fai
+  `shared.auth` (`auth.authorized("<CHIAVE>")`) e in `app.py` fai
   `root.register_blueprint(bp, url_prefix="/<nome>")`.
 
 Poi aggiungi la card nel portale (`DATA[]` in `portal/gli_nexus_portal.html`)

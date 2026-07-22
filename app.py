@@ -27,9 +27,12 @@ _PORTAL = os.path.join(_PORTAL_DIR, "index-single.html")
 
 # Make the sub-projects importable as top-level packages
 # (e.g. `import kelly_dashboard`), matching each project's own sys.path shim.
+# The repo root goes on too, so the cross-cutting `shared` package (shared.auth,
+# shared.db) resolves as `import shared`.
 _PROJECTS = os.path.join(_ROOT, "projects")
-if _PROJECTS not in sys.path:
-    sys.path.insert(0, _PROJECTS)
+for _p in (_ROOT, _PROJECTS):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 
 # ---- Root app: serves the portal ------------------------------------------
@@ -66,9 +69,9 @@ def healthz():
 @root.route("/api/my-access")
 def my_access():
     """Project grants of the current user, read from the central access
-    table (see kelly_dashboard.auth). The portal uses this to enable or
+    table (see shared.auth). The portal uses this to enable or
     restrict its cards. ["*"] = everything; [] = nothing / lookup failed."""
-    from kelly_dashboard import auth
+    from shared import auth
 
     email = auth.get_current_email()
     if email is None:

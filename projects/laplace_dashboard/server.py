@@ -6,7 +6,7 @@ notebook. The notebook's final cell appends the fully assembled page to
 this blueprint reads the latest row at request time with a short TTL cache, so
 every notebook run (manual or scheduled job) refreshes the dashboard with no
 app redeploy. Access is gated by the central GLI Nexus access table (project
-LAPLACE). See data_pipeline/publish_to_nexus.py for the notebook-side cell.
+LAPLACEPIPELINE). See data_pipeline/publish_to_nexus.py for the notebook-side cell.
 """
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ import time
 
 from flask import Blueprint
 
-from kelly_dashboard import auth
-from kelly_dashboard.data_loader import (
+from shared import auth
+from shared.db import (
     _IDENTIFIER_PART_RE,
     _sql_connect_kwargs,
     _sql_http_path,
@@ -29,7 +29,7 @@ _log = logging.getLogger(__name__)
 
 bp = Blueprint("laplace", __name__)
 
-_PROJECT_KEY = "LAPLACE"
+_PROJECT_KEY = "LAPLACEPIPELINE"
 _TTL_S = int(os.environ.get("LAPLACE_CACHE_TTL_S", "300"))
 
 _cache: tuple[float, dict] | None = None
@@ -82,14 +82,6 @@ def _get_report() -> dict | None:
     return data
 
 
-def _authorized() -> bool:
-    email = auth.get_current_email()
-    if email is None:
-        return not auth._in_databricks_app()  # local dev = allow
-    projects = auth.get_user_projects(email)
-    return bool(projects) and ("*" in projects or _PROJECT_KEY in projects)
-
-
 _BACK_LINK = (
     '<a href="../" style="display:inline-block;margin:14px 0 4px 24px;'
     "font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;letter-spacing:1px;"
@@ -139,7 +131,7 @@ def _message_page(title: str, message: str) -> str:
 
 @bp.route("/")
 def page():
-    if not _authorized():
+    if not auth.authorized(_PROJECT_KEY):
         return _message_page(
             "ACCESS RESTRICTED",
             "You don't have permission to view the Laplace Pipeline Monitor.<br>"
