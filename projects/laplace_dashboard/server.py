@@ -1,12 +1,13 @@
 """Laplace Pipeline Monitor — Flask blueprint.
 
 Serves the customs-pipeline HTML report published by the Laplace Databricks
-notebook. The notebook's final cell appends the fully assembled page to
-`sbx-logistics.gli_nexus.laplace_report` (generated_at TIMESTAMP, html STRING);
-this blueprint reads the latest row at request time with a short TTL cache, so
-every notebook run (manual or scheduled job) refreshes the dashboard with no
-app redeploy. Access is gated by the central GLI Nexus access table (project
-LAPLACEPIPELINE). See data_pipeline/publish_to_nexus.py for the notebook-side cell.
+notebook. The notebook writes the fully assembled page as a date-stamped HTML
+file to the Unity Catalog volume `/Volumes/sbx-logistics/gli_nexus/nexus_volume`
+(e.g. laplace_pipeline_tutorial_YYYYMMDD.html); this blueprint lists the volume
+at request time (short TTL cache) and serves the most recent match, so every
+notebook run (manual or scheduled job) refreshes the dashboard with no app
+redeploy. Access is gated by the central GLI Nexus access table (project
+LAPLACEPIPELINE).
 """
 from __future__ import annotations
 
@@ -19,11 +20,6 @@ import time
 from flask import Blueprint, Response
 
 from shared import auth
-from shared.db import (
-    _IDENTIFIER_PART_RE,
-    _sql_connect_kwargs,
-    _sql_http_path,
-)
 
 _log = logging.getLogger(__name__)
 
@@ -32,8 +28,16 @@ bp = Blueprint("laplace", __name__)
 _PROJECT_KEY = "LAPLACEPIPELINE"
 _TTL_S = int(os.environ.get("LAPLACE_CACHE_TTL_S", "300"))
 
-# Ruby: Excel download served from a Unity Catalog volume via the Databricks
-# Files API (no /Volumes filesystem mount assumed in the App container).
+# Report source: the latest HTML file published to a Unity Catalog volume, read
+# via the Databricks Files API (no /Volumes filesystem mount assumed in the App
+# container). The notebook writes a date-stamped file each run; the app lists the
+# directory and serves the most recent match — no redeploy, no table.
+_HTML_DIR = os.environ.get(
+    "LAPLACE_HTML_DIR", "/Volumes/sbx-logistics/gli_nexus/nexus_volume"
+).rstrip("/")
+_HTML_PREFIX = os.environ.get("LAPLACE_HTML_PREFIX", "laplace_pipeline_tutorial_")
+
+# Flags: Excel download served from the same volume.
 _FLAGS_PROJECT_KEY = "FLAGS"
 _RUBY_VOLUME_PATH = os.environ.get(
     "RUBY_XLSX_PATH",
@@ -46,37 +50,43 @@ _cache: tuple[float, dict] | None = None
 _lock = threading.Lock()
 
 
-def _report_table() -> str | None:
-    fq = os.environ.get("LAPLACE_REPORT_TABLE", "sbx-logistics.gli_nexus.laplace_report")
-    parts = fq.split(".")
-    if len(parts) != 3 or not all(_IDENTIFIER_PART_RE.fullmatch(p) for p in parts):
-        _log.warning("Invalid LAPLACE_REPORT_TABLE: %r", fq)
+def _ws_client():
+    """Databricks WorkspaceClient. Auth mirrors shared.db (Config across Apps SP
+    creds / local PAT / CLI OAuth profile)."""
+    from databricks.sdk import WorkspaceClient
+    from databricks.sdk.core import Config
+
+    profile = os.environ.get("DATABRICKS_CONFIG_PROFILE")
+    cfg = Config(profile=profile) if profile else Config()
+    return WorkspaceClient(config=cfg)
+
+
+def _latest_html_path() -> str | None:
+    """Most recent `_HTML_PREFIX*.html` file in the volume dir. Date-stamped
+    names sort chronologically, so the lexicographic max is the newest."""
+    try:
+        w = _ws_client()
+        matches: list[str] = []
+        for e in w.files.list_directory_contents(_HTML_DIR):
+            name, path = e.name, e.path
+            if getattr(e, "is_directory", False) or not name or not path:
+                continue
+            if name.startswith(_HTML_PREFIX) and name.lower().endswith(".html"):
+                matches.append(path)
+        return max(matches) if matches else None
+    except Exception:
+        _log.exception("Laplace HTML volume listing failed")
         return None
-    return ".".join(f"`{p}`" for p in parts)
 
 
 def _query() -> dict | None:
-    table = _report_table()
-    http_path = _sql_http_path()
-    if not table or not http_path:
+    path = _latest_html_path()
+    if not path:
         return None
-    try:
-        from databricks import sql as dbsql
-
-        with dbsql.connect(
-            http_path=http_path, **_sql_connect_kwargs()
-        ) as conn, conn.cursor() as cur:
-            cur.execute(
-                f"SELECT html, generated_at FROM {table} "
-                f"ORDER BY generated_at DESC LIMIT 1"
-            )
-            row = cur.fetchone()
-        if not row or not row[0]:
-            return None
-        return {"html": row[0], "generated_at": row[1]}
-    except Exception:
-        _log.exception("Laplace report query failed")
+    data = _read_volume_file(path)
+    if data is None:
         return None
+    return {"html": data.decode("utf-8", "replace"), "generated_at": path}
 
 
 def _get_report() -> dict | None:
@@ -157,18 +167,12 @@ def page():
 
 
 def _read_volume_file(path: str) -> bytes | None:
-    """Read a Unity Catalog volume file via the Databricks Files API. Auth
-    mirrors shared.db (Config across Apps SP creds / local PAT / CLI OAuth)."""
+    """Read a Unity Catalog volume file via the Databricks Files API."""
     try:
-        from databricks.sdk import WorkspaceClient
-        from databricks.sdk.core import Config
-
-        profile = os.environ.get("DATABRICKS_CONFIG_PROFILE")
-        cfg = Config(profile=profile) if profile else Config()
-        w = WorkspaceClient(config=cfg)
-        return w.files.download(path).contents.read()
+        contents = _ws_client().files.download(path).contents
+        return contents.read() if contents is not None else None
     except Exception:
-        _log.exception("Ruby download read failed")
+        _log.exception("Volume file read failed: %s", path)
         return None
 
 
