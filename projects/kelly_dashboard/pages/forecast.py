@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pandas as pd
 import dash
-from dash import html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output, dash_table
 from dash.exceptions import PreventUpdate
 from shared import auth
 import kelly_dashboard.theme as theme
@@ -70,6 +70,38 @@ def _month_options(df: pd.DataFrame) -> list[dict]:
 def _week_options(df: pd.DataFrame) -> list[dict]:
     fct = df[df["Forecast"].notna()]
     weeks = fct[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"])
+    opts = [{"label": "All weeks", "value": "__all__"}]
+    for _, row in weeks.iterrows():
+        opts.append({"label": f"{int(row['Year'])}-W{int(row['Week']):02d}",
+                     "value": f"{int(row['Year'])}-W{int(row['Week']):02d}"})
+    return opts
+
+
+# ── Historical filters (past Actual data — decoupled from the forecast bar) ──────
+
+def _hist_actual(df: pd.DataFrame) -> pd.DataFrame:
+    return df[df["Actual"].notna() & df["Working"]
+              & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
+
+
+def _hist_year_options(df: pd.DataFrame) -> list[dict]:
+    return _year_options(_hist_actual(df))
+
+
+def _hist_month_options(df: pd.DataFrame) -> list[dict]:
+    act = _hist_actual(df)
+    opts = [{"label": "All months", "value": "__all__"}]
+    if act.empty:
+        return opts
+    months = act["Date"].dt.to_period("M").drop_duplicates().sort_values(ascending=False)
+    for m in months:
+        opts.append({"label": str(m), "value": str(m)})
+    return opts
+
+
+def _hist_week_options(df: pd.DataFrame) -> list[dict]:
+    act = _hist_actual(df)
+    weeks = act[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"], ascending=False)
     opts = [{"label": "All weeks", "value": "__all__"}]
     for _, row in weeks.iterrows():
         opts.append({"label": f"{int(row['Year'])}-W{int(row['Week']):02d}",
@@ -224,6 +256,23 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                           config={"displayModeBar": False}),
             ], className="chart-card"),
 
+            # Historical filter bar — independent from the forecast filters above
+            # (forecast = future data; historical = past Actual).
+            html.Div([
+                html.Span("AREA", className="filter-label"),
+                dcc.Dropdown(id="hist-area-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "200px"}),
+                html.Span("YEAR", className="filter-label"),
+                dcc.Dropdown(id="hist-year-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "110px"}),
+                html.Span("MONTH", className="filter-label"),
+                dcc.Dropdown(id="hist-month-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "150px"}),
+                html.Span("WEEK", className="filter-label"),
+                dcc.Dropdown(id="hist-week-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "150px"}),
+            ], className="filter-bar"),
+
             # Area table
             html.Div([
                 html.Div("HISTORICAL ABSENTEEISM BY AREA", className="chart-card-title"),
@@ -251,8 +300,6 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                         "fontFamily": theme.FONT,
                     },
                     style_data_conditional=[],
-                    row_selectable="single",
-                    selected_rows=[],
                     page_size=12,
                     style_as_list_view=True,
                 ),
@@ -295,6 +342,10 @@ def register_callbacks(app):
         Output("fct-year-dd", "options"),
         Output("fct-month-dd", "options"),
         Output("fct-week-dd", "options"),
+        Output("hist-area-dd", "options"),
+        Output("hist-year-dd", "options"),
+        Output("hist-month-dd", "options"),
+        Output("hist-week-dd", "options"),
         Input("fct-warehouse-id", "data"),
     )
     def populate_controls(warehouse_id):
@@ -303,30 +354,37 @@ def register_callbacks(app):
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
-        return (_id_options(df, warehouse_id), _year_options(df),
-                _month_options(df), _week_options(df))
+        return (
+            _id_options(df, warehouse_id), _year_options(df),
+            _month_options(df), _week_options(df),
+            # Historical filters draw from past Actual data, keep "All areas".
+            _id_options(df), _hist_year_options(df),
+            _hist_month_options(df), _hist_week_options(df),
+        )
 
-    # Historical table reacts to Year / Month / Week (same filters as the chart).
+    # Historical table reacts to its OWN Area/Year/Month/Week filters, fully
+    # decoupled from the forecast bar (forecast = future, historical = past).
     @app.callback(
         Output("fct-area-table", "columns"),
         Output("fct-area-table", "data"),
         Output("fct-area-table", "style_data_conditional"),
-        Output("fct-area-table", "selected_rows"),
         Input("fct-warehouse-id", "data"),
-        Input("fct-year-dd", "value"),
-        Input("fct-month-dd", "value"),
-        Input("fct-week-dd", "value"),
+        Input("hist-area-dd", "value"),
+        Input("hist-year-dd", "value"),
+        Input("hist-month-dd", "value"),
+        Input("hist-week-dd", "value"),
     )
-    def update_table(warehouse_id, year_val, month_val, week_val):
+    def update_table(warehouse_id, area_val, year_val, month_val, week_val):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
         df = _apply_period_filters(df, year_val, month_val, week_val)
+        if area_val and area_val != "__all__":
+            df = df[df["ID"] == area_val]
         cols, tdata, style = _build_pivot_table(df)
-        # Rebuilding the rows invalidates any prior selection index.
-        return cols, tdata, style, []
+        return cols, tdata, style
 
     @app.callback(
         Output("fct-bar-chart", "figure"),
@@ -337,11 +395,9 @@ def register_callbacks(app):
         Input("fct-month-dd", "value"),
         Input("fct-week-dd", "value"),
         Input("fct-granularity", "value"),
-        Input("fct-area-table", "selected_rows"),
-        State("fct-area-table", "data"),
     )
     def update_chart(warehouse_id, area_val, year_val, month_val, week_val,
-                     granularity, selected_rows, table_data):
+                     granularity):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
@@ -350,8 +406,6 @@ def register_callbacks(app):
 
         df = _apply_period_filters(df, year_val, month_val, week_val)
 
-        if selected_rows and table_data:
-            area_val = table_data[selected_rows[0]]["AREA"]
         if area_val and area_val != "__all__":
             df = df[df["ID"] == area_val]
 
