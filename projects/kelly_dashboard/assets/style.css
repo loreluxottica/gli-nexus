@@ -334,6 +334,41 @@ body {
     opacity: 0.85;
 }
 
+/* Chart header: title on the left, granularity toggle on the right */
+.chart-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 4px;
+}
+.chart-card-head .chart-card-title { margin-bottom: 0; }
+
+.granularity-toggle {
+    display: inline-flex;
+    gap: 4px;
+}
+.granularity-toggle label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--el-silver);
+    padding: 3px 10px;
+    border: 1px solid var(--el-border-soft);
+    border-radius: 0;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.granularity-toggle label:hover { color: var(--el-cream); }
+.granularity-toggle input { display: none; }
+.granularity-toggle input:checked + label,
+.granularity-toggle label:has(input:checked) {
+    color: var(--el-cream);
+    background: var(--el-accent-12);
+    border-color: var(--el-accent);
+}
+
 /* ── Weather card ───────────────────────────────────────── */
 .weather-card {
     background: rgba(255,255,255,0.10);
