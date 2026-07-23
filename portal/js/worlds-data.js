@@ -72,7 +72,7 @@ const NEXUS_WORLDS = [
       { label: "Multidocument CT",
         href: "https://laplace-multidocument-cockpit-8661566820370235.15.azure.databricksapps.com/",
         project: "LAPLACEMULTIDOC" },
-      { label: "Ruby Download", href: "/laplace/ruby-download", project: "RUBY" }
+      { label: "Flags Download", href: "/laplace/flags-download", project: "FLAGS" }
     ]
   },
   {

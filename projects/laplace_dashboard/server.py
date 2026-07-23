@@ -34,7 +34,7 @@ _TTL_S = int(os.environ.get("LAPLACE_CACHE_TTL_S", "300"))
 
 # Ruby: Excel download served from a Unity Catalog volume via the Databricks
 # Files API (no /Volumes filesystem mount assumed in the App container).
-_RUBY_PROJECT_KEY = "RUBY"
+_FLAGS_PROJECT_KEY = "FLAGS"
 _RUBY_VOLUME_PATH = os.environ.get(
     "RUBY_XLSX_PATH",
     "/Volumes/sbx-logistics/gli_nexus/nexus_volume/package_flags_2026.xlsx",
@@ -172,9 +172,9 @@ def _read_volume_file(path: str) -> bytes | None:
         return None
 
 
-@bp.route("/ruby-download")
-def ruby_download():
-    if not auth.authorized(_RUBY_PROJECT_KEY):
+@bp.route("/flags-download")
+def flags_download():
+    if not auth.authorized(_FLAGS_PROJECT_KEY):
         return _message_page(
             "ACCESS RESTRICTED",
             "You don't have permission to download this file.<br>"
