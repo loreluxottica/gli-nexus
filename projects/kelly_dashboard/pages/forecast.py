@@ -413,34 +413,31 @@ def register_callbacks(app):
 
 
 def _build_kpis(df: pd.DataFrame):
-    # Exclude closed days (100% = weekend/holiday shutdown) so averages and the
-    # peak reflect real absenteeism — mirrors the bar chart's own filtering.
+    # Closed days (100% = weekend/holiday shutdown) are excluded everywhere so
+    # every metric reflects real absenteeism (mirrors the bar chart filtering).
+    # Avg is forward-looking (Forecast); Peak and the "biggest" facts are the
+    # highest values actually RECORDED in the past (Actual) with their real day.
     fct = df[df["Forecast"].notna() & df["Working"]
              & (df["Forecast"] < data_loader.CLOSED_THRESHOLD)]
-    if fct.empty:
-        return build_kpi_row([
-            build_kpi_stat("Avg Forecast Abs", "—", "muted"),
-            build_kpi_stat("Peak Forecast", "—", "muted"),
-            build_kpi_stat("Biggest Abs Area", "—", "muted"),
-            build_kpi_stat("Biggest Abs Day", "—", "muted"),
-        ])
+    avg = f"{fct['Forecast'].mean() * 100:.1f}%" if not fct.empty else "—"
 
-    avg = fct["Forecast"].mean() * 100
+    act = df[df["Actual"].notna() & df["Working"]
+             & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
+    if act.empty:
+        peak = biggest_area = biggest_day = "—"
+    else:
+        by_day = act.groupby("Date")["Actual"].mean()
+        peak = f"{by_day.max() * 100:.1f}%"
+        biggest_day = pd.Timestamp(by_day.idxmax()).strftime("%d/%m/%Y")
 
-    by_id = fct.groupby("ID")["Forecast"].mean()
-    biggest_area = str(by_id.idxmax())
-    if len(biggest_area) > 30:
-        biggest_area = biggest_area[:30] + "…"
-
-    # Peak = highest daily-average forecast, and the day it falls on.
-    by_day = fct.groupby("Date")["Forecast"].mean()
-    peak = by_day.max() * 100
-    peak_day = pd.Timestamp(by_day.idxmax())
-    biggest_day = peak_day.strftime("%d/%m/%Y")
+        by_id = act.groupby("ID")["Actual"].mean()
+        biggest_area = str(by_id.idxmax())
+        if len(biggest_area) > 30:
+            biggest_area = biggest_area[:30] + "…"
 
     return build_kpi_row([
-        build_kpi_stat("Avg Forecast Abs", f"{avg:.1f}%"),
-        build_kpi_stat("Peak Forecast", f"{peak:.1f}%", "warn"),
-        build_kpi_stat("Biggest Abs Area", biggest_area, "sm"),
+        build_kpi_stat("Avg Forecast Abs", avg, "" if avg != "—" else "muted"),
+        build_kpi_stat("Peak Actual", peak, "warn" if peak != "—" else "muted"),
+        build_kpi_stat("Biggest Abs Area", biggest_area, "sm" if biggest_area != "—" else "muted"),
         build_kpi_stat("Biggest Abs Day", biggest_day, "muted"),
     ])
