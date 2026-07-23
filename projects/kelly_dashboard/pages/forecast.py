@@ -300,7 +300,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                         "fontFamily": theme.FONT,
                     },
                     style_data_conditional=[],
-                    page_size=12,
+                    page_action="none",
                     style_as_list_view=True,
                 ),
             ], className="chart-card"),
