@@ -140,7 +140,7 @@ def _apply_hist_filters(df: pd.DataFrame, month_val, week_val) -> pd.DataFrame:
     return df
 
 
-def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
+def _build_pivot_table(df: pd.DataFrame, ytw: bool = False) -> tuple[list, list, list]:
     actual = df[df["Actual"].notna() & df["Working"]
                 & (df["Actual"] < data_loader.CLOSED_THRESHOLD)].copy()
     if actual.empty:
@@ -161,7 +161,14 @@ def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
     for col in year_cols:
         pivot[col] = pivot[col].apply(lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—")
 
-    columns = [{"name": c, "id": c} for c in pivot.columns]
+    # In the base view the current year is only a partial (year-to-week)
+    # average — flag it "(YTW)". Filters make the column period-specific, so
+    # the annotation is dropped.
+    cur_year = str(pd.Timestamp.today().year)
+    columns = [
+        {"name": f"{c} (YTW)" if ytw and c == cur_year else c, "id": c}
+        for c in pivot.columns
+    ]
     data = pivot.to_dict("records")
 
     style = []
@@ -420,7 +427,10 @@ def register_callbacks(app):
 
         # Table shows every area (or the selected one); General pinned first.
         tdf = df[df["ID"] == area_val] if area_val and area_val != "__all__" else df
-        cols, tdata, style = _build_pivot_table(tdf)
+        # "(YTW)" on the current year only in the base view (no period filter).
+        base_view = (not month_val or month_val == "__all__") and \
+                    (not week_val or week_val == "__all__")
+        cols, tdata, style = _build_pivot_table(tdf, ytw=base_view)
 
         kpis = _overview_kpis(tdf, "Actual", "HISTORICAL OVERVIEW",
                               "Avg Historical Abs", "Peak Historical",
