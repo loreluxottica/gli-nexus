@@ -65,7 +65,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                         html.Div("AVERAGE ACTUAL ABS", className="kpi-label"),
                     ], className="kpi-stat"),
                     html.Div([
-                        html.Div(id="perf-kpi-fct", className="kpi-value"),
+                        html.Div(id="perf-kpi-fct", className="kpi-value gold"),
                         html.Div("AI FORECAST", className="kpi-label"),
                         html.Div(id="perf-kpi-delta", style={"fontSize": "10px", "color": theme.TEXT_DIM, "marginTop": "4px"}),
                     ], className="kpi-stat"),

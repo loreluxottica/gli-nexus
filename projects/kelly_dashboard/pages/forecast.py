@@ -202,7 +202,8 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
     return html.Div([
         html.Div([
             html.Img(src=dash.get_asset_url("logo.svg"), className="sidebar-logo-img", alt="EssilorLuxottica"),
-            html.Div("PROJECT KELLY", className="sidebar-logo-title"),
+            html.Div(["PROJECT ", html.Span("KELLY", className="brand-kelly")],
+                     className="sidebar-logo-title"),
             html.Div(wh_label, className="sidebar-logo-sub"),
         ], className="sidebar-logo"),
         html.Div("NAVIGATION", className="sidebar-section-label"),
@@ -467,7 +468,8 @@ def _overview_kpis(df: pd.DataFrame, col: str, title: str,
     elif sub.empty:
         avg, avg_cls = "—", "muted"
     else:
-        avg, avg_cls = f"{sub[col].mean() * 100:.1f}%", ""
+        # Dark-yellow highlight — the average is the headline number.
+        avg, avg_cls = f"{sub[col].mean() * 100:.1f}%", "gold"
 
     if sub.empty:
         peak, peak_area, peak_day = "—", "—", "—"

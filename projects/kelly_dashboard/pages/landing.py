@@ -19,7 +19,8 @@ def layout() -> html.Div:
                 (html.A("← All Projects", href="/", className="globe-portal-link")
                  if mounted else None),
                 html.Img(src=dash.get_asset_url("logo.svg"), className="globe-logo-img", alt="EssilorLuxottica"),
-                html.Div("PROJECT KELLY", className="globe-title"),
+                html.Div(["PROJECT ", html.Span("KELLY", className="brand-kelly")],
+                         className="globe-title"),
                 html.Div("ABSENTEEISM FORECAST INTELLIGENCE SYSTEM", className="globe-subtitle"),
             ]),
             html.Div([

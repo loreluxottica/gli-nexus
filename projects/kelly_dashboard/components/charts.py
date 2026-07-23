@@ -113,9 +113,9 @@ def build_drift_chart(df: pd.DataFrame | None, granularity: str = "week",
         y=grouped["fct_pct"].tolist(),
         name="AI FORECAST (PREV. MONTH)",
         mode="lines+markers",
-        line=dict(color=theme.INFO, width=2, dash="dash"),
-        marker=dict(color=theme.INFO, size=7, symbol="x",
-                    line=dict(width=1.5, color=theme.INFO)),
+        line=dict(color=theme.GOLD, width=2, dash="dash"),
+        marker=dict(color=theme.GOLD, size=7, symbol="x",
+                    line=dict(width=1.5, color=theme.GOLD)),
         hovertemplate="<b>%{x}</b><br>Forecast: %{y:.2f}%<extra></extra>",
     ))
 

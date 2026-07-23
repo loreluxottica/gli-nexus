@@ -6,6 +6,7 @@ CARD      = "rgba(255,255,255,0.10)"    # white-10 glass
 CARD2     = "rgba(255,255,255,0.16)"    # lighter glass
 BORDER    = "rgba(255,255,255,0.85)"    # white hairline
 ACCENT    = "#FFFFFF"                   # no color — white
+GOLD      = "#C9A227"                   # dark yellow — highlight for key info
 INFO      = "#87888c"                   # gray-3 (secondary series / grid)
 POSITIVE  = "#FFFFFF"                   # monochrome
 WARN      = "#FFFFFF"                   # monochrome
