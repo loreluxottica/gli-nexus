@@ -262,6 +262,13 @@ body {
     opacity: 0.8;
 }
 
+/* Divider between the Forecast and Historical overview sections */
+.page-section {
+    margin-top: 44px;
+    padding-top: 32px;
+    border-top: 1px solid var(--el-border-soft);
+}
+
 /* ── KPI row ────────────────────────────────────────────── */
 .kpi-row {
     display: grid;
