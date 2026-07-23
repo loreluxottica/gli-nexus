@@ -386,7 +386,7 @@ def _build_kpis(df: pd.DataFrame):
 
     return build_kpi_row([
         build_kpi_stat("Avg Forecast Abs", f"{avg:.1f}%"),
-        build_kpi_stat("Peak Forecast", f"{peak:.1f}%  ·  {biggest_day}", "warn"),
+        build_kpi_stat("Peak Forecast", f"{peak:.1f}%", "warn"),
         build_kpi_stat("Biggest Abs Area", biggest_area, "sm"),
         build_kpi_stat("Biggest Abs Day", biggest_day, "muted"),
     ])
