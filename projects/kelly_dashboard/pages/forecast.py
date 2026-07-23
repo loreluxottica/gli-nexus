@@ -23,9 +23,15 @@ FORECAST_HORIZON_DAYS = 90
 
 
 def _forecast_horizon(df: pd.DataFrame) -> pd.DataFrame:
-    """Cap the frame to today .. today + FORECAST_HORIZON_DAYS."""
-    horizon = pd.Timestamp.today().normalize() + pd.Timedelta(days=FORECAST_HORIZON_DAYS)
-    return df[df["Date"] <= horizon]
+    """Cap the frame to [current week start .. today + FORECAST_HORIZON_DAYS].
+
+    Lower bound is the Monday of the current ISO week, so already-elapsed weeks
+    (e.g. W29 when we are in W30) drop off and the chart starts at "now".
+    """
+    today = pd.Timestamp.today().normalize()
+    week_start = today - pd.Timedelta(days=today.weekday())  # Monday of this week
+    horizon = today + pd.Timedelta(days=FORECAST_HORIZON_DAYS)
+    return df[(df["Date"] >= week_start) & (df["Date"] <= horizon)]
 
 
 def _id_options(df: pd.DataFrame, warehouse_id: str | None = None) -> list[dict]:
