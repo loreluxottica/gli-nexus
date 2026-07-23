@@ -71,7 +71,8 @@ const NEXUS_WORLDS = [
       { label: "Pipeline Monitor", href: "/laplace/", project: "LAPLACEPIPELINE" },
       { label: "Multidocument CT",
         href: "https://laplace-multidocument-cockpit-8661566820370235.15.azure.databricksapps.com/",
-        project: "LAPLACEMULTIDOC" }
+        project: "LAPLACEMULTIDOC" },
+      { label: "Flags Download", href: "/laplace/flags-download", project: "FLAGS" }
     ]
   },
   {
