@@ -33,12 +33,25 @@ def build_bar_chart(df: pd.DataFrame | None, granularity: str = "week") -> go.Fi
 
     pct_list = grouped["pct"].tolist()
 
+    # Highlight the current week in gold — every day of it in the daily view,
+    # the single W## bar in the weekly view.
+    today = pd.Timestamp.today().normalize()
+    week_start = today - pd.Timedelta(days=today.weekday())  # Monday of this week
+    week_end = week_start + pd.Timedelta(days=6)             # Sunday of this week
+    if granularity == "day":
+        d = grouped["Date"].dt.normalize()
+        is_current = (d >= week_start) & (d <= week_end)
+    else:
+        iso = today.isocalendar()
+        is_current = (grouped["Year"] == today.year) & (grouped["Week"] == iso.week)
+    bar_colors = [theme.GOLD if cur else theme.TEXT for cur in is_current]
+
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=grouped["label"],
         y=pct_list,
         marker=dict(
-            color=theme.TEXT,   # monochrome white bars (EL style)
+            color=bar_colors,   # white bars, current period gold
             opacity=0.92,
             line=dict(width=0),
         ),
