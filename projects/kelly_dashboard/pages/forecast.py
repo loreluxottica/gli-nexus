@@ -464,7 +464,7 @@ def _overview_kpis(df: pd.DataFrame, col: str, title: str,
 
     if not area_selected:
         avg = "Select an area"
-        avg_cls = "sm"
+        avg_cls = "gold sm"
     elif sub.empty:
         avg, avg_cls = "—", "muted"
     else:

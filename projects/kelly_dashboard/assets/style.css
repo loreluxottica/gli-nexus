@@ -381,9 +381,9 @@ body {
 .granularity-toggle input { display: none; }
 .granularity-toggle input:checked + label,
 .granularity-toggle label:has(input:checked) {
-    color: var(--el-cream);
-    background: var(--el-accent-12);
-    border-color: var(--el-accent);
+    color: var(--el-gold);
+    background: var(--el-gold-12);
+    border-color: var(--el-gold);
 }
 
 /* ── Weather card ───────────────────────────────────────── */
