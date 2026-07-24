@@ -1,7 +1,8 @@
 from __future__ import annotations
+import calendar
 import pandas as pd
 import dash
-from dash import html, dcc, Input, Output, State, dash_table
+from dash import html, dcc, Input, Output, dash_table
 from dash.exceptions import PreventUpdate
 from shared import auth
 import kelly_dashboard.theme as theme
@@ -17,13 +18,63 @@ from kelly_dashboard.components.holidays import build_holidays_panel
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _id_options(df: pd.DataFrame) -> list[dict]:
+# Forecast is only meaningful within a short horizon — hide anything further out.
+FORECAST_HORIZON_DAYS = 90
+
+
+def _forecast_horizon(df: pd.DataFrame) -> pd.DataFrame:
+    """Cap the frame to [current week start .. today + FORECAST_HORIZON_DAYS].
+
+    Lower bound is the Monday of the current ISO week, so already-elapsed weeks
+    (e.g. W29 when we are in W30) drop off and the chart starts at "now".
+    """
+    today = pd.Timestamp.today().normalize()
+    week_start = today - pd.Timedelta(days=today.weekday())  # Monday of this week
+    horizon = today + pd.Timedelta(days=FORECAST_HORIZON_DAYS)
+    return df[(df["Date"] >= week_start) & (df["Date"] <= horizon)]
+
+
+def _id_options(df: pd.DataFrame, warehouse_id: str | None = None) -> list[dict]:
     ids = sorted(df["ID"].dropna().unique())
-    return [{"label": "All areas", "value": "__all__"}] + [{"label": i, "value": i} for i in ids]
+    area_opts = [{"label": i, "value": i} for i in ids]
+    # Sedico shows a single "General" area by default — no "All areas" aggregate.
+    if warehouse_id == "sedico":
+        return area_opts
+    return [{"label": "All areas", "value": "__all__"}] + area_opts
+
+
+def _year_options(df: pd.DataFrame) -> list[dict]:
+    years = sorted(df["Year"].dropna().unique(), reverse=True)
+    opts = [{"label": "All years", "value": "__all__"}]
+    for y in years:
+        opts.append({"label": str(int(y)), "value": str(int(y))})
+    return opts
+
+
+def _apply_period_filters(df: pd.DataFrame, year_val, month_val, week_val) -> pd.DataFrame:
+    """Subset by Year / Month / Week filters (shared by table + bar chart)."""
+    if year_val and year_val != "__all__":
+        try:
+            df = df[df["Year"] == int(year_val)]
+        except (ValueError, TypeError):
+            pass
+    if month_val and month_val != "__all__":
+        try:
+            p = pd.Period(month_val, freq="M")
+            df = df[(df["Date"].dt.year == p.year) & (df["Date"].dt.month == p.month)]
+        except Exception:
+            pass
+    if week_val and week_val != "__all__":
+        try:
+            yr, wk = week_val.split("-W")
+            df = df[(df["Year"] == int(yr)) & (df["Week"] == int(wk))]
+        except (ValueError, KeyError):
+            pass
+    return df
 
 
 def _month_options(df: pd.DataFrame) -> list[dict]:
-    fct = df[df["Forecast"].notna()]
+    fct = _forecast_horizon(df[df["Forecast"].notna()])
     if fct.empty:
         return [{"label": "All months", "value": "__all__"}]
     months = fct["Date"].dt.to_period("M").drop_duplicates().sort_values()
@@ -34,7 +85,7 @@ def _month_options(df: pd.DataFrame) -> list[dict]:
 
 
 def _week_options(df: pd.DataFrame) -> list[dict]:
-    fct = df[df["Forecast"].notna()]
+    fct = _forecast_horizon(df[df["Forecast"].notna()])
     weeks = fct[["Year", "Week"]].drop_duplicates().sort_values(["Year", "Week"])
     opts = [{"label": "All weeks", "value": "__all__"}]
     for _, row in weeks.iterrows():
@@ -43,7 +94,53 @@ def _week_options(df: pd.DataFrame) -> list[dict]:
     return opts
 
 
-def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
+# ── Historical filters (past Actual data — decoupled from the forecast bar) ──────
+
+def _hist_actual(df: pd.DataFrame) -> pd.DataFrame:
+    return df[df["Actual"].notna() & df["Working"]
+              & (df["Actual"] < data_loader.CLOSED_THRESHOLD)]
+
+
+# Historical month/week filters are YEAR-AGNOSTIC (e.g. "August" across all
+# years) — the year breakdown already lives in the table's columns.
+
+def _hist_month_options(df: pd.DataFrame) -> list[dict]:
+    act = _hist_actual(df)
+    opts = [{"label": "All months", "value": "__all__"}]
+    if act.empty:
+        return opts
+    months = sorted(act["Date"].dt.month.unique())
+    for m in months:
+        opts.append({"label": calendar.month_name[int(m)], "value": str(int(m))})
+    return opts
+
+
+def _hist_week_options(df: pd.DataFrame) -> list[dict]:
+    act = _hist_actual(df)
+    opts = [{"label": "All weeks", "value": "__all__"}]
+    if act.empty:
+        return opts
+    for w in sorted(act["Week"].unique()):
+        opts.append({"label": f"W{int(w):02d}", "value": str(int(w))})
+    return opts
+
+
+def _apply_hist_filters(df: pd.DataFrame, month_val, week_val) -> pd.DataFrame:
+    """Year-agnostic Month (number) / Week (number) subset for the historical view."""
+    if month_val and month_val != "__all__":
+        try:
+            df = df[df["Date"].dt.month == int(month_val)]
+        except (ValueError, TypeError):
+            pass
+    if week_val and week_val != "__all__":
+        try:
+            df = df[df["Week"] == int(week_val)]
+        except (ValueError, TypeError):
+            pass
+    return df
+
+
+def _build_pivot_table(df: pd.DataFrame, ytw: bool = False) -> tuple[list, list, list]:
     actual = df[df["Actual"].notna() & df["Working"]
                 & (df["Actual"] < data_loader.CLOSED_THRESHOLD)].copy()
     if actual.empty:
@@ -55,13 +152,30 @@ def _build_pivot_table(df: pd.DataFrame) -> tuple[list, list, list]:
     pivot = pivot.reset_index()
     pivot.columns = ["AREA"] + year_cols
 
+    # Pin "General" (Sedico) to the top so it reads as the headline area.
+    if (pivot["AREA"] == "General").any():
+        general = pivot[pivot["AREA"] == "General"]
+        rest = pivot[pivot["AREA"] != "General"]
+        pivot = pd.concat([general, rest], ignore_index=True)
+
     for col in year_cols:
         pivot[col] = pivot[col].apply(lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—")
 
-    columns = [{"name": c, "id": c} for c in pivot.columns]
+    # In the base view the current year is only a partial (year-to-week)
+    # average — flag it "(YTW)". Filters make the column period-specific, so
+    # the annotation is dropped.
+    cur_year = str(pd.Timestamp.today().year)
+    columns = [
+        {"name": f"{c} (YTW)" if ytw and c == cur_year else c, "id": c}
+        for c in pivot.columns
+    ]
     data = pivot.to_dict("records")
 
     style = []
+    # Bold the whole "General" row wherever it lands (top after the sort above).
+    for i, row in enumerate(data):
+        if row.get("AREA") == "General":
+            style.append({"if": {"row_index": i}, "fontWeight": "700"})
     for i, row in enumerate(data):
         for col in year_cols:
             val_str = row.get(col, "—")
@@ -101,7 +215,8 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
     return html.Div([
         html.Div([
             html.Img(src=dash.get_asset_url("logo.svg"), className="sidebar-logo-img", alt="EssilorLuxottica"),
-            html.Div("PROJECT KELLY", className="sidebar-logo-title"),
+            html.Div(["PROJECT ", html.Span("KELLY", className="brand-kelly")],
+                     className="sidebar-logo-title"),
             html.Div(wh_label, className="sidebar-logo-sub"),
         ], className="sidebar-logo"),
         html.Div("NAVIGATION", className="sidebar-section-label"),
@@ -125,6 +240,8 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
 
 def layout(warehouse_id: str = "columbus") -> html.Div:
     wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id), warehouse_id.title())
+    # Sedico defaults to the "General" area (no "All areas" aggregate).
+    default_area = "General" if warehouse_id == "sedico" else "__all__"
 
     return html.Div([
         _sidebar(warehouse_id, "forecast"),
@@ -148,8 +265,11 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
             # Filter bar
             html.Div([
                 html.Span("AREA", className="filter-label"),
-                dcc.Dropdown(id="fct-area-dd", options=[], value="__all__",
+                dcc.Dropdown(id="fct-area-dd", options=[], value=default_area,
                              clearable=False, style={"width": "200px"}),
+                html.Span("YEAR", className="filter-label"),
+                dcc.Dropdown(id="fct-year-dd", options=[], value="__all__",
+                             clearable=False, style={"width": "110px"}),
                 html.Span("MONTH", className="filter-label"),
                 dcc.Dropdown(id="fct-month-dd", options=[], value="__all__",
                              clearable=False, style={"width": "150px"}),
@@ -160,14 +280,45 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
 
             # Bar chart
             html.Div([
-                html.Div("WEEKLY FORECAST", className="chart-card-title"),
+                html.Div([
+                    html.Div("FORECAST", className="chart-card-title"),
+                    dcc.RadioItems(
+                        id="fct-granularity",
+                        options=[{"label": "Weekly", "value": "week"},
+                                 {"label": "Daily", "value": "day"}],
+                        value="week",
+                        className="granularity-toggle",
+                        inline=True,
+                    ),
+                ], className="chart-card-head"),
                 dcc.Graph(id="fct-bar-chart", figure=_empty_figure(""),
                           config={"displayModeBar": False}),
             ], className="chart-card"),
 
-            # Area table
+            # ── Historical Overview section ─────────────────────────────────
+            # Independent from the forecast above (forecast = future, historical
+            # = past Actual). Month/Week here are year-agnostic.
             html.Div([
-                html.Div("HISTORICAL ABSENTEEISM BY AREA", className="chart-card-title"),
+
+                # KPI row (Avg Historical / Peak Historical / Peak Area / Day)
+                html.Div(id="hist-kpi-row"),
+
+                # Historical filter bar — Area / Month (name) / Week (number)
+                html.Div([
+                    html.Span("AREA", className="filter-label"),
+                    dcc.Dropdown(id="hist-area-dd", options=[], value="__all__",
+                                 clearable=False, style={"width": "200px"}),
+                    html.Span("MONTH", className="filter-label"),
+                    dcc.Dropdown(id="hist-month-dd", options=[], value="__all__",
+                                 clearable=False, style={"width": "150px"}),
+                    html.Span("WEEK", className="filter-label"),
+                    dcc.Dropdown(id="hist-week-dd", options=[], value="__all__",
+                                 clearable=False, style={"width": "120px"}),
+                ], className="filter-bar"),
+
+                # Area table
+                html.Div([
+                    html.Div("HISTORICAL ABSENTEEISM BY AREA", className="chart-card-title"),
                 dash_table.DataTable(
                     id="fct-area-table",
                     style_table={"overflowX": "auto"},
@@ -192,12 +343,12 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                         "fontFamily": theme.FONT,
                     },
                     style_data_conditional=[],
-                    row_selectable="single",
-                    selected_rows=[],
-                    page_size=12,
+                    page_action="none",
                     style_as_list_view=True,
                 ),
-            ], className="chart-card"),
+                ], className="chart-card"),
+
+            ], className="page-section"),
 
         ], className="main-content"),
 
@@ -233,11 +384,12 @@ def register_callbacks(app):
 
     @app.callback(
         Output("fct-area-dd", "options"),
+        Output("fct-year-dd", "options"),
         Output("fct-month-dd", "options"),
         Output("fct-week-dd", "options"),
-        Output("fct-area-table", "columns"),
-        Output("fct-area-table", "data"),
-        Output("fct-area-table", "style_data_conditional"),
+        Output("hist-area-dd", "options"),
+        Output("hist-month-dd", "options"),
+        Output("hist-week-dd", "options"),
         Input("fct-warehouse-id", "data"),
     )
     def populate_controls(warehouse_id):
@@ -246,72 +398,108 @@ def register_callbacks(app):
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
-        cols, tdata, style = _build_pivot_table(df)
-        return _id_options(df), _month_options(df), _week_options(df), cols, tdata, style
+        return (
+            _id_options(df, warehouse_id), _year_options(df),
+            _month_options(df), _week_options(df),
+            # Historical filters draw from past Actual data, keep "All areas".
+            _id_options(df), _hist_month_options(df), _hist_week_options(df),
+        )
 
+    # ── Historical Overview: table + KPIs, driven by the historical filters
+    # (year-agnostic Month/Week), fully decoupled from the forecast section.
+    @app.callback(
+        Output("fct-area-table", "columns"),
+        Output("fct-area-table", "data"),
+        Output("fct-area-table", "style_data_conditional"),
+        Output("hist-kpi-row", "children"),
+        Input("fct-warehouse-id", "data"),
+        Input("hist-area-dd", "value"),
+        Input("hist-month-dd", "value"),
+        Input("hist-week-dd", "value"),
+    )
+    def update_historical(warehouse_id, area_val, month_val, week_val):
+        if not warehouse_id or not auth.is_authorized(warehouse_id):
+            raise PreventUpdate
+        df = data_loader.load_data(warehouse_id)
+        if df is None:
+            raise PreventUpdate
+        df = _apply_hist_filters(df, month_val, week_val)
+
+        # Table shows every area (or the selected one); General pinned first.
+        tdf = df[df["ID"] == area_val] if area_val and area_val != "__all__" else df
+        # "(YTW)" on the current year only in the base view (no period filter).
+        base_view = (not month_val or month_val == "__all__") and \
+                    (not week_val or week_val == "__all__")
+        cols, tdata, style = _build_pivot_table(tdf, ytw=base_view)
+
+        kpis = _overview_kpis(tdf, "Actual", "HISTORICAL OVERVIEW",
+                              "Avg Historical Abs", "Peak Historical",
+                              area_selected=bool(area_val and area_val != "__all__"))
+        return cols, tdata, style, kpis
+
+    # ── Forecast Overview: bar chart + KPIs (capped to the 90-day horizon).
     @app.callback(
         Output("fct-bar-chart", "figure"),
         Output("fct-kpi-row", "children"),
         Input("fct-warehouse-id", "data"),
         Input("fct-area-dd", "value"),
+        Input("fct-year-dd", "value"),
         Input("fct-month-dd", "value"),
         Input("fct-week-dd", "value"),
-        Input("fct-area-table", "selected_rows"),
-        State("fct-area-table", "data"),
+        Input("fct-granularity", "value"),
     )
-    def update_chart(warehouse_id, area_val, month_val, week_val, selected_rows, table_data):
+    def update_chart(warehouse_id, area_val, year_val, month_val, week_val,
+                     granularity):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
 
-        if selected_rows and table_data:
-            area_val = table_data[selected_rows[0]]["AREA"]
+        df = _forecast_horizon(df)
+        df = _apply_period_filters(df, year_val, month_val, week_val)
+
         if area_val and area_val != "__all__":
             df = df[df["ID"] == area_val]
 
-        if month_val and month_val != "__all__":
-            try:
-                p = pd.Period(month_val, freq="M")
-                df = df[(df["Date"].dt.year == p.year) & (df["Date"].dt.month == p.month)]
-            except Exception:
-                pass
-
-        if week_val and week_val != "__all__":
-            try:
-                yr, wk = week_val.split("-W")
-                df = df[(df["Year"] == int(yr)) & (df["Week"] == int(wk))]
-            except (ValueError, KeyError):
-                pass
-
-        return build_bar_chart(df), _build_kpis(df)
+        kpis = _overview_kpis(df, "Forecast", "FORECAST OVERVIEW",
+                              "Avg Forecast Abs", "Peak Forecast",
+                              area_selected=bool(area_val and area_val != "__all__"))
+        return build_bar_chart(df, granularity), kpis
 
 
-def _build_kpis(df: pd.DataFrame):
-    fct = df[df["Forecast"].notna()]
-    if fct.empty:
-        return build_kpi_row([
-            build_kpi_stat("Avg Forecast Abs", "—", "muted"),
-            build_kpi_stat("Peak Forecast", "—", "muted"),
-            build_kpi_stat("Biggest Abs Area", "—", "muted"),
-            build_kpi_stat("Biggest Abs Day", "—", "muted"),
-        ])
+def _overview_kpis(df: pd.DataFrame, col: str, title: str,
+                   avg_label: str, peak_label: str, area_selected: bool):
+    """Avg + single-point Peak (value / area / day) for one data column.
 
-    avg = fct["Forecast"].mean() * 100
-    peak = fct["Forecast"].max() * 100
+    ``col`` is "Forecast" (forecast section) or "Actual" (historical section).
+    Closed 100% days are excluded. Avg needs an area selection, else prompts
+    the user; Peak is always the highest single recorded/predicted point.
+    """
+    sub = df[df[col].notna() & df["Working"] & (df[col] < data_loader.CLOSED_THRESHOLD)]
 
-    by_id = fct.groupby("ID")["Forecast"].mean()
-    biggest_area = str(by_id.idxmax())
-    if len(biggest_area) > 30:
-        biggest_area = biggest_area[:30] + "…"
+    if not area_selected:
+        avg = "Select an area"
+        avg_cls = "gold sm"
+    elif sub.empty:
+        avg, avg_cls = "—", "muted"
+    else:
+        # Dark-yellow highlight — the average is the headline number.
+        avg, avg_cls = f"{sub[col].mean() * 100:.1f}%", "gold"
 
-    by_day = fct.groupby("Date")["Forecast"].mean()
-    biggest_day = pd.Timestamp(by_day.idxmax()).strftime("%d/%m/%Y")
+    if sub.empty:
+        peak, peak_area, peak_day = "—", "—", "—"
+    else:
+        row = sub.loc[sub[col].idxmax()]
+        peak = f"{row[col] * 100:.1f}%"
+        peak_area = str(row["ID"])
+        if len(peak_area) > 30:
+            peak_area = peak_area[:30] + "…"
+        peak_day = pd.Timestamp(row["Date"]).strftime("%d/%m/%Y")
 
     return build_kpi_row([
-        build_kpi_stat("Avg Forecast Abs", f"{avg:.1f}%"),
-        build_kpi_stat("Peak Forecast", f"{peak:.1f}%", "warn"),
-        build_kpi_stat("Biggest Abs Area", biggest_area, "sm"),
-        build_kpi_stat("Biggest Abs Day", biggest_day, "muted"),
-    ])
+        build_kpi_stat(avg_label, avg, avg_cls),
+        build_kpi_stat(peak_label, peak, "warn" if peak != "—" else "muted"),
+        build_kpi_stat("Peak Area", peak_area, "sm" if peak_area != "—" else "muted"),
+        build_kpi_stat("Peak Day", peak_day, "muted"),
+    ], title)

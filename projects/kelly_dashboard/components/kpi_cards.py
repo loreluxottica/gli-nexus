@@ -14,8 +14,8 @@ def build_kpi_stat(
     ], className="kpi-stat")
 
 
-def build_kpi_row(stats: list) -> html.Div:
+def build_kpi_row(stats: list, title: str = "FORECAST OVERVIEW") -> html.Div:
     return html.Div([
-        html.Div("FORECAST OVERVIEW", className="section-label"),
+        html.Div(title, className="section-label"),
         html.Div(stats, className=f"kpi-row kpi-{len(stats)}"),
     ])

@@ -10,9 +10,13 @@ from kelly_dashboard.components.charts import build_drift_chart, _empty_figure
 from kelly_dashboard.pages.forecast import _sidebar
 
 
-def _id_options(df: pd.DataFrame) -> list[dict]:
+def _id_options(df: pd.DataFrame, warehouse_id: str | None = None) -> list[dict]:
     ids = sorted(df["ID"].dropna().unique())
-    return [{"label": "All areas", "value": "__all__"}] + [{"label": i, "value": i} for i in ids]
+    area_opts = [{"label": i, "value": i} for i in ids]
+    # Sedico shows a single "General" area by default — no "All areas" aggregate.
+    if warehouse_id == "sedico":
+        return area_opts
+    return [{"label": "All areas", "value": "__all__"}] + area_opts
 
 
 def _month_options(df: pd.DataFrame) -> list[dict]:
@@ -40,6 +44,8 @@ def _week_options(df: pd.DataFrame) -> list[dict]:
 
 def layout(warehouse_id: str = "columbus") -> html.Div:
     wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id), warehouse_id.title())
+    # Sedico defaults to the "General" area (no "All areas" aggregate).
+    default_area = "General" if warehouse_id == "sedico" else "__all__"
 
     return html.Div([
         _sidebar(warehouse_id, "performance"),
@@ -59,7 +65,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
                         html.Div("AVERAGE ACTUAL ABS", className="kpi-label"),
                     ], className="kpi-stat"),
                     html.Div([
-                        html.Div(id="perf-kpi-fct", className="kpi-value"),
+                        html.Div(id="perf-kpi-fct", className="kpi-value gold"),
                         html.Div("AI FORECAST", className="kpi-label"),
                         html.Div(id="perf-kpi-delta", style={"fontSize": "10px", "color": theme.TEXT_DIM, "marginTop": "4px"}),
                     ], className="kpi-stat"),
@@ -69,7 +75,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
             # Filter bar
             html.Div([
                 html.Span("AREA", className="filter-label"),
-                dcc.Dropdown(id="perf-area-dd", options=[], value="__all__",
+                dcc.Dropdown(id="perf-area-dd", options=[], value=default_area,
                              clearable=False, style={"width": "200px"}),
                 html.Span("MONTH", className="filter-label"),
                 dcc.Dropdown(id="perf-month-dd", options=[], value="__all__",
@@ -81,7 +87,17 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
 
             # Drift chart
             html.Div([
-                html.Div("ACTUAL VS AI FORECAST", className="chart-card-title"),
+                html.Div([
+                    html.Div("ACTUAL VS AI FORECAST", className="chart-card-title"),
+                    dcc.RadioItems(
+                        id="perf-granularity",
+                        options=[{"label": "Weekly", "value": "week"},
+                                 {"label": "Daily", "value": "day"}],
+                        value="week",
+                        className="granularity-toggle",
+                        inline=True,
+                    ),
+                ], className="chart-card-head"),
                 dcc.Graph(id="perf-drift-chart", figure=_empty_figure(""),
                           config={"displayModeBar": False}),
             ], className="chart-card"),
@@ -107,7 +123,7 @@ def register_callbacks(app):
         df = data_loader.load_data(warehouse_id)
         if df is None:
             raise PreventUpdate
-        return _id_options(df), _month_options(df), _week_options(df)
+        return _id_options(df, warehouse_id), _month_options(df), _week_options(df)
 
     @app.callback(
         Output("perf-drift-chart", "figure"),
@@ -118,8 +134,9 @@ def register_callbacks(app):
         Input("perf-area-dd", "value"),
         Input("perf-month-dd", "value"),
         Input("perf-week-dd", "value"),
+        Input("perf-granularity", "value"),
     )
-    def update_chart(warehouse_id, area_val, month_val, week_val):
+    def update_chart(warehouse_id, area_val, month_val, week_val, granularity):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             raise PreventUpdate
         df = data_loader.load_data(warehouse_id)
@@ -158,4 +175,4 @@ def register_callbacks(app):
         else:
             kpi_delta = ""
 
-        return build_drift_chart(df), kpi_actual, kpi_fct, kpi_delta
+        return build_drift_chart(df, granularity, warehouse_id), kpi_actual, kpi_fct, kpi_delta
