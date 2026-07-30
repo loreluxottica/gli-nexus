@@ -1,9 +1,7 @@
 /* ============================================================
    GLI NEXUS — Single View
-   Un prodotto alla volta a tutta schermata: logo retroilluminato +
-   nome + CTA, sfondo-mondo dedicato. Si scorre su richiesta (frecce
-   ai lati, dot, tastiera, rotella, swipe) con transizione a portale.
-   Alternativa a css/worlds.css e css/list.css — non li sostituisce.
+   Un prodotto alla volta: logo retroilluminato, nome, CTA,
+   sfondo-mondo. Navigazione su richiesta con transizione a portale.
    ============================================================ */
 
 @property --accent {
@@ -15,8 +13,6 @@
 .nexus-single {
   height: 100dvh;
   overflow: hidden;
-  --font-display: "Sora", var(--font-ui);
-  --font-mono: "IBM Plex Mono", "Geist Mono", Consolas, monospace;
 }
 
 /* --- Sfondo dinamico + overlay --- */
@@ -210,14 +206,40 @@ body[data-world="ai"] .world-scanlines { opacity: 1; }
   0%, 100% { transform: scale(0.94); opacity: 0.7; }
   50%      { transform: scale(1.06); opacity: 0.95; }
 }
+/* Il monolite ha due facce: la seconda entra in scena solo con l'easter egg
+   di Kelly (js/kelly-egg.js), che scrive lui transform e opacity fotogramma
+   per fotogramma. A riposo il retro sta girato e spento. */
+.hero-logo-flip {
+  display: grid;
+  place-items: center;
+  perspective: 1000px;
+  -webkit-user-select: none;
+  user-select: none;
+}
 .hero-logo {
+  grid-area: 1 / 1;
   width: clamp(7rem, 20vh, 13rem);
   height: auto;
   aspect-ratio: 1;
   object-fit: contain;
+  backface-visibility: hidden;
   filter:
     drop-shadow(0 20px 44px rgba(0, 0, 0, 0.55))
     drop-shadow(0 0 30px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+.hero-logo--back {
+  opacity: 0;
+  transform: rotateY(180deg);
+}
+
+/* L'alone pompa quando il casco atterra */
+.hero-logo-wrap.is-egg-land .hero-backlight {
+  animation: hero-egg-land 760ms var(--ease-out);
+}
+@keyframes hero-egg-land {
+  0%   { transform: scale(0.94); opacity: 0.7; }
+  18%  { transform: scale(1.34); opacity: 1; }
+  100% { transform: scale(0.94); opacity: 0.7; }
 }
 
 .hero-name {
@@ -248,65 +270,57 @@ body[data-world="ai"] .world-scanlines { opacity: 1; }
   box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
-/* --- CTA con menu a tendina (prodotti multi-destinazione) --- */
-.hero-cta-wrap {
+/* Product CTA menus share the same fail-closed navigation state. */
+.hero-cta-wrap,
+.detail-cta-wrap {
   position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  margin-top: clamp(0.4rem, 1.4vh, 1rem);
 }
-.hero-cta-wrap .hero-cta { margin-top: 0; }
-
-/* La chevron della CTA ruota verso il basso quando il menu è aperto. */
-.hero-cta[aria-expanded="true"] .cta-chev { transform: rotate(90deg); }
+.hero-cta[aria-expanded="true"] .cta-chev,
+.dcta[aria-expanded="true"] .cta-chev { transform: rotate(90deg); }
 
 .cta-menu {
   position: absolute;
   top: calc(100% + 0.55rem);
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   min-width: max(220px, 100%);
   padding: 0.4rem;
-  border-radius: 0.85rem;
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 0.85rem;
   background: color-mix(in srgb, var(--glass) 92%, var(--accent) 8%);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(14px);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.5),
-    0 0 26px color-mix(in srgb, var(--accent) 18%, transparent);
-  animation: cta-menu-in var(--dur-fast, 160ms) var(--ease-out, ease) both;
+  transform: translateX(-50%);
+  animation: cta-menu-in var(--dur-fast) var(--ease-out) both;
 }
 .cta-menu[hidden] { display: none; }
-
-@keyframes cta-menu-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cta-menu { animation: none; }
+.dcta-menu {
+  top: auto;
+  bottom: calc(100% + 0.55rem);
 }
 
 .cta-menu-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  min-height: 2.5rem;
   padding: 0.6rem 0.85rem;
-  border-radius: 0.6rem;
   border: 1px solid transparent;
+  border-radius: 0.6rem;
   color: var(--text-1);
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   text-decoration: none;
-  transition:
-    background var(--dur-fast, 160ms) var(--ease-out, ease),
-    border-color var(--dur-fast, 160ms) var(--ease-out, ease);
+  white-space: nowrap;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
-.cta-menu-item:hover, .cta-menu-item:focus-visible {
+.cta-menu-item:hover,
+.cta-menu-item:focus-visible {
   outline: none;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -315,6 +329,14 @@ body[data-world="ai"] .world-scanlines { opacity: 1; }
   opacity: 0.42;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+@keyframes cta-menu-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-menu { animation: none; }
 }
 
 /* --- Controlli: pulsanti prev/next + contatore + dot --- */
@@ -469,4 +491,8 @@ body[data-world="ai"] .world-scanlines { opacity: 1; }
   .warp-flash.is-active { animation: none; }
   .hero-backlight { animation: none; }
   #worldCanvas, .hero-logo-wrap { transform: none; transition: none; }
+  /* niente salto ne' giri: le due facce si scambiano in dissolvenza */
+  .hero-logo { transition: opacity 240ms var(--ease-out); }
+  .hero-logo--back { transform: none; }
+  .hero-logo-wrap.is-egg-land .hero-backlight { animation: none; }
 }

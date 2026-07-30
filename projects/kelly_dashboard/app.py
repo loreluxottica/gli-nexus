@@ -58,6 +58,17 @@ app.layout = html.Div([
 ], style={"backgroundColor": theme.BG, "minHeight": "100vh"})
 
 
+def _kelly_landing_allowed() -> bool:
+    """Project KELLY grant, or any warehouse scope under the Kelly project."""
+    if auth.authorized("KELLY"):
+        return True
+    email = auth.get_current_email()
+    if email is None:
+        return not auth._in_databricks_app()
+    scopes = auth.get_user_scopes(email)
+    return bool(scopes)
+
+
 @app.callback(
     Output("page-content", "children"),
     Input("url", "pathname"),
@@ -69,6 +80,8 @@ def route(pathname: str):
         pathname = pathname[len(_PREFIX.rstrip("/")):]
 
     if not pathname or pathname == "/":
+        if not _kelly_landing_allowed():
+            return denied.layout("")
         return landing.layout()
 
     parts = [p for p in pathname.split("/") if p]
@@ -80,6 +93,8 @@ def route(pathname: str):
         page = forecast if parts[0] == "forecast" else performance
         return page.layout(warehouse_id=warehouse_id)
 
+    if not _kelly_landing_allowed():
+        return denied.layout("")
     return landing.layout()
 
 

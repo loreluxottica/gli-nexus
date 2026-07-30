@@ -1,10 +1,10 @@
 /* ============================================================
    GLI NEXUS — Single View · controller
-   Un prodotto alla volta. Si scorre SU RICHIESTA: frecce ai lati,
-   dot, tastiera (frecce/1-9/Enter), rotella (uno step per gesto),
-   swipe. Il passaggio è una transizione a portale (warp sullo
-   sfondo + crossfade/slide dell'hero). Nessuno scorrimento
-   automatico: comanda l'utente.
+   Un prodotto alla volta. Navigazione su richiesta: frecce, dot,
+   tastiera, rotella, swipe. Transizione a portale (warp + hero).
+
+   API pubblica (window.NexusSingle) usata da detail.js e
+   launcher.js — non leggono più il DOM dei pallini.
    ============================================================ */
 
 (function () {
@@ -61,9 +61,13 @@
   if (gateDone()) startBackground();
   else document.addEventListener("nexus:gate-done", startBackground, { once: true });
 
-
-  const wanted = new URLSearchParams(location.search).get("w");
-  const startIdx = projects.findIndex(p => p.id === (wanted || NEXUS_WORLDS_START));
+  /* Deep-link aliases: roster id stayed data-entry after the rename to Intake. */
+  const WORLD_ALIASES = { intake: "data-entry", "darwin-intake": "data-entry" };
+  const wantedRaw = new URLSearchParams(location.search).get("w");
+  const wanted = WORLD_ALIASES[(wantedRaw || "").toLowerCase()] || wantedRaw;
+  const startKey = wanted || NEXUS_WORLDS_START;
+  let startIdx = projects.findIndex(p => p.id === startKey);
+  if (startIdx < 0) startIdx = projects.findIndex(p => p.id === NEXUS_WORLDS_START);
   let current = Math.max(0, startIdx);
   let warping = false;
   let activeCategory = "all";
@@ -71,7 +75,6 @@
 
   const visiblePosition = i => visibleIndices.indexOf(i);
 
-  /* --- Dot --- */
   const dots = projects.map((p, i) => {
     const dot = document.createElement("button");
     dot.className = "sdot";
@@ -113,6 +116,7 @@
     }, []);
     syncCategoryUi();
 
+    if (!visibleIndices.length) return;
     const target = visibleIndices.includes(current) ? current : visibleIndices[0];
     applyProduct(target);
   }
@@ -121,25 +125,22 @@
     button.addEventListener("click", () => setCategory(button.dataset.category));
   });
 
-  /* --- Accesso: un prodotto è apribile se ha una route e l'utente è
-         autorizzato (grant o "*"). I prodotti senza `project` non sono
-         gated; quelli con link "#" non hanno ancora una destinazione. --- */
+  /* Product routes fail closed until /api/my-access resolves. */
   const access = () => window.NexusAccess;
 
-  /* Apribilità di una destinazione (link + grant). Usata sia per la CTA
-     a link singolo sia per ogni voce di un menu multi-destinazione. */
   function canOpenTarget(href, project) {
     if (!href || href === "#") return false;
-    if (!project) return true;
-    return !!access() && access().canOpen(project);
+    /* Real destinations require an explicit project key — missing key
+       used to fail open and enable every unscoped CTA. */
+    if (!project) return false;
+    const a = access();
+    return !!(a && a.canOpen(project));
   }
-  const isOpenable = p => canOpenTarget(p.link, p.project);
+
+  const isOpenable = product => canOpenTarget(product.link, product.project);
   const isItemOpenable = item => canOpenTarget(item.href, item.project);
+  const hasMenu = product => Array.isArray(product.links) && product.links.length > 0;
 
-  /* Un prodotto con più destinazioni: la CTA apre un menu a tendina. */
-  const hasMenu = p => Array.isArray(p.links) && p.links.length > 0;
-
-  /* --- Menu a tendina (prodotti multi-destinazione) --- */
   function closeMenu() {
     ctaMenu.hidden = true;
     ctaMenu.setAttribute("aria-hidden", "true");
@@ -150,6 +151,8 @@
     ctaMenu.hidden = false;
     ctaMenu.setAttribute("aria-hidden", "false");
     ctaEl.setAttribute("aria-expanded", "true");
+    const first = ctaMenu.querySelector('a:not(.is-disabled)');
+    if (first) first.focus({ preventScroll: true });
   }
 
   const menuOpen = () => !ctaMenu.hidden;
@@ -159,78 +162,75 @@
     menuOpen() ? closeMenu() : openMenu();
   }
 
-  /* Ricostruisce le voci del menu per il prodotto corrente. */
-  function buildMenu(p) {
+  function buildMenu(product) {
     ctaMenu.textContent = "";
-    p.links.forEach(item => {
-      const a = document.createElement("a");
-      a.className = "cta-menu-item";
-      a.setAttribute("role", "menuitem");
-      const label = document.createElement("span");
-      label.className = "cta-menu-label";
-      label.textContent = item.label;
-      a.appendChild(label);
+    product.links.forEach(item => {
+      const anchor = document.createElement("a");
+      anchor.className = "cta-menu-item";
+      anchor.setAttribute("role", "menuitem");
+      anchor.textContent = item.label;
 
       const allowed = isItemOpenable(item);
-      const external = /^https?:/i.test(item.href);
-      a.classList.toggle("is-disabled", !allowed);
+      anchor.classList.toggle("is-disabled", !allowed);
       if (allowed) {
-        a.href = item.href;
-        if (external) { a.target = "_blank"; a.rel = "noopener"; }
-        a.removeAttribute("aria-disabled");
+        anchor.href = item.href;
+        if (/^https?:/i.test(item.href)) {
+          anchor.target = "_blank";
+          anchor.rel = "noopener";
+        }
+        anchor.addEventListener("click", closeMenu);
       } else {
-        a.href = "#";
-        a.setAttribute("aria-disabled", "true");
-        a.addEventListener("click", e => e.preventDefault());
+        anchor.href = "#";
+        anchor.setAttribute("aria-disabled", "true");
+        anchor.addEventListener("click", event => event.preventDefault());
       }
-      // La navigazione avvenuta chiude il menu (utile in same-tab).
-      a.addEventListener("click", () => { if (allowed) closeMenu(); });
-      ctaMenu.appendChild(a);
+      ctaMenu.appendChild(anchor);
     });
   }
 
-  /* Stato della CTA in base all'accesso: attiva, "Access restricted"
-     o "Coming soon". Per i prodotti a menu la CTA è un toggle. */
-  function applyCta(p) {
+  function applyCta(product) {
     closeMenu();
-    if (hasMenu(p)) {
-      buildMenu(p);
-      const anyOpenable = p.links.some(isItemOpenable);
-      ctaLabel.textContent = p.cta;
+    if (hasMenu(product)) {
+      buildMenu(product);
+      const anyOpenable = product.links.some(isItemOpenable);
+      ctaLabel.textContent = anyOpenable || !access().ready
+        ? product.cta
+        : "Access restricted";
       ctaEl.href = "#";
       ctaEl.setAttribute("aria-haspopup", "menu");
       ctaEl.setAttribute("aria-expanded", "false");
       ctaEl.classList.toggle("is-disabled", !anyOpenable);
-      if (anyOpenable) ctaEl.removeAttribute("aria-disabled");
-      else {
-        ctaEl.setAttribute("aria-disabled", "true");
-        // Prima dei grant teniamo l'etichetta prodotto (nessun flash).
-        ctaLabel.textContent = access() && access().ready ? "Access restricted" : p.cta;
-      }
+      ctaEl.setAttribute("aria-disabled", anyOpenable ? "false" : "true");
       return;
     }
 
-    // Prodotto a destinazione singola: comportamento storico.
     ctaEl.removeAttribute("aria-haspopup");
     ctaEl.removeAttribute("aria-expanded");
-    const hasRoute = p.link && p.link !== "#";
-    const allowed = isOpenable(p);
+    const hasRoute = !!product.link && product.link !== "#";
+    const allowed = isOpenable(product);
     ctaEl.classList.toggle("is-disabled", !allowed);
     if (allowed) {
-      ctaLabel.textContent = p.cta;
-      ctaEl.href = p.link;
+      ctaLabel.textContent = product.cta;
+      ctaEl.href = product.link;
       ctaEl.removeAttribute("aria-disabled");
+      if (/^https?:/i.test(product.link)) {
+        ctaEl.target = "_blank";
+        ctaEl.rel = "noopener";
+      } else {
+        ctaEl.removeAttribute("target");
+        ctaEl.removeAttribute("rel");
+      }
     } else {
       ctaEl.href = "#";
+      ctaEl.removeAttribute("target");
+      ctaEl.removeAttribute("rel");
       ctaEl.setAttribute("aria-disabled", "true");
-      if (!hasRoute) ctaLabel.textContent = "Coming soon";
-      // Prima che i grant arrivino teniamo l'etichetta del prodotto
-      // (nessun flash di "Access restricted"); dopo mostriamo l'esito.
-      else ctaLabel.textContent = access() && access().ready ? "Access restricted" : p.cta;
+      ctaLabel.textContent = !hasRoute
+        ? "Coming soon"
+        : access().ready ? "Access restricted" : product.cta;
     }
   }
 
-  /* --- Applica il prodotto (contenuto dell'hero + sfondo) --- */
   function applyProduct(i) {
     current = i;
     closeMenu();
@@ -253,12 +253,12 @@
       liveEl.textContent = p.name + ", " + (position + 1) + " of " + visibleCount + " in " + scope;
     }
     NexusBG.setWorld({ type: p.backgroundType, accent: p.accent, accent2: p.accent2 });
+    document.dispatchEvent(new CustomEvent("nexus:product", { detail: p }));
   }
 
-  /* --- Transizione a portale: warp sullo sfondo + slide/fade hero --- */
   function goTo(i, dir) {
     if (!visibleIndices.includes(i) || i === current || warping) return;
-    dir = dir || 1;                       // +1 = avanti (esce verso sinistra)
+    dir = dir || 1;
     closeMenu();
 
     if (reduced) { applyProduct(i); return; }
@@ -275,12 +275,12 @@
       NexusBG.setWarp(Math.sin(prog * Math.PI));
 
       if (prog < 0.5) {
-        const h = prog / 0.5;             // 0 → 1: l'hero esce verso -dir
+        const h = prog / 0.5;
         hero.style.opacity = (1 - h).toFixed(3);
         hero.style.transform = `translateX(${(-dir * 42 * h).toFixed(1)}px)`;
       } else {
         if (!swapped) { swapped = true; applyProduct(i); }
-        const h = (prog - 0.5) / 0.5;     // 0 → 1: il nuovo entra da +dir
+        const h = (prog - 0.5) / 0.5;
         hero.style.opacity = h.toFixed(3);
         hero.style.transform = `translateX(${(dir * 42 * (1 - h)).toFixed(1)}px)`;
       }
@@ -296,6 +296,18 @@
     })(t0);
   }
 
+  /** Salto assoluto: resetta il filtro categoria se serve, poi goTo. */
+  function goToAbsolute(i) {
+    if (i < 0 || i >= projects.length || warping) return;
+    if (activeCategory !== "all") {
+      activeCategory = "all";
+      visibleIndices = projects.map((_, idx) => idx);
+      syncCategoryUi();
+    }
+    if (i === current) return;
+    goTo(i, i > current ? 1 : -1);
+  }
+
   function moveBy(delta) {
     const position = Math.max(0, visiblePosition(current));
     const nextPosition = (position + delta + visibleIndices.length) % visibleIndices.length;
@@ -306,35 +318,37 @@
   const prev = () => moveBy(-1);
 
   function openCurrent() {
-    const p = projects[current];
-    if (hasMenu(p)) { toggleMenu(); return; }
-    if (isOpenable(p)) window.location.href = p.link;
+    const product = projects[current];
+    if (hasMenu(product)) { toggleMenu(); return; }
+    if (!isOpenable(product)) return;
+    if (/^https?:/i.test(product.link)) {
+      window.open(product.link, "_blank", "noopener");
+    } else {
+      window.location.href = product.link;
+    }
   }
 
-  // Per i prodotti a menu la CTA è un toggle; altrimenti blocca l'anchor
-  // quando il prodotto non è apribile (grant mancante, "Coming soon", o
-  // grant non ancora arrivati).
-  ctaEl.addEventListener("click", e => {
-    const p = projects[current];
-    if (hasMenu(p)) { e.preventDefault(); toggleMenu(); return; }
-    if (!isOpenable(p)) e.preventDefault();
+  ctaEl.addEventListener("click", event => {
+    const product = projects[current];
+    if (hasMenu(product)) {
+      event.preventDefault();
+      toggleMenu();
+    } else if (!isOpenable(product)) {
+      event.preventDefault();
+    }
   });
 
-  // Chiudi il menu al click fuori dalla CTA/menu.
-  document.addEventListener("pointerdown", e => {
-    if (menuOpen() && !ctaWrap.contains(e.target)) closeMenu();
+  document.addEventListener("pointerdown", event => {
+    if (menuOpen() && !ctaWrap.contains(event.target)) closeMenu();
   });
 
-  // Quando arrivano i grant da api/my-access, riallinea la CTA corrente.
   document.addEventListener("nexus:access", () => applyCta(projects[current]));
 
-  /* --- Frecce ai lati --- */
   nextButton.addEventListener("click", next);
   prevButton.addEventListener("click", prev);
 
-  /* --- Tastiera --- */
   document.addEventListener("keydown", e => {
-    if (!gateDone()) return;              // durante il gate comanda gate.js
+    if (!gateDone()) return;
     if (e.key === "Escape" && menuOpen()) { e.preventDefault(); closeMenu(); return; }
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); next(); }
@@ -346,7 +360,6 @@
     else if (e.key === "Enter" && e.target === document.body) openCurrent();
   });
 
-  /* --- Rotella / trackpad: uno step per gesto, poi cooldown --- */
   let wheelAcc = 0, wheelLastT = 0, wheelLockUntil = 0;
   window.addEventListener("wheel", e => {
     if (!gateDone()) return;
@@ -363,11 +376,10 @@
     }
   }, { passive: true });
 
-  /* --- Swipe orizzontale: l'hero segue un po' il dito, poi commit/snap --- */
   const drag = { active: false, id: null, x0: 0, dx: 0 };
   stage.addEventListener("pointerdown", e => {
     if (warping || drag.active) return;
-    if (e.target.closest("a, button")) return;   // non rubare click a CTA/frecce/dot
+    if (e.target.closest("a, button")) return;
     drag.active = true; drag.id = e.pointerId;
     drag.x0 = e.clientX; drag.dx = 0;
   });
@@ -386,7 +398,6 @@
   window.addEventListener("pointerup", endDrag);
   window.addEventListener("pointercancel", endDrag);
 
-  /* --- Parallasse al puntatore (solo pointer fine, no reduced motion) --- */
   if (!reduced && window.matchMedia("(pointer: fine)").matches) {
     let tx = 0, ty = 0, rafP = 0;
     window.addEventListener("pointermove", e => {
@@ -401,7 +412,16 @@
     }, { passive: true });
   }
 
-  /* --- Stato iniziale --- */
+  /* API per detail / launcher (niente coupling sui pallini DOM) */
+  window.NexusSingle = {
+    getIndex: () => current,
+    getProduct: () => projects[current],
+    goTo: goToAbsolute,
+    isWarping: () => warping,
+    canOpenTarget,
+    hasMenu
+  };
+
   syncCategoryUi();
   applyProduct(current);
 })();

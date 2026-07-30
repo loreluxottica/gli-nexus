@@ -19,7 +19,9 @@
   const SEEN_KEY = "gli-nexus-entered";
   let seen = false;
   try { seen = sessionStorage.getItem(SEEN_KEY) === "1"; } catch (_) { /* file:// o storage negato */ }
-  const deepLink = new URLSearchParams(location.search).has("w");
+  const params = new URLSearchParams(location.search);
+  /* Skip gate su deep-link: prodotto, detail card, o elenco completo */
+  const deepLink = params.has("w") || params.get("d") === "1" || params.get("all") === "1";
 
   let appActive = false;
   function activateApp(moveFocus) {

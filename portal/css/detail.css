@@ -1,0 +1,1513 @@
+/* ============================================================
+   GLI NEXUS — Detail View
+   Invito nell'hero + zoom di camera: UI sfuma, sfondo si avvicina,
+   card glass con bordo accent. Override su .single-stage /
+   #worldCanvas attivi solo con body.detail-open.
+   ============================================================ */
+
+/* ============================================================
+   1 · INVITO — il bottone che chiama il dettaglio
+   ============================================================ */
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(0.6rem, 1.6vw, 1.1rem);
+  margin-top: clamp(0.4rem, 1.4vh, 1rem);
+}
+.hero-actions .hero-cta { margin-top: 0; }
+
+.detail-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.62rem;
+  padding: 0.6rem 1.15rem 0.6rem 0.6rem;
+  border: 1px solid rgba(168, 182, 198, 0.22);
+  border-radius: var(--radius-pill);
+  background: rgba(6, 14, 30, 0.42);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.detail-hint:hover,
+.detail-hint:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.detail-hint:active { transform: scale(0.98); }
+
+/* Pastiglia con il segno "+" e l'anello che pulsa: è lei a dire
+   "qui si clicca" senza aggiungere una riga di testo in più. */
+.detail-hint-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.detail-hint-icon svg { width: 0.8rem; height: 0.8rem; }
+.detail-hint-icon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  animation: hint-ping 2.8s var(--ease-out) infinite;
+}
+@keyframes hint-ping {
+  0%   { transform: scale(0.86); opacity: 0.55; }
+  62%  { transform: scale(1.5);  opacity: 0; }
+  100% { transform: scale(1.5);  opacity: 0; }
+}
+.detail-hint-key {
+  padding: 0.16rem 0.44rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 5px;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  color: var(--text-1);
+}
+
+@media (max-width: 560px) {
+  .detail-hint-key { display: none; }
+  .detail-hint { font-size: 0.76rem; padding-right: 0.95rem; }
+}
+
+/* ============================================================
+   2 · ZOOM DI CAMERA — l'interfaccia si allontana, lo sfondo no
+   ============================================================ */
+
+/* La transizione di --accent resta (viene da single.css): qui la
+   riscrivo insieme a quelle del "carrello" perché la shorthand
+   sostituisce, non somma. */
+.single-stage {
+  transition:
+    --accent 780ms var(--ease-out),
+    opacity 460ms var(--ease-out),
+    transform 700ms var(--ease-out),
+    filter 520ms var(--ease-out);
+}
+body.detail-open .single-stage {
+  opacity: 0;
+  transform: scale(1.3);
+  filter: blur(9px);
+  pointer-events: none;
+}
+
+/* Lo sfondo animato resta vivo e si avvicina di un soffio:
+   è quello che vende la "camera che entra nella visione". */
+body.detail-open #worldCanvas {
+  transform:
+    translate3d(calc(var(--px, 0) * -6px), calc(var(--py, 0) * -4px), 0)
+    scale(1.15);
+  transition: transform 900ms var(--ease-out);
+}
+
+/* ============================================================
+   3 · LAYER + SCRIM
+   ============================================================ */
+
+.detail-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.75rem, 2.4vw, 2rem);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 380ms var(--ease-out), visibility 0s linear 380ms;
+}
+.detail-layer.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 380ms var(--ease-out), visibility 0s;
+}
+/* Closed layer must not let descendants re-enable hit-testing.
+   Panes/rails/steps set visibility:visible + pointer-events:auto for
+   mode crossfades — without this hard block those rules punch through
+   a visibility:hidden ancestor and eat every click on the site. */
+.detail-layer:not(.is-open),
+.detail-layer:not(.is-open) * {
+  pointer-events: none !important;
+}
+
+.detail-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 50%,
+      rgba(2, 8, 20, 0.28) 0%,
+      rgba(2, 8, 20, 0.62) 58%,
+      rgba(2, 8, 20, 0.86) 100%);
+}
+
+/* ============================================================
+   4 · LA CARD — traslucida, sfocata, bordo luminescente
+   ============================================================ */
+
+.dcard {
+  /* Scala tipografica della scheda — sei gradini dichiarati qui e
+     riusati da testata, corpo e piede. Prima erano dodici misure
+     diverse tutte fra 0.52 e 0.68rem: nessuna gerarchia, solo
+     micro-testo, e la struttura non si leggeva a colpo d'occhio.
+     Niente scende sotto --t-eyebrow: è il pavimento della card.
+     I media query in coda ridefiniscono i token invece di
+     riscrivere una regola per blocco. */
+  --t-eyebrow: 0.78rem;                          /* mono maiuscolo: PRIMA, COSA ENTRA, ruoli */
+  --t-rail: 0.88rem;                             /* titolo del passo nella rail */
+  --t-meta: 0.9rem;                              /* testi di servizio */
+  --t-body: clamp(1.02rem, 1.05vw, 1.2rem);      /* prosa di supporto */
+  --t-lead: clamp(1.16rem, 1.35vw, 1.44rem);     /* la frase che porta il senso */
+  --t-title: clamp(1.5rem, 2.1vw, 2.05rem);      /* titolo del passo */
+  /* Resta sotto .dhead-name (max 2.5rem): la metrica è il pezzo più
+     grosso del pannello, non della card. */
+  --t-hero: clamp(1.65rem, 2.5vw, 2.35rem);      /* metriche e citazione */
+
+  position: relative;
+  width: min(1300px, 88vw);
+  height: min(880px, 84vh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 26px;
+  /* trasparente: l'animazione dello sfondo continua a vedersi */
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+      transparent 42%),
+    rgba(4, 11, 24, 0.42);
+  backdrop-filter: blur(26px) saturate(1.3);
+  -webkit-backdrop-filter: blur(26px) saturate(1.3);
+  box-shadow:
+    0 44px 130px rgba(0, 0, 0, 0.55),
+    0 0 34px color-mix(in srgb, var(--accent) 26%, transparent),
+    0 0 96px color-mix(in srgb, var(--accent) 20%, transparent),
+    inset 0 0 90px color-mix(in srgb, var(--accent) 7%, transparent);
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+  transition:
+    opacity 420ms var(--ease-out),
+    transform 620ms var(--ease-out);
+}
+.detail-layer.is-open .dcard {
+  opacity: 1;
+  transform: none;
+}
+
+/* Bordo nell'accento del prodotto, con un minimo di luminescenza:
+   anello in gradiente (mask trick) + alone esterno morbido. */
+.dcard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--accent2, var(--accent)) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--accent) 72%, transparent) 22%,
+    color-mix(in srgb, var(--accent) 44%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 70%, transparent) 74%,
+    color-mix(in srgb, var(--accent2, var(--accent)) 94%, white 4%) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* filo di luce lungo il bordo alto */
+.dcard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 85%, white 15%),
+    transparent);
+  opacity: 0.75;
+  filter: blur(0.4px);
+  pointer-events: none;
+}
+
+/* La card riceve il focus all'apertura solo per portarci dentro il
+   lettore di schermo: l'outline ciano di base.css coprirebbe il
+   bordo accento, ed è quello il segnale visivo che conta. */
+.dcard:focus,
+.dcard:focus-visible { outline: none; }
+
+/* --- Chiudi --- */
+.dclose {
+  position: absolute;
+  top: clamp(0.7rem, 1.4vw, 1.1rem);
+  right: clamp(0.7rem, 1.4vw, 1.1rem);
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 182, 198, 0.2);
+  background: rgba(4, 11, 24, 0.5);
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.dclose:hover, .dclose:focus-visible {
+  color: var(--text-1);
+  border-color: var(--accent);
+  transform: rotate(90deg);
+}
+.dclose svg { width: 1rem; height: 1rem; }
+
+/* ============================================================
+   5 · TESTATA
+   ============================================================ */
+
+.dhead {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.85rem, 1.8vw, 1.4rem);
+  padding: clamp(1.1rem, 2.2vw, 1.75rem) clamp(1.1rem, 2.4vw, 2rem) clamp(0.8rem, 1.6vw, 1.2rem);
+  padding-right: 4rem;
+  border-bottom: 1px solid rgba(168, 182, 198, 0.12);
+}
+.dhead-logo {
+  flex: none;
+  width: clamp(2.9rem, 5vw, 4.1rem);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--accent) 50%, transparent));
+}
+.dhead-text { min-width: 0; }
+.dhead-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.dhead-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  color: var(--text-1);
+}
+.dhead-name span { color: var(--accent); }
+.dhead-tag {
+  margin-top: 0.2rem;
+  font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+  color: var(--text-2);
+  text-wrap: balance;
+}
+
+.dmeta {
+  margin-left: auto;
+  display: flex;
+  gap: clamp(0.7rem, 1.6vw, 1.5rem);
+}
+.dmeta div { text-align: right; }
+.dmeta dt {
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.dmeta dd {
+  margin-top: 0.15rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   6 · CORPO — un modo per volta: prima la storia, poi la demo
+
+   Tre righe: barra di modo, palco, rail dei passi. I due
+   racconti vivono impilati nel palco (grid-area 1/1) e si
+   scambiano in dissolvenza; le frecce sono le stesse per
+   entrambi e stanno ai lati del contenuto.
+   ============================================================ */
+
+.dbody {
+  --body-pad-x: clamp(1rem, 2.2vw, 1.75rem);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(0.6rem, 1.4vh, 1rem);
+  min-height: 0;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) var(--body-pad-x);
+}
+
+/* ----------------------------------------------------------
+   Barra di modo — dove sei, quanto manca, come si cambia
+   racconto. È l'unica riga che non cambia mai posto.
+   ---------------------------------------------------------- */
+.dmode {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(168, 182, 198, 0.12);
+}
+/* In demo il pill esce dal flusso e galleggia sullo screenshot:
+   la riga che occupava vale ~65px di altezza, cioè 115px di
+   larghezza d'immagine. Sopra una schermata chiara serve un fondo
+   pieno, non il ghost trasparente. */
+.dbody[data-mode="demo"] .dmode {
+  position: absolute;
+  top: 0;
+  right: var(--body-pad-x);
+  z-index: 3;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.dbody[data-mode="demo"] .dmode-btn {
+  background: rgba(4, 11, 24, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Il pill: in storia è acceso nell'accento (è l'invito a vedere
+   il prodotto), in demo si smorza a ghost perché lì è solo la
+   via del ritorno. Stessa grammatica dei bottoni della card. */
+.dmode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 14%, transparent);
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-1);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.dmode-btn:hover,
+.dmode-btn:focus-visible {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 26%, transparent);
+  outline: none;
+}
+.dmode-btn:active { transform: scale(0.98); }
+.dmode-ico {
+  display: grid;
+  place-items: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--accent);
+}
+.dmode-ico svg { grid-area: 1 / 1; width: 100%; height: 100%; }
+.dmode-ico-back { display: none; }
+
+.dbody[data-mode="demo"] .dmode-btn {
+  border-color: rgba(168, 182, 198, 0.22);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-2);
+}
+.dbody[data-mode="demo"] .dmode-btn:hover,
+.dbody[data-mode="demo"] .dmode-btn:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.dbody[data-mode="demo"] .dmode-ico { color: currentColor; }
+.dbody[data-mode="demo"] .dmode-ico-play { display: none; }
+.dbody[data-mode="demo"] .dmode-ico-back { display: block; }
+
+/* Finito il racconto, il pill batte una volta: la demo è il
+   seguito, non un bottone qualunque rimasto lì. */
+.dmode-btn.is-nudge { animation: mode-nudge 1.6s var(--ease-out) 2; }
+@keyframes mode-nudge {
+  0%, 100% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 14%, transparent); }
+  50%      { box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 42%, transparent); }
+}
+
+/* ----------------------------------------------------------
+   Palco condiviso — i due modi impilati, le frecce ai lati
+   ---------------------------------------------------------- */
+.dstageset {
+  position: relative;
+  display: grid;
+  min-height: 0;
+}
+
+.dpane {
+  grid-area: 1 / 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-inline: clamp(2.6rem, 5.5vw, 5rem);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 300ms var(--ease-out),
+    visibility 0s linear 300ms;
+}
+.detail-layer.is-open .dbody[data-mode="story"] .dpane--story,
+.detail-layer.is-open .dbody[data-mode="demo"] .dpane--demo {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 340ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+/* Demo a tutta card: lo screenshot è il contenuto, non un riquadro
+   dentro un riquadro. Annulla l'imbottitura laterale del corpo e
+   perde titolo e didascalia dal flusso — finiscono in sovrimpressione
+   sul bordo basso. Su una card 1300×880 l'immagine passa da 704×396
+   a ~970×546: +38% lineare, +90% di area. */
+.dpane--demo {
+  padding-inline: 0;
+  padding-block: 0;
+  margin-inline: calc(-1 * var(--body-pad-x));
+  gap: 0;
+}
+
+/* Frecce: tonde, ai bordi del corpo, centrate sul palco.
+   Spente agli estremi con aria-disabled invece che disabled —
+   in demo l'autoplay tocca la fine da solo e il focus non deve
+   cadere sotto le dita. */
+.dnav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: clamp(2.3rem, 3.2vw, 3rem);
+  height: clamp(2.3rem, 3.2vw, 3rem);
+  border-radius: 50%;
+  border: 1px solid rgba(168, 182, 198, 0.2);
+  background: rgba(4, 11, 24, 0.45);
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.dnav--prev { left: 0; }
+.dnav--next { right: 0; }
+.dnav:hover,
+.dnav:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 20%, transparent);
+  outline: none;
+}
+.dnav:active { transform: translateY(-50%) scale(0.94); }
+.dnav.is-off {
+  opacity: 0.22;
+  pointer-events: none;
+}
+.dnav svg { width: 1.05rem; height: 1.05rem; }
+/* In demo galleggiano sullo screenshot: su una schermata chiara il
+   fondo semitrasparente della storia sparirebbe. */
+.dbody[data-mode="demo"] .dnav {
+  background: rgba(4, 11, 24, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ----------------------------------------------------------
+   Rail in basso — una per modo, impilate: la barra tiene
+   l'altezza della più alta e non salta al cambio racconto.
+   ---------------------------------------------------------- */
+.drailset {
+  display: grid;
+  min-height: 0;
+}
+.drail {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 300ms var(--ease-out),
+    visibility 0s linear 300ms;
+}
+.detail-layer.is-open .dbody[data-mode="story"] .drail--story {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 340ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+/* Demo: no bottom step strip — title + caption live on the shelf;
+   arrows and autoplay carry navigation. Hide the rail so the stage
+   gains height and 3- or 5-step demos do not show a crowded list. */
+.drail--demo,
+.detail-layer.is-open .dbody[data-mode="demo"] .drail--demo {
+  display: none !important;
+  pointer-events: none !important;
+}
+/* In demo the story rail is off; without the demo rail the set can
+   collapse and free vertical space for the screenshot. */
+.dbody[data-mode="demo"] .drailset {
+  display: none;
+}
+.drail--story {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.4rem;
+  align-content: start;
+}
+/* Passo della storia: filo in alto + numero + titolo — stessa
+   grammatica della rail della demo. Niente riquadri: sei box
+   accesi erano il rumore principale della colonna. */
+.dstory-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.65rem 0.15rem 0.45rem;
+  border: 0;
+  border-top: 2px solid rgba(168, 182, 198, 0.16);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.dstory-step b {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstory-step span {
+  max-width: 100%;
+  font-size: var(--t-rail);
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--text-3);
+  text-wrap: pretty;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstory-step:hover,
+.dstory-step:focus-visible {
+  border-top-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: none;
+}
+.dstory-step:hover b,
+.dstory-step:hover span,
+.dstory-step:focus-visible b,
+.dstory-step:focus-visible span { color: var(--text-2); }
+.dstory-step.is-done { border-top-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.dstory-step.is-done b { color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.dstory-step.is-done span { color: var(--text-2); }
+.dstory-step.is-on { border-top-color: var(--accent); }
+.dstory-step.is-on b { color: var(--accent); }
+.dstory-step.is-on span { color: var(--text-1); font-weight: 600; }
+
+/* Palco: tutta l’altezza disponibile. Senza cornice — la card è
+   già una superficie, un secondo riquadro dentro il primo faceva
+   solo peso. */
+.dstory-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+}
+
+/* Slide: label ancorata in alto, contenuto ad altezza naturale
+   centrato nello spazio che resta. I due spaziatori assorbono il
+   vuoto al posto delle cornici (che prima venivano stirate); se il
+   contenuto è più alto del palco si schiacciano a zero e lo scroll
+   riparte dall'alto invece di tagliare la prima riga. */
+.dsec {
+  --dsec-pad: clamp(1.05rem, 2.2vw, 1.65rem);
+  --dsec-gap: clamp(0.7rem, 1.6vh, 1.1rem);
+  position: relative;
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsec-gap);
+  min-height: 0;
+  height: 100%;
+  padding: var(--dsec-pad);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 400ms var(--ease-out),
+    visibility 0s linear 300ms;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
+}
+.detail-layer.is-open .dsec.is-on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 340ms var(--ease-out),
+    transform 400ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+.dsec.is-on[data-dir="-1"] {
+  animation: dsec-in-back 400ms var(--ease-out) both;
+}
+.dsec.is-on[data-dir="1"] {
+  animation: dsec-in-fwd 400ms var(--ease-out) both;
+}
+@keyframes dsec-in-fwd {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes dsec-in-back {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.detail-layer.is-open .danim {
+  animation: d-rise 560ms var(--ease-out) both;
+  animation-delay: calc(180ms + var(--i, 0) * 70ms);
+}
+@keyframes d-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Titolo del passo — è la testata della slide, non una didascalia.
+   Era un mono grigio da 0.62rem: leggibile solo se lo cercavi, e la
+   struttura del racconto non si vedeva. Ora è un titolo vero, nel
+   font display, allineato all'asse del contenuto; il numero (data-n,
+   scritto da showStory) lo precede in accento e un filo lo chiude. */
+.dsec-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 0 0 0.9rem;
+  font-family: var(--font-display, var(--font-ui));
+  font-size: var(--t-title);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-transform: none;
+  color: var(--text-1);
+}
+.dsec-label::before {
+  content: attr(data-n);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.46em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+/* Filo che parte dalla base del titolo e corre fino al margine:
+   chiude la testata e la stacca dal contenuto senza una riga in più. */
+.dsec-label::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  height: 1px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--accent) 60%, transparent),
+    transparent);
+}
+
+/* Misura del testo — è il prezzo del full-width: su 1300px una riga
+   piena non si legge. La prosa resta su una colonna stretta e
+   centrata; i pannelli strutturati (prima/dopo, entra/esce, chip,
+   team) della larghezza in più ci guadagnano davvero. */
+.dpane--story .dsec {
+  --measure: 66ch;
+  padding-inline: 0;
+  padding-block: 0.2rem;
+}
+.dpane--story .dsec--wide { --measure: 58rem; }
+.dpane--story .dsec > * {
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+/* Entrata a cascata del contenuto: la slide non appare "di colpo",
+   si svela — è il dettaglio che tiene l'occhio attaccato. */
+.dsec.is-on > :not(.dsec-label) {
+  animation: dsec-rise 460ms var(--ease-out) both;
+}
+.dsec.is-on > :nth-child(3) { animation-delay: 50ms; }
+.dsec.is-on > :nth-child(4) { animation-delay: 110ms; }
+@keyframes dsec-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Il contenuto tiene la sua altezza naturale: niente cornici
+   stirate con il vuoto dentro. shrink 0 è obbligatorio — lasciandolo
+   a 1, con copy lunga su viewport basso i blocchi venivano compressi
+   sotto la loro altezza reale e il testo usciva dal box sopra quello
+   successivo; qui invece straborda il palco, che ha overflow-y auto. */
+.dpane--story .dsec > :not(.dsec-label) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Spaziatori: centrano il gruppo un soffio sopra il centro ottico
+   (il basso pesa di più) e si annullano quando non c'è slack. */
+.dpane--story .dsec::before,
+.dpane--story .dsec::after {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
+}
+.dpane--story .dsec::before { flex-grow: 0.42; }
+.dpane--story .dsec::after { flex-grow: 1.6; }
+
+/* ========== 01 · Problema + risposta ==========
+   Due paragrafi, stesso impianto: filo verticale a sinistra.
+   Grigio = il dolore, accento = la risposta. Il riquadro e
+   l'occhiello "La risposta" dicevano la stessa cosa in più. */
+.dproblem {
+  margin: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.danswer {
+  margin: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid var(--accent);
+  font-size: var(--t-lead);
+  line-height: 1.45;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+
+/* Grassetto sui passaggi che reggono la frase: sono i tre blocchi
+   lunghi della card, e a peso uniforme si leggevano come un papiro.
+   Il neretto dà gli appigli per la lettura a salti. */
+.dproblem b {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.danswer b { font-weight: 700; }
+
+/* ========== 02 · Prima → Dopo ==========
+   A mezza colonna era per forza uno stack verticale, con la freccia
+   ruotata a 90°. A tutta card il prima e il dopo tornano affiancati:
+   il confronto si legge in un colpo, che è il senso della slide. */
+.dshift {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: clamp(0.8rem, 2vw, 1.7rem);
+  min-height: 0;
+}
+/* Niente card: filo a sinistra come nella slide 01, il colore
+   distingue il prima dal dopo. */
+.dshift-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+}
+.dshift-cell--after {
+  border-left-color: var(--accent);
+}
+/* "Prima" / "Dopo" sono il contesto della slide: devono arrivare
+   all'occhio insieme alla metrica, non due gradini sotto. */
+.dshift-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.dshift-cell--after .dshift-label { color: var(--accent); }
+.dshift-metric {
+  display: block;
+  margin: 0.3rem 0 0.4rem;
+  font-family: var(--font-display, var(--font-ui));
+  font-weight: 700;
+  font-size: var(--t-hero);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--text-2);
+}
+.dshift-cell--after .dshift-metric { color: var(--text-1); }
+.dshift-text {
+  font-size: var(--t-meta);
+  line-height: 1.45;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.dshift-arrow {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  opacity: 0.9;
+}
+.dshift-arrow svg { width: 1.35rem; height: 1.35rem; }
+
+/* ========== 03 · Ti serve se (citazione a tutta slide) ==========
+   È l'unico blocco della slide: porta il peso tipografico da solo,
+   se no galleggia in mezzo al palco. */
+.dfit {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-display, var(--font-ui));
+  font-weight: 600;
+  font-size: var(--t-hero);
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+/* Qui il neretto va in accento: è la frase con cui l'utente decide
+   se il prodotto è per lui, e le parole che lo dicono sono due. */
+.dfit b {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ========== 04 · Entra / Esce (due colonne a tutta altezza) ========== */
+.dio {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  min-height: 0;
+  align-items: stretch;
+}
+.dio > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+}
+.dio > div:last-child {
+  border-left-color: var(--accent);
+}
+.dio-head {
+  flex: none;
+  margin: 0 0 0.7rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.dio > div:last-child .dio-head { color: var(--accent); }
+/* Le due liste partono dall'alto: centrandole ognuna per conto suo
+   i primi punti delle due colonne non finivano sulla stessa riga. */
+.dio ul {
+  list-style: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+}
+.dio li {
+  position: relative;
+  padding-left: 1.15rem;
+  font-size: var(--t-body);
+  line-height: 1.45;
+  color: var(--text-1);
+}
+.dio li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+.dio-out li::before {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+/* ========== 05 · Si collega a ========== */
+.dlinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 0;
+}
+/* I chip si allargano fino a riempire la riga (2 o 3 per prodotto):
+   a larghezza naturale restavano due etichette perse nel palco. */
+.dlink {
+  display: flex;
+  flex: 1 1 10.5rem;
+  max-width: 18rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1.25rem 0.7rem 0.7rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--chip, var(--accent)) 42%, transparent);
+  background: color-mix(in srgb, var(--chip, var(--accent)) 14%, transparent);
+  font-family: var(--font-mono);
+  font-size: var(--t-meta);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-1);
+}
+.dlink img {
+  width: 2.1rem;
+  height: 2.1rem;
+  object-fit: contain;
+}
+
+/* ========== 06 · Team — photo · name · role ==========
+   Each person is a small profile card: photo on top (real or
+   silhouette placeholder), then name, then position. */
+.dteam {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  align-content: start;
+  justify-content: center;
+  gap: 0.9rem 0.85rem;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  width: 100%;
+}
+.dperson {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.85rem 0.65rem 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.06));
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 4%, transparent) 55%,
+      transparent 100%
+    ),
+    rgba(8, 12, 20, 0.28);
+}
+.dperson-av {
+  flex: none;
+  position: relative;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background:
+    radial-gradient(
+      circle at 40% 32%,
+      color-mix(in srgb, var(--accent) 28%, transparent) 0%,
+      color-mix(in srgb, var(--accent) 10%, transparent) 55%,
+      rgba(0, 0, 0, 0.25) 100%
+    );
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent),
+    0 8px 18px -10px rgba(0, 0, 0, 0.55);
+}
+.dperson-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.dperson-photo--ph {
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--accent2, var(--accent)) 70%, var(--text-1));
+}
+.dperson-photo--ph svg {
+  width: 58%;
+  height: 58%;
+  opacity: 0.72;
+}
+.dperson-text {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+.dperson-name {
+  display: block;
+  font-size: var(--t-body);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dperson-role {
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--accent2, var(--accent)) 55%, var(--text-2));
+  /* Allow 2 lines for long roles without blowing the card */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Schermi bassi: il palco si accorcia molto più di quanto si
+   accorci la copy (i clamp guardano la larghezza, non l'altezza).
+   Qui stringo tipografia e imbottiture così la storia continua a
+   stare in una schermata invece di finire sotto lo scroll. */
+@media (max-height: 840px) {
+  /* Un gradino sotto su tutta la scala: la gerarchia resta identica,
+     cambiano solo le taglie assolute. */
+  .dcard {
+    --t-eyebrow: 0.74rem;
+    --t-rail: 0.82rem;
+    --t-meta: 0.84rem;
+    --t-body: clamp(0.96rem, 1vw, 1.08rem);
+    --t-lead: clamp(1.06rem, 1.2vw, 1.24rem);
+    --t-title: clamp(1.25rem, 1.8vw, 1.65rem);
+    --t-hero: clamp(1.45rem, 2.4vw, 2rem);
+  }
+  .dsec {
+    --dsec-pad: clamp(0.85rem, 1.8vw, 1.25rem);
+    --dsec-gap: 0.6rem;
+  }
+  .dsec-label { margin-bottom: 0.65rem; }
+  .dstory-step,
+  .dstep { padding-block: 0.5rem 0.35rem; }
+  .dperson { padding: 0.7rem 0.55rem 0.8rem; gap: 0.55rem; }
+  .dperson-av { width: 3.6rem; height: 3.6rem; }
+  .dlink { padding: 0.55rem 1rem 0.55rem 0.55rem; }
+  .dlink img { width: 1.75rem; height: 1.75rem; }
+}
+
+/* ============================================================
+   7 · DEMO — slider di screenshot guidato dai passi
+   ============================================================ */
+
+/* Niente cornice: gli screenshot non hanno una proporzione unica
+   (Galileo 1.78:1, Kelly 2.0:1, uno 1.24:1), quindi un riquadro fisso
+   restava mezzo vuoto e la larghezza ballava da un passo all'altro.
+   Senza box la variazione non si vede: resta l'immagine sul vetro. */
+.dstage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dsteps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.4rem;
+}
+.dstep {
+  position: relative;
+  padding: 0.65rem 0.15rem 0.45rem;
+  text-align: left;
+  border-top: 2px solid rgba(168, 182, 198, 0.16);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  overflow: hidden;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstep:hover { color: var(--text-2); }
+.dstep.is-on { color: var(--text-1); }
+.dstep.is-on span { font-weight: 600; }
+.dstep.is-done { color: var(--text-3); }
+.dstep.is-done b { opacity: 0.75; }
+.dstep b {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.55;
+}
+.dstep.is-on b, .dstep.is-done b { opacity: 1; }
+/* I titoli vanno a capo invece di troncarsi: quattro etichette
+   tagliate a metà ("Cerca lei nei sis…") erano rumore puro. */
+.dstep span {
+  display: block;
+  margin-top: 0.28rem;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+  font-size: var(--t-rail);
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+/* barra di avanzamento del passo attivo */
+.dstep::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.dstep.is-done::after { transform: scaleX(1); }
+.dstep.is-on::after {
+  animation: step-fill var(--step-dur, 4200ms) linear forwards;
+}
+@keyframes step-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* --- Fascia in sovrimpressione: titolo del passo + didascalia,
+       sul bordo basso dello schermo. Fuori dall'immagine costavano
+       ~100px di altezza, cioè quasi 180px di larghezza d'immagine. --- */
+.dshelf {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 3.5rem var(--body-pad-x) 1.1rem;
+  background: linear-gradient(to top,
+    rgba(2, 7, 16, 0.94) 0%,
+    rgba(2, 7, 16, 0.78) 45%,
+    transparent 100%);
+  pointer-events: none;
+}
+/* Qui il titolo è una didascalia sopra la sua descrizione: centrato
+   e senza il filo, che in mezzo allo schermo non chiuderebbe niente. */
+.dshelf .dsec-label {
+  justify-content: center;
+  margin: 0 0 0.3rem;
+}
+.dshelf .dsec-label::after { display: none; }
+
+.dcaption {
+  min-height: 2.6em;
+  max-width: 78ch;
+  margin-inline: auto;
+  font-size: var(--t-body);
+  line-height: 1.45;
+  text-align: center;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.dcaption.is-swap { animation: cap-in 320ms var(--ease-out) both; }
+@keyframes cap-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   8 · DEMO — slider di screenshot dentro lo stage
+   Le slide scorrono in orizzontale (track flex + translateX);
+   senza `shot` il passo mostra un segnaposto stilizzato (.dph).
+   ============================================================ */
+
+.dscreen {
+  height: 100%;
+  overflow: hidden;
+}
+.dtrack {
+  display: flex;
+  height: 100%;
+  transition: transform 560ms var(--ease-out);
+}
+.dslide {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* Screenshot reale (quando lo step ha `shot`) o clip video.
+   Centrato in verticale, non ancorato in alto: senza cornice la
+   fascia in basso coprirebbe l'ultima riga dell'immagine. */
+.dshot, .dvideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* --- Segnaposto: uno schermo vuoto con il numero del passo ---
+   La finta UI (barra finestra, blocchi che respiravano, titolo)
+   competeva con la demo vera senza dire niente in più: titolo e
+   descrizione del passo stanno già nella rail e nella didascalia. */
+/* Il segnaposto la cornice se la tiene: senza uno screenshot vero
+   dietro, un numero che galleggia sul vetro non sembrerebbe uno
+   schermo. Vale per 4 prodotti su 6. */
+.dph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(168, 182, 198, 0.14);
+  box-shadow: inset 0 0 60px color-mix(in srgb, var(--accent) 6%, transparent);
+  background:
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--accent) 7%, transparent),
+      transparent 55%);
+}
+.dph-n {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(3.4rem, 6vw, 5.2rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: color-mix(in srgb, var(--accent) 22%, transparent);
+  user-select: none;
+}
+.dph-soon {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* ============================================================
+   9 · PIEDE DELLA CARD
+   ============================================================ */
+
+.dfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(0.75rem, 1.5vw, 1.15rem) clamp(1.1rem, 2.4vw, 2rem);
+  border-top: 1px solid rgba(168, 182, 198, 0.12);
+}
+.dfoot-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.dfoot-hint kbd {
+  padding: 0.14rem 0.42rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 5px;
+  font: inherit;
+  color: var(--text-1);
+}
+.dcta {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.dcta .cta-chev {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--accent);
+}
+.dcta:hover, .dcta:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* ============================================================
+   10 · RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1080px) {
+  .dcard { width: 94vw; height: 90vh; }
+  .dmeta { display: none; }
+}
+
+/* Sotto i 900px le frecce sovrapposte al contenuto rubano righe di
+   testo: escono dal palco e lo affiancano, stessa posizione a occhio
+   ma dentro la griglia invece che sopra. */
+@media (max-width: 900px) {
+  .dstageset {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+  .dpane {
+    grid-column: 2;
+    grid-row: 1;
+    padding-inline: 0;
+  }
+  /* Le frecce non sono più sopra l'immagine: il full-bleed le
+     porterebbe sotto i bottoni. */
+  .dpane--demo { margin-inline: 0; }
+  .dbody[data-mode="demo"] .dmode { right: 0; }
+  .dnav {
+    position: static;
+    grid-row: 1;
+    align-self: center;
+    transform: none;
+  }
+  .dnav:active { transform: scale(0.94); }
+  .dnav--prev { grid-column: 1; }
+  .dnav--next { grid-column: 3; }
+}
+
+@media (max-width: 700px) {
+  .detail-layer { padding: 0.5rem; }
+  .dcard {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 92vh;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .dhead { min-width: 0; padding-right: 3.4rem; }
+  .dhead-text { max-width: 100%; overflow: hidden; }
+  .dhead-tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dbody { width: 100%; min-width: 0; overflow-x: hidden; }
+  /* Su una colonna sola la scala si compatta ma non si appiattisce:
+     il titolo del passo resta il pezzo più grosso della schermata. */
+  .dcard {
+    --t-eyebrow: 0.74rem;
+    --t-rail: 0.78rem;
+    --t-meta: 0.82rem;
+    --t-body: clamp(0.98rem, 4vw, 1.12rem);
+    --t-lead: clamp(1.06rem, 4.4vw, 1.22rem);
+    --t-title: clamp(1.25rem, 5.6vw, 1.6rem);
+    --t-hero: clamp(1.4rem, 6.4vw, 1.85rem);
+  }
+  .dpane,
+  .dstory-stage,
+  .dsec,
+  .dstage { min-width: 0; max-width: 100%; }
+  .dproblem,
+  .danswer,
+  .dfit,
+  .dsec-label { overflow-wrap: anywhere; }
+  .dpane--story .dsec { padding-block: 0.9rem; }
+  .dsec-label { margin-bottom: 0.7rem; gap: 0.5rem; }
+  .dsec-label::after { display: none; }
+  .dshift { grid-template-columns: 1fr; gap: 0.55rem; }
+  .dshift-arrow { transform: rotate(90deg); }
+  .dio { grid-template-columns: 1fr; }
+  /* Rail a soli numeri: il titolo del passo lo porta già la slide */
+  .dstep span { display: none; }
+  .dstory-step span { display: none; }
+  .dstory-step { align-items: center; padding: 0.45rem 0.2rem; }
+  .dstory-step b,
+  .dstep { font-size: 0.78rem; }
+  .dfoot-hint { display: none; }
+  .dfoot { justify-content: center; }
+}
+
+/* Wide stage: keep cards readable without stretching a single row */
+@media (min-width: 1100px) {
+  .dteam {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+}
+
+@media (max-height: 620px) {
+  .dcard { height: 94vh; }
+  .dhead { padding-block: 0.7rem 0.55rem; }
+  .dhead-tag { display: none; }
+}
+
+/* ============================================================
+   11 · REDUCED MOTION — niente zoom, niente auto-avanzamento
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  body.detail-open .single-stage { transform: none; filter: none; }
+  body.detail-open #worldCanvas { transform: none; }
+  .detail-hint-icon::after { animation: none; opacity: 0; }
+  .dcard { transform: none; }
+  .dtrack { transition: none; }
+  .dsec.is-on > :not(.dsec-label) { animation: none; }
+  .dstep.is-on::after { animation: none; transform: scaleX(1); }
+  .dmode-btn.is-nudge { animation: none; }
+  .dsec,
+  .dsec.is-on[data-dir="1"],
+  .dsec.is-on[data-dir="-1"],
+  .dpane,
+  .drail {
+    animation: none;
+    transition: opacity 160ms linear;
+    transform: none;
+  }
+}
