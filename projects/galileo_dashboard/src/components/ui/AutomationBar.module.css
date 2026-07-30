@@ -1,0 +1,19 @@
+.word {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.low {
+  color: var(--tier-low-fg);
+}
+.mid {
+  color: var(--tier-mid-fg);
+}
+.high {
+  color: var(--tier-high-fg);
+}
+.muted {
+  color: var(--ink-faint);
+}

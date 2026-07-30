@@ -1,0 +1,54 @@
+/* ============================================================
+   GLI NEXUS — Design tokens
+   Unica fonte di verità per colori, tipografia, motion e layer.
+   ============================================================ */
+
+:root {
+  /* --- Core palette --- */
+  --navy-deep:  #020814;
+  --navy-mid:   #061426;
+  --navy-nexus: #0B2A44;
+  --cyan:       #00D9FF;
+  --azure:      #1EA7FF;
+
+  /* Master accent GLI (deck GLI-Branding): usato dall'index. */
+  --gli-blue:     #2F5EFF;
+  --gli-blue-rgb: 47, 94, 255;
+
+  /* --- Surface / UI --- */
+  --glass:              rgba(8, 24, 42, 0.72);
+  --card-border:        rgba(0, 217, 255, 0.30);
+  --card-border-active: rgba(0, 217, 255, 0.85);
+  --divider:            rgba(255, 255, 255, 0.08);
+
+  /* --- Text --- */
+  --text-1: #F4F8FB;
+  --text-2: #A8B6C6;
+  --text-3: #64748B;
+
+  /* --- Status --- */
+  --success:  #3DFF9D;
+  --warning:  #FFCC66;
+  --critical: #FF5A7A;
+
+  /* --- Typography --- */
+  --font-ui:   "Geist", "Inter Tight", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "IBM Plex Mono", Consolas, monospace;
+  --track-hero:  0.34em;  /* wordmark */
+  --track-micro: 0.24em;  /* micro-label uppercase */
+
+  /* --- Shape --- */
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  /* --- Motion --- */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 180ms;
+  --dur-med:  320ms;
+  --dur-slow: 560ms;
+
+  /* --- Layers --- */
+  --z-bg:   0;
+  --z-page: 1;
+  --z-nav:  100;
+}

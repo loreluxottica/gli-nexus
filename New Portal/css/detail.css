@@ -1,0 +1,1234 @@
+/* ============================================================
+   GLI NEXUS — Detail View
+   Invito nell'hero + zoom di camera: UI sfuma, sfondo si avvicina,
+   card glass con bordo accent. Override su .single-stage /
+   #worldCanvas attivi solo con body.detail-open.
+   ============================================================ */
+
+/* ============================================================
+   1 · INVITO — il bottone che chiama il dettaglio
+   ============================================================ */
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(0.6rem, 1.6vw, 1.1rem);
+  margin-top: clamp(0.4rem, 1.4vh, 1rem);
+}
+.hero-actions .hero-cta { margin-top: 0; }
+
+.detail-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.62rem;
+  padding: 0.6rem 1.15rem 0.6rem 0.6rem;
+  border: 1px solid rgba(168, 182, 198, 0.22);
+  border-radius: var(--radius-pill);
+  background: rgba(6, 14, 30, 0.42);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.detail-hint:hover,
+.detail-hint:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.detail-hint:active { transform: scale(0.98); }
+
+/* Pastiglia con il segno "+" e l'anello che pulsa: è lei a dire
+   "qui si clicca" senza aggiungere una riga di testo in più. */
+.detail-hint-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.detail-hint-icon svg { width: 0.8rem; height: 0.8rem; }
+.detail-hint-icon::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  animation: hint-ping 2.8s var(--ease-out) infinite;
+}
+@keyframes hint-ping {
+  0%   { transform: scale(0.86); opacity: 0.55; }
+  62%  { transform: scale(1.5);  opacity: 0; }
+  100% { transform: scale(1.5);  opacity: 0; }
+}
+.detail-hint-key {
+  padding: 0.12rem 0.34rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 5px;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+@media (max-width: 560px) {
+  .detail-hint-key { display: none; }
+  .detail-hint { font-size: 0.62rem; padding-right: 0.85rem; }
+}
+
+/* ============================================================
+   2 · ZOOM DI CAMERA — l'interfaccia si allontana, lo sfondo no
+   ============================================================ */
+
+/* La transizione di --accent resta (viene da single.css): qui la
+   riscrivo insieme a quelle del "carrello" perché la shorthand
+   sostituisce, non somma. */
+.single-stage {
+  transition:
+    --accent 780ms var(--ease-out),
+    opacity 460ms var(--ease-out),
+    transform 700ms var(--ease-out),
+    filter 520ms var(--ease-out);
+}
+body.detail-open .single-stage {
+  opacity: 0;
+  transform: scale(1.3);
+  filter: blur(9px);
+  pointer-events: none;
+}
+
+/* Lo sfondo animato resta vivo e si avvicina di un soffio:
+   è quello che vende la "camera che entra nella visione". */
+body.detail-open #worldCanvas {
+  transform:
+    translate3d(calc(var(--px, 0) * -6px), calc(var(--py, 0) * -4px), 0)
+    scale(1.15);
+  transition: transform 900ms var(--ease-out);
+}
+
+/* ============================================================
+   3 · LAYER + SCRIM
+   ============================================================ */
+
+.detail-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.75rem, 2.4vw, 2rem);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 380ms var(--ease-out), visibility 0s linear 380ms;
+}
+.detail-layer.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 380ms var(--ease-out), visibility 0s;
+}
+
+.detail-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 50%,
+      rgba(2, 8, 20, 0.28) 0%,
+      rgba(2, 8, 20, 0.62) 58%,
+      rgba(2, 8, 20, 0.86) 100%);
+}
+
+/* ============================================================
+   4 · LA CARD — traslucida, sfocata, bordo luminescente
+   ============================================================ */
+
+.dcard {
+  position: relative;
+  width: min(1300px, 88vw);
+  height: min(880px, 84vh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 26px;
+  /* trasparente: l'animazione dello sfondo continua a vedersi */
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+      transparent 42%),
+    rgba(4, 11, 24, 0.42);
+  backdrop-filter: blur(26px) saturate(1.3);
+  -webkit-backdrop-filter: blur(26px) saturate(1.3);
+  box-shadow:
+    0 44px 130px rgba(0, 0, 0, 0.55),
+    0 0 34px color-mix(in srgb, var(--accent) 26%, transparent),
+    0 0 96px color-mix(in srgb, var(--accent) 20%, transparent),
+    inset 0 0 90px color-mix(in srgb, var(--accent) 7%, transparent);
+  opacity: 0;
+  transform: scale(0.9) translateY(20px);
+  transition:
+    opacity 420ms var(--ease-out),
+    transform 620ms var(--ease-out);
+}
+.detail-layer.is-open .dcard {
+  opacity: 1;
+  transform: none;
+}
+
+/* Bordo nell'accento del prodotto, con un minimo di luminescenza:
+   anello in gradiente (mask trick) + alone esterno morbido. */
+.dcard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--accent2, var(--accent)) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--accent) 72%, transparent) 22%,
+    color-mix(in srgb, var(--accent) 44%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 70%, transparent) 74%,
+    color-mix(in srgb, var(--accent2, var(--accent)) 94%, white 4%) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+/* filo di luce lungo il bordo alto */
+.dcard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 85%, white 15%),
+    transparent);
+  opacity: 0.75;
+  filter: blur(0.4px);
+  pointer-events: none;
+}
+
+/* La card riceve il focus all'apertura solo per portarci dentro il
+   lettore di schermo: l'outline ciano di base.css coprirebbe il
+   bordo accento, ed è quello il segnale visivo che conta. */
+.dcard:focus,
+.dcard:focus-visible { outline: none; }
+
+/* --- Chiudi --- */
+.dclose {
+  position: absolute;
+  top: clamp(0.7rem, 1.4vw, 1.1rem);
+  right: clamp(0.7rem, 1.4vw, 1.1rem);
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 182, 198, 0.2);
+  background: rgba(4, 11, 24, 0.5);
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.dclose:hover, .dclose:focus-visible {
+  color: var(--text-1);
+  border-color: var(--accent);
+  transform: rotate(90deg);
+}
+.dclose svg { width: 1rem; height: 1rem; }
+
+/* ============================================================
+   5 · TESTATA
+   ============================================================ */
+
+.dhead {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.85rem, 1.8vw, 1.4rem);
+  padding: clamp(1.1rem, 2.2vw, 1.75rem) clamp(1.1rem, 2.4vw, 2rem) clamp(0.8rem, 1.6vw, 1.2rem);
+  padding-right: 4rem;
+  border-bottom: 1px solid rgba(168, 182, 198, 0.12);
+}
+.dhead-logo {
+  flex: none;
+  width: clamp(2.9rem, 5vw, 4.1rem);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--accent) 50%, transparent));
+}
+.dhead-text { min-width: 0; }
+.dhead-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.dhead-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  color: var(--text-1);
+}
+.dhead-name span { color: var(--accent); }
+.dhead-tag {
+  margin-top: 0.2rem;
+  font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+  color: var(--text-2);
+  text-wrap: balance;
+}
+
+.dmeta {
+  margin-left: auto;
+  display: flex;
+  gap: clamp(0.7rem, 1.6vw, 1.5rem);
+}
+.dmeta div { text-align: right; }
+.dmeta dt {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dmeta dd {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+/* ============================================================
+   6 · CORPO — due colonne: lettura a sinistra, demo a destra
+   ============================================================ */
+
+.dbody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(0.85rem, 2vw, 1.6rem);
+  min-height: 0;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(1rem, 2.2vw, 1.75rem);
+}
+
+/* ----------------------------------------------------------
+   Storytelling a sinistra — un passo per volta, tutta la
+   colonna. Chrome compatto, contenuto che riempie il palco.
+   ---------------------------------------------------------- */
+.dcol--read {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dstory {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* Chrome: una riga (kicker + meter) + rail sottile */
+.dstory-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "kicker meter"
+    "rail  rail";
+  gap: 0.35rem 0.7rem;
+  align-items: baseline;
+}
+.dstory-kicker {
+  grid-area: kicker;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dstory-meter {
+  grid-area: meter;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.dstory-meter b {
+  color: var(--text-1);
+  font-weight: 600;
+}
+.dstory-meter span[aria-hidden] {
+  margin: 0 0.18rem;
+  opacity: 0.55;
+}
+.dstory-rail {
+  grid-area: rail;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.4rem;
+}
+/* Passo della storia: filo in alto + numero + titolo — stessa
+   grammatica della rail della demo. Niente riquadri: sei box
+   accesi erano il rumore principale della colonna. */
+.dstory-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.42rem 0.1rem 0.3rem;
+  border: 0;
+  border-top: 2px solid rgba(168, 182, 198, 0.16);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.dstory-step b {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstory-step span {
+  max-width: 100%;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstory-step:hover,
+.dstory-step:focus-visible {
+  border-top-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: none;
+}
+.dstory-step:hover b,
+.dstory-step:hover span,
+.dstory-step:focus-visible b,
+.dstory-step:focus-visible span { color: var(--text-2); }
+.dstory-step.is-done { border-top-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.dstory-step.is-done b { color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.dstory-step.is-done span { color: var(--text-2); }
+.dstory-step.is-on { border-top-color: var(--accent); }
+.dstory-step.is-on b { color: var(--accent); }
+.dstory-step.is-on span { color: var(--text-1); font-weight: 600; }
+
+/* Palco: quasi tutta l’altezza della colonna. Senza cornice —
+   la card è già una superficie, un secondo riquadro dentro il
+   primo faceva solo peso. */
+.dstory-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+}
+
+/* Slide: label ancorata in alto, contenuto ad altezza naturale
+   centrato nello spazio che resta. I due spaziatori assorbono il
+   vuoto al posto delle cornici (che prima venivano stirate); se il
+   contenuto è più alto del palco si schiacciano a zero e lo scroll
+   riparte dall'alto invece di tagliare la prima riga. */
+.dsec {
+  --dsec-pad: clamp(1.05rem, 2.2vw, 1.65rem);
+  --dsec-gap: clamp(0.7rem, 1.6vh, 1.1rem);
+  position: relative;
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dsec-gap);
+  min-height: 0;
+  height: 100%;
+  padding: var(--dsec-pad);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 400ms var(--ease-out),
+    visibility 0s linear 300ms;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
+}
+.dsec.is-on {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 340ms var(--ease-out),
+    transform 400ms var(--ease-out),
+    visibility 0s linear 0s;
+}
+.dsec.is-on[data-dir="-1"] {
+  animation: dsec-in-back 400ms var(--ease-out) both;
+}
+.dsec.is-on[data-dir="1"] {
+  animation: dsec-in-fwd 400ms var(--ease-out) both;
+}
+@keyframes dsec-in-fwd {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes dsec-in-back {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.dcol--show {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.detail-layer.is-open .danim {
+  animation: d-rise 560ms var(--ease-out) both;
+  animation-delay: calc(180ms + var(--i, 0) * 70ms);
+}
+@keyframes d-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Label base (demo a destra) — micro-etichetta e basta: il filo
+   di luce in coda era decorazione ripetuta su ogni sezione. */
+.dsec-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* --- Slide senza intestazione: il titolo del passo è già acceso
+       nella rail, a pochi pixel sopra il palco. Stamparlo di nuovo
+       dentro la slide voleva dire la stessa parola due volte.
+       Resta nel DOM per lettori di schermo e torna visibile sotto i
+       700px, dove la rail mostra solo i numeri. --- */
+.dcol--read .dsec {
+  /* niente imbottitura laterale: il testo si allinea al bordo della
+     colonna e alla rail, invece di rientrare dentro una cornice */
+  padding-inline: 0;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+.dcol--read .dsec-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Entrata a cascata del contenuto: la slide non appare "di colpo",
+   si svela — è il dettaglio che tiene l'occhio attaccato. */
+.dsec.is-on > :not(.dsec-label) {
+  animation: dsec-rise 460ms var(--ease-out) both;
+}
+.dsec.is-on > :nth-child(3) { animation-delay: 50ms; }
+.dsec.is-on > :nth-child(4) { animation-delay: 110ms; }
+@keyframes dsec-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Il contenuto tiene la sua altezza naturale: niente cornici
+   stirate con il vuoto dentro. shrink 0 è obbligatorio — lasciandolo
+   a 1, con copy lunga su viewport basso i blocchi venivano compressi
+   sotto la loro altezza reale e il testo usciva dal box sopra quello
+   successivo; qui invece straborda il palco, che ha overflow-y auto. */
+.dcol--read .dsec > :not(.dsec-label) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Spaziatori: centrano il gruppo un soffio sopra il centro ottico
+   (il basso pesa di più) e si annullano quando non c'è slack. */
+.dcol--read .dsec::before,
+.dcol--read .dsec::after {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
+}
+.dcol--read .dsec::before { flex-grow: 0.42; }
+.dcol--read .dsec::after { flex-grow: 1.6; }
+
+/* ========== 01 · Problema + risposta ==========
+   Due paragrafi, stesso impianto: filo verticale a sinistra.
+   Grigio = il dolore, accento = la risposta. Il riquadro e
+   l'occhiello "La risposta" dicevano la stessa cosa in più. */
+.dproblem {
+  margin: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+  font-size: clamp(1.02rem, 1.55vw, 1.22rem);
+  line-height: 1.5;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.danswer {
+  margin: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid var(--accent);
+  font-size: clamp(1.08rem, 1.65vw, 1.32rem);
+  line-height: 1.48;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+
+/* ========== 02 · Prima → Dopo (stack verticale, tutta altezza) ========== */
+.dshift {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto;
+  align-items: stretch;
+  gap: 0.55rem;
+  min-height: 0;
+}
+/* Niente card: filo a sinistra come nella slide 01, il colore
+   distingue il prima dal dopo. */
+.dshift-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+}
+.dshift-cell--after {
+  border-left-color: var(--accent);
+}
+.dshift-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dshift-cell--after .dshift-label { color: var(--accent); }
+.dshift-metric {
+  display: block;
+  margin: 0.25rem 0 0.35rem;
+  font-family: var(--font-display, var(--font-ui));
+  font-weight: 700;
+  font-size: clamp(1.7rem, 3.2vw, 2.45rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--text-2);
+}
+.dshift-cell--after .dshift-metric { color: var(--text-1); }
+.dshift-text {
+  font-size: clamp(0.82rem, 1.15vw, 0.95rem);
+  line-height: 1.45;
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+.dshift-arrow {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  opacity: 0.9;
+  transform: rotate(90deg);
+}
+.dshift-arrow svg { width: 1.35rem; height: 1.35rem; }
+
+/* ========== 03 · Ti serve se (citazione a tutta slide) ==========
+   È l'unico blocco della slide: porta il peso tipografico da solo,
+   se no galleggia in mezzo al palco. */
+.dfit {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-display, var(--font-ui));
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2.25vw, 1.78rem);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+
+/* ========== 04 · Entra / Esce (due colonne a tutta altezza) ========== */
+.dio {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  min-height: 0;
+  align-items: stretch;
+}
+.dio > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.1rem 0 0.1rem 1.05rem;
+  border-left: 2px solid rgba(168, 182, 198, 0.22);
+}
+.dio > div:last-child {
+  border-left-color: var(--accent);
+}
+.dio-head {
+  flex: none;
+  margin: 0 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dio > div:last-child .dio-head { color: var(--accent); }
+/* Le due liste partono dall'alto: centrandole ognuna per conto suo
+   i primi punti delle due colonne non finivano sulla stessa riga. */
+.dio ul {
+  list-style: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+}
+.dio li {
+  position: relative;
+  padding-left: 1.05rem;
+  font-size: clamp(0.88rem, 1.2vw, 1.02rem);
+  line-height: 1.45;
+  color: var(--text-1);
+}
+.dio li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 75%, transparent);
+}
+.dio-out li::before {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+/* ========== 05 · Si collega a ========== */
+.dlinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 0;
+}
+/* I chip si allargano fino a riempire la riga (2 o 3 per prodotto):
+   a larghezza naturale restavano due etichette perse nel palco. */
+.dlink {
+  display: flex;
+  flex: 1 1 10.5rem;
+  max-width: 18rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1.25rem 0.7rem 0.7rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--chip, var(--accent)) 42%, transparent);
+  background: color-mix(in srgb, var(--chip, var(--accent)) 14%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-1);
+}
+.dlink img {
+  width: 2.1rem;
+  height: 2.1rem;
+  object-fit: contain;
+}
+
+/* ========== 06 · Team ========== */
+.dteam {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+}
+.dperson {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+.dperson-av {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.55rem;
+  height: 2.55rem;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-1);
+}
+.dperson-text { min-width: 0; }
+.dperson-name {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dperson-role {
+  display: block;
+  margin-top: 0.12rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Nav: compatta, non ruba altezza al palco */
+.dstory-nav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.dstory-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.dstory-btn:active:not(:disabled) { transform: scale(0.98); }
+.dstory-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+.dstory-btn svg { width: 0.8rem; height: 0.8rem; }
+
+.dstory-btn--ghost {
+  border: 1px solid rgba(168, 182, 198, 0.22);
+  background: transparent;
+  color: var(--text-2);
+}
+.dstory-btn--ghost:hover:not(:disabled),
+.dstory-btn--ghost:focus-visible:not(:disabled) {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: none;
+}
+
+.dstory-btn--go {
+  flex: 1;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text-1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.dstory-btn--go:hover:not(:disabled),
+.dstory-btn--go:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 26%, transparent);
+  outline: none;
+}
+.dstory-btn--go.is-last {
+  border-color: rgba(168, 182, 198, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+/* Schermi bassi: il palco si accorcia molto più di quanto si
+   accorci la copy (i clamp guardano la larghezza, non l'altezza).
+   Qui stringo tipografia e imbottiture così la storia continua a
+   stare in una schermata invece di finire sotto lo scroll. */
+@media (max-height: 840px) {
+  .dsec {
+    --dsec-pad: clamp(0.85rem, 1.8vw, 1.25rem);
+    --dsec-gap: 0.6rem;
+  }
+  .dproblem { font-size: clamp(0.98rem, 1.35vw, 1.14rem); }
+  .danswer { font-size: clamp(0.98rem, 1.3vw, 1.1rem); }
+  .dfit { font-size: clamp(1.08rem, 1.75vw, 1.42rem); }
+  .dshift-metric { font-size: clamp(1.35rem, 2.4vw, 1.9rem); }
+  .dperson { padding-block: 0.25rem; }
+  .dperson-av { width: 2.1rem; height: 2.1rem; }
+  .dlink { padding: 0.55rem 1rem 0.55rem 0.55rem; }
+  .dlink img { width: 1.75rem; height: 1.75rem; }
+}
+
+/* ============================================================
+   7 · DEMO — slider di screenshot guidato dai passi
+   ============================================================ */
+
+.dstage {
+  flex: 1;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(168, 182, 198, 0.14);
+  background:
+    linear-gradient(180deg, rgba(10, 20, 38, 0.6), rgba(3, 9, 20, 0.72));
+  box-shadow: inset 0 0 60px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.dsteps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.4rem;
+}
+.dstep {
+  position: relative;
+  padding: 0.5rem 0.1rem 0.4rem;
+  text-align: left;
+  border-top: 2px solid rgba(168, 182, 198, 0.16);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  overflow: hidden;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.dstep:hover { color: var(--text-2); }
+.dstep.is-on { color: var(--text-1); }
+.dstep.is-on span { font-weight: 600; }
+.dstep.is-done { color: var(--text-3); }
+.dstep.is-done b { opacity: 0.75; }
+.dstep b {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  opacity: 0.55;
+}
+.dstep.is-on b, .dstep.is-done b { opacity: 1; }
+/* I titoli vanno a capo invece di troncarsi: quattro etichette
+   tagliate a metà ("Cerca lei nei sis…") erano rumore puro. */
+.dstep span {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  text-wrap: pretty;
+}
+/* barra di avanzamento del passo attivo */
+.dstep::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.dstep.is-done::after { transform: scaleX(1); }
+.dstep.is-on::after {
+  animation: step-fill var(--step-dur, 4200ms) linear forwards;
+}
+@keyframes step-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.dcaption {
+  min-height: 2.6em;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.dcaption.is-swap { animation: cap-in 320ms var(--ease-out) both; }
+@keyframes cap-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   8 · DEMO — slider di screenshot dentro lo stage
+   Le slide scorrono in orizzontale (track flex + translateX);
+   senza `shot` il passo mostra un segnaposto stilizzato (.dph).
+   ============================================================ */
+
+.dtrack {
+  display: flex;
+  height: 100%;
+  transition: transform 560ms var(--ease-out);
+}
+.dslide {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+}
+
+/* Screenshot reale (quando lo step ha `shot`) o clip video */
+.dshot, .dvideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* --- Segnaposto: uno schermo vuoto con il numero del passo ---
+   La finta UI (barra finestra, blocchi che respiravano, titolo)
+   competeva con la demo vera senza dire niente in più: titolo e
+   descrizione del passo stanno già nella rail e nella didascalia. */
+.dph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  background:
+    linear-gradient(165deg,
+      color-mix(in srgb, var(--accent) 7%, transparent),
+      transparent 55%);
+}
+.dph-n {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(3.4rem, 6vw, 5.2rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: color-mix(in srgb, var(--accent) 22%, transparent);
+  user-select: none;
+}
+.dph-soon {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* --- Navigazione demo: frecce ai lati della rail dei passi --- */
+.ddemo-nav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.ddemo-btn {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 182, 198, 0.2);
+  background: rgba(4, 11, 24, 0.4);
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.ddemo-btn:hover,
+.ddemo-btn:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 20%, transparent);
+  outline: none;
+}
+.ddemo-btn:active { transform: scale(0.94); }
+.ddemo-btn svg { width: 1rem; height: 1rem; }
+
+
+/* ============================================================
+   9 · PIEDE DELLA CARD
+   ============================================================ */
+
+.dfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(0.75rem, 1.5vw, 1.15rem) clamp(1.1rem, 2.4vw, 2rem);
+  border-top: 1px solid rgba(168, 182, 198, 0.12);
+}
+.dfoot-hint {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.dfoot-hint kbd {
+  padding: 0.1rem 0.34rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 5px;
+  font: inherit;
+  color: var(--text-2);
+}
+.dcta {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.dcta .cta-chev {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--accent);
+}
+.dcta:hover, .dcta:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* ============================================================
+   10 · RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1080px) {
+  .dcard { width: 94vw; height: 90vh; }
+  .dbody {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .dcol--read { min-height: clamp(18rem, 48vh, 28rem); }
+  .dcol--show { min-height: 24rem; }
+  .dmeta { display: none; }
+}
+
+@media (max-width: 700px) {
+  .dcard { width: 96vw; height: 92vh; border-radius: 20px; }
+  .dhead { padding-right: 3.4rem; }
+  .dcol--read { min-height: 17rem; }
+  .dsec { padding: 0.95rem 1rem; }
+  .dproblem,
+  .danswer,
+  .dfit { font-size: clamp(1rem, 4.2vw, 1.15rem); }
+  .dshift-metric { font-size: clamp(1.45rem, 7vw, 1.9rem); }
+  .dstory-btn { font-size: 0.6rem; min-height: 2.25rem; padding-inline: 0.8rem; }
+  .dio { grid-template-columns: 1fr; }
+  .dstep span { display: none; }
+  .dstory-step span { display: none; }
+  .dstory-step { align-items: center; padding: 0.4rem 0.2rem; }
+  /* Rail a soli numeri: qui il titolo del passo torna dentro la slide */
+  .dcol--read .dsec { padding-top: 1.5rem; }
+  .dcol--read .dsec-label {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    color: var(--text-2);
+  }
+  .dfoot-hint { display: none; }
+  .dfoot { justify-content: center; }
+}
+
+/* Team con 4+ voci: due colonne senza lasciare buchi */
+@media (min-width: 1100px) {
+  .dteam:has(.dperson:nth-child(4)) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-height: 620px) {
+  .dcard { height: 94vh; }
+  .dhead { padding-block: 0.7rem 0.55rem; }
+  .dhead-tag { display: none; }
+}
+
+/* ============================================================
+   11 · REDUCED MOTION — niente zoom, niente auto-avanzamento
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  body.detail-open .single-stage { transform: none; filter: none; }
+  body.detail-open #worldCanvas { transform: none; }
+  .detail-hint-icon::after { animation: none; opacity: 0; }
+  .dcard { transform: none; }
+  .dtrack { transition: none; }
+  .dsec.is-on > :not(.dsec-label) { animation: none; }
+  .dstep.is-on::after { animation: none; transform: scaleX(1); }
+  .dsec,
+  .dsec.is-on[data-dir="1"],
+  .dsec.is-on[data-dir="-1"] {
+    animation: none;
+    transition: opacity 160ms linear;
+    transform: none;
+  }
+}

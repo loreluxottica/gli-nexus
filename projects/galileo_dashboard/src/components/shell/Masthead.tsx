@@ -5,9 +5,9 @@ import { PeriodChip } from "./PeriodChip";
 import styles from "./Masthead.module.css";
 
 /**
- * Midnight masthead. Server component: reads the static content for the period
- * label and hands the (small) geo options list to the client AreaTabs. The
- * 35 KB content payload never reaches the client bundle this way.
+ * Masthead (server): period label + geo options from content payload.
+ * AreaTabs is the only client child — full content.json stays off the client
+ * bundle for this chrome (only props cross the boundary).
  */
 export function Masthead() {
   const cv = content.current_view;

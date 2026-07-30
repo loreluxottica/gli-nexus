@@ -2,25 +2,38 @@ import { Suspense } from "react";
 import { content } from "@/data/content";
 import { contentTrends } from "@/data/contentTrends";
 import { ContentViewV2 } from "@/components/content-v2/ContentViewV2";
+import type { CurrentView, PeriodSnapshot } from "@/data/types";
 
 /**
- * Content — the canonical volumes view. Server component: selects the Content
- * slice of the payload (current_view + export_labs_sites) plus the compact
- * monthly trend series and passes them to the client view. Renders a single
- * market/metric at a time (REP and LM are different units and must not share a
- * scale) with an insight strip, paired YoY bars and sparklines.
+ * Content — volumes / YoY surface.
  *
- * This route hosts the trend-augmented experience formerly at /content-v2; the
- * old Excel-faithful table (components/content/ContentView) is retired but kept
- * in the tree for reference. /content-v2 now redirects here.
+ * Payload slim-down: ship only the *latest* period cells in `view.rows`.
+ * Full multi-month `periods` map is a separate client chunk (~75 KB) loaded
+ * when the user changes the period (or prefetched on idle) — keeps section
+ * switches snappy.
  */
+function slimView(full: CurrentView): CurrentView {
+  const n = full.period_number;
+  const latest: PeriodSnapshot = full.periods[n] ?? {
+    rows: full.rows.map((r) => ({ geo_data: r.geo_data, acct_data: r.acct_data })),
+    drills: {},
+  };
+  return {
+    ...full,
+    // Keep a single snapshot so the client can still resolve the default
+    // without waiting on the periods chunk.
+    periods: { [n]: latest },
+  };
+}
+
 export default function ContentPage() {
   return (
     <Suspense fallback={null}>
       <ContentViewV2
-        view={content.current_view}
+        view={slimView(content.current_view)}
         drills={content.export_labs_sites}
         trends={contentTrends}
+        periodsLazy
       />
     </Suspense>
   );

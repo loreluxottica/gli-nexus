@@ -1,16 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { useSearchParams } from "next/navigation";
 import type { DatabasePage, DbRow } from "@/data/types";
 import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
 import { fmtInt } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
-import { Tour, type TourStep } from "@/components/ui/Tour";
+import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
 import { MappingGrid } from "./MappingGrid";
 import { DbTable } from "./DbTable";
 import styles from "./Database.module.css";
+
+const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
+  ssr: false,
+});
 
 /** Walkthrough of how to explore the source records. The flow: browse the
  *  records for granularity, then — if a site is unclear — drill into the
@@ -274,12 +279,14 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
         </div>
       )}
 
-      <Tour
-        steps={TOUR_STEPS}
-        open={tourOpen}
-        onClose={() => setTourOpen(false)}
-        label="Database tutorial"
-      />
+      {tourOpen ? (
+        <Tour
+          steps={TOUR_STEPS}
+          open
+          onClose={() => setTourOpen(false)}
+          label="Database tutorial"
+        />
+      ) : null}
     </section>
   );
 }

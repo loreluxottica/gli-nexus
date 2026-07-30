@@ -12,7 +12,7 @@ import { fmtCompact, fmtDeltaCompact, fmtPctSigned, fmtRatio, sign, trend } from
 import { cellTriple, components, hasShipments, seriesFor, type Metric } from "@/lib/contentMetrics";
 import styles from "./MetricExplorer.module.css";
 
-const GEO_AREAS: GeoArea[] = ["APAC", "EMEA", "LATAM", "NA"];
+const GEO_AREAS: GeoArea[] = ["EMEA", "NA", "APAC", "LATAM"];
 
 const resolveArea = (map: Record<string, unknown>, area: GeoArea): GeoArea =>
   (Object.prototype.hasOwnProperty.call(map, area) ? area : "ALL") as GeoArea;

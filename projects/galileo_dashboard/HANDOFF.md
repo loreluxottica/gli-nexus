@@ -24,7 +24,9 @@ qualunque static host (S3, un web server, le static assets di Databricks, ecc.).
 Nessun processo Node in produzione, nessuna API.
 
 Config rilevante in `next.config.mjs`: `output: "export"`, `trailingSlash: true`,
-`images.unoptimized: true`.
+`images.unoptimized: true` e `basePath: "/galileo"` — l'app è montata a subpath
+nel portale GLI Nexus (blueprint Flask in `server.py`). Per una build servita
+alla root di un host statico: `GALILEO_BASE_PATH="" npm run build`.
 
 ---
 
@@ -101,7 +103,8 @@ stessi `content.json` / `db.json` (e a cascata gli altri due), poi rifà la buil
 ```
 .
 ├── src/
-│   ├── app/           # route (landing, content, content-v2, coverage, database, styleguide)
+│   ├── app/           # route (landing, content, coverage, database, roadmap,
+│   │                  #        content-v2 → redirect a content, styleguide)
 │   ├── components/    # componenti UI
 │   ├── data/          # i 6 JSON + i loader .ts + types.ts (SCHEMA AUTORITATIVO)
 │   └── lib/           # helper (formattazione, metriche, tag)

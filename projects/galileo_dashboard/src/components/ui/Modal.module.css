@@ -30,6 +30,10 @@
   box-shadow: var(--shadow-modal);
   animation: rise var(--dur-enter) var(--ease-out) both;
 }
+.cardSm {
+  max-width: 540px;
+  padding: 20px 22px 24px;
+}
 
 @media (max-width: 900px) {
   .overlay {

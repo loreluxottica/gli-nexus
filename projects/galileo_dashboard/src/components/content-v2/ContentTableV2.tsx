@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import dynamic from "next/dynamic";
+import { Fragment, useMemo, useState } from "react";
 import type {
   AcctArea,
   ContentTrends,
@@ -23,6 +24,12 @@ import { toneForFlow } from "@/lib/tags";
 import { PairedYoYBar } from "./PairedYoYBar";
 import { Sparkline } from "./Sparkline";
 import styles from "./ContentTableV2.module.css";
+
+/** Only load when Accounting · Frames “?” is opened. */
+const InternationalRules = dynamic(
+  () => import("./InternationalRules").then((m) => m.InternationalRules),
+  { ssr: false },
+);
 
 type Dim = "geo" | "acct";
 type MetricMap = Partial<Record<string, MetricCell>>;
@@ -67,6 +74,7 @@ export function ContentTableV2({
   caption,
 }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [intlOpen, setIntlOpen] = useState(false);
   const toggle = (key: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -86,12 +94,22 @@ export function ContentTableV2({
         : "ALL") as GeoArea;
 
   // Shared bar scale across the visible MAIN rows for the active market+metric.
-  let maxVal = 0;
-  for (const row of view.rows) {
-    const cell = getMap(row, dim)[resolve(getMap(row, dim))] ?? null;
-    const { cur, py } = cellTriple(cell, metric, market);
-    maxVal = Math.max(maxVal, cur, py);
-  }
+  const maxVal = useMemo(() => {
+    let max = 0;
+    for (const row of view.rows) {
+      const map = getMap(row, dim);
+      const cell = map[resolve(map)] ?? null;
+      const { cur, py } = cellTriple(cell, metric, market);
+      max = Math.max(max, cur, py);
+    }
+    return max;
+  }, [view.rows, dim, area, market, metric, noFallback]);
+
+  // First Frames row (Accounting) hosts the International-rules affordance.
+  const framesFirstIdx = useMemo(
+    () => (dim === "acct" ? view.rows.findIndex((r) => r.category === "Frames") : -1),
+    [dim, view.rows],
+  );
 
   const catCls = (cat: string) => (cat === "Stock Lenses" ? styles.catType2 : styles.catType1);
   const emptyMsg = isEff
@@ -109,6 +127,7 @@ export function ContentTableV2({
   };
 
   return (
+    <>
     <div className={`${styles.wrap} ${accent ? styles.wrapAcct : ""}`}>
       <table className={styles.table}>
         <caption className="sr-only">{caption}</caption>
@@ -154,39 +173,30 @@ export function ContentTableV2({
                 })
               : [];
 
-            const bar =
-              isEff && onExplore ? (
-                <button
-                  type="button"
-                  className={styles.effBtn}
-                  title="Why? See this ratio explained"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onExplore(rowKey);
-                  }}
-                >
-                  <PairedYoYBar
-                    cur={cur}
-                    py={py}
-                    max={maxVal}
-                    fmt={fmtBar}
-                    curLabel={`${view.year} YTD`}
-                    pyLabel="prior YTD"
-                  />
-                  <span className={styles.effRaw}>
-                    {combined(cell)} <span className={styles.explore}>explore ↗</span>
-                  </span>
-                </button>
-              ) : (
-                <PairedYoYBar
-                  cur={cur}
-                  py={py}
-                  max={maxVal}
-                  fmt={fmtBar}
-                  curLabel={`${view.year} YTD`}
-                  pyLabel="prior YTD"
-                />
-              );
+            const pairedBar = (
+              <PairedYoYBar
+                cur={cur}
+                py={py}
+                max={maxVal}
+                fmt={fmtBar}
+                curLabel={`${view.year} YTD`}
+                pyLabel="prior YTD"
+              />
+            );
+            // Efficiency keeps the pieces · shipments caption under the ratio,
+            // but no longer opens the explorer (explore removed from this view).
+            const bar = isEff ? (
+              <div className={styles.effCell}>
+                {pairedBar}
+                <span className={styles.effRaw}>{combined(cell)}</span>
+              </div>
+            ) : (
+              pairedBar
+            );
+
+            // First Frames row in Accounting mode: clickable “?” for the
+            // International plant rules (hidden until asked).
+            const showIntlRules = framesFirstIdx === ri;
 
             return (
               <Fragment key={rowKey}>
@@ -197,7 +207,28 @@ export function ContentTableV2({
                     .join(" ")}
                   onClick={isExportLabs ? () => toggle(rowKey) : undefined}
                 >
-                  <td className={styles.cat}>{row.category}</td>
+                  <td className={styles.cat}>
+                    {showIntlRules ? (
+                      <button
+                        type="button"
+                        className={styles.intlHit}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIntlOpen(true);
+                        }}
+                        aria-haspopup="dialog"
+                        aria-label="When is Frames counted as International?"
+                        title="When is Frames counted as International?"
+                      >
+                        <span>{row.category}</span>
+                        <span className={styles.intlHint} aria-hidden="true">
+                          ?
+                        </span>
+                      </button>
+                    ) : (
+                      row.category
+                    )}
+                  </td>
                   <td>
                     {isExportLabs ? (
                       <button
@@ -233,7 +264,7 @@ export function ContentTableV2({
                           {fmtPctSigned(yoy)}
                         </span>
                       );
-                      return onExplore && !empty ? (
+                      return onExplore && !isEff && !empty ? (
                         <button
                           type="button"
                           className={styles.chipBtn}
@@ -349,5 +380,9 @@ export function ContentTableV2({
         </tbody>
       </table>
     </div>
+    {intlOpen ? (
+      <InternationalRules open onClose={() => setIntlOpen(false)} />
+    ) : null}
+    </>
   );
 }

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import styles from "./CommentPanel.module.css";
 
 const LS_KEY = "galileo:eff-comments";
-const AREAS = ["ALL", "APAC", "EMEA", "LATAM", "NA"];
+const AREAS = ["ALL", "EMEA", "NA", "APAC", "LATAM"];
 const SITE_SET = new Set(siteNames);
 const MENTION_RE = /@\[([^\]]+)\]/g;
 

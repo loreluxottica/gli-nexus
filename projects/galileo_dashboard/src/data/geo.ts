@@ -2,11 +2,12 @@ import type { GeoArea } from "./types";
 
 /**
  * Pure geo helpers — NO content.json import, so client components (AreaTabs)
- * can use these without pulling the 35 KB payload into the client bundle.
+ * can use these without pulling the content payload into the client bundle.
  */
 
 export const GEO_DEFAULT: GeoArea = "ALL";
-export const GEO_AREAS: GeoArea[] = ["ALL", "APAC", "EMEA", "LATAM", "NA"];
+/** Global first, then EMEA → NA → APAC → LATAM. */
+export const GEO_AREAS: GeoArea[] = ["ALL", "EMEA", "NA", "APAC", "LATAM"];
 
 export function isGeoArea(value: string | null | undefined): value is GeoArea {
   return !!value && (GEO_AREAS as string[]).includes(value);

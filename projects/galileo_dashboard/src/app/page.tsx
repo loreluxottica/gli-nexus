@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { content } from "@/data/content";
 import { Galaxy } from "@/components/landing/Galaxy";
 import { EnterLink } from "@/components/landing/EnterLink";
+import { RoadmapLink } from "@/components/roadmap/RoadmapLink";
+import { fmtInt } from "@/lib/format";
 import styles from "./Landing.module.css";
 
 export const metadata: Metadata = {
@@ -11,16 +13,14 @@ export const metadata: Metadata = {
 };
 
 /**
- * Landing = a single hero over the rotating galaxy. The walkthrough that used
- * to live here as a scroll-snap deck has been replaced by per-section
- * tutorials inside the Observatory, so the landing is now just the cover:
- * identity, a one-line value statement, the headline stats, and a way in.
+ * Landing = a single hero over the rotating galaxy. Identity, headline stats
+ * (sites mapped + last update), and a way into the Observatory.
  */
 export default function Landing() {
   const cv = content.current_view;
-  const records = content.database_page.row_count;
-  const sites = content.database_page.mapping.length;
-  const period = `${cv.period_label} ${cv.year}`;
+  const lastUpdate = `${cv.period_label} ${cv.year}`;
+  // Mapping sheet row count — same metric as the static landing handoff.
+  const sitesMapped = content.database_page.mapping.length;
 
   return (
     <div className={styles.page}>
@@ -42,32 +42,23 @@ export default function Landing() {
             <span className={styles.brandGalileo}>Galileo</span>
             <span className={styles.brandBy}>by EssilorLuxottica</span>
           </h1>
-          <p className={styles.toolLine}>Global Shipment Visibility Tool</p>
+
           <dl className={styles.stats}>
-            <div className={styles.stat}>
-              <dt>Shipment records</dt>
-              <dd>{records.toLocaleString("en-US")}</dd>
+            <div className={styles.stat} style={{ animationDelay: "0.35s" }}>
+              <dt>Sites mapped</dt>
+              <dd>{fmtInt(sitesMapped)}</dd>
             </div>
-            <div className={styles.stat}>
-              <dt>Origin sites mapped</dt>
-              <dd>{sites}</dd>
-            </div>
-            <div className={styles.stat}>
+            <div className={styles.stat} style={{ animationDelay: "0.45s" }}>
               <dt>Last update</dt>
-              <dd>{period}</dd>
+              <dd className={styles.statPeriod}>{lastUpdate}</dd>
             </div>
           </dl>
+
           <div className={styles.ctaRow}>
-            <EnterLink
-              className={styles.ctaPrimary}
-              returningChildren={
-                <>
-                  Continue where you left off <span aria-hidden="true">→</span>
-                </>
-              }
-            >
+            <EnterLink className={styles.ctaPrimary}>
               Enter the Observatory <span aria-hidden="true">→</span>
             </EnterLink>
+            <RoadmapLink />
           </div>
         </div>
       </section>

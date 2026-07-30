@@ -86,7 +86,8 @@ else:
         else:
             break  # stop at first non-material month -> contiguous YTD
     YTD_MONTHS = tuple(range(1, _last + 1))
-GEOS       = ["APAC", "EMEA", "LATAM", "NA"]
+# Presentation order, mirrored by GEO_AREAS in src/data/geo.ts — keep in sync.
+GEOS       = ["EMEA", "NA", "APAC", "LATAM"]
 GEO_ALL    = "ALL"
 print(f"  window: CUR {CUR_YEAR}  PY {PY_YEAR}  YTD months {YTD_MONTHS}")
 
@@ -361,7 +362,7 @@ for r in db_rows[1:]:
 sites_in_db_by_product = {k: len(v) for k, v in sites_by_product.items()}
 product_options = [GEO_ALL] + sorted(k for k in sites_by_product if k != "ALL")
 
-PRODUCTS_ORDER = ["RX", "Stock Lenses", "Finished Frames", "GV Frames"]
+PRODUCTS_ORDER = ["Finished Frames", "GV Frames", "RX", "Stock Lenses"]
 AREAS = {"EMEA", "LATAM", "APAC", "NA"}
 TIERS = ["Low", "Mid", "High"]
 
@@ -425,7 +426,7 @@ def build_coverage_efficiency(rows):
     blocks = []
     for product in PRODUCTS_ORDER:
         rows_out = []
-        for area in ["EMEA", "LATAM", "APAC", "NA"]:
+        for area in GEOS:
             site_map = sites.get((product, area))
             if not site_map:
                 continue
@@ -453,6 +454,117 @@ def build_coverage_efficiency(rows):
 
 coverage_sheet = _SHEETS.get("Coverage")
 coverage_efficiency = build_coverage_efficiency(coverage_sheet["rows"]) if coverage_sheet else []
+
+# ---------------------------------------------------------------------------
+# Sites not mapped — census sites that don't feed Galileo yet, grouped by
+# product family. Powers the "Sites not mapped" panel on the Coverage page
+# (components/coverage/MappingsUnderReview.tsx).
+#
+# The reference (Excel) pipeline detects "not mapped" from the Galileo Volume
+# column (E == 0) and weighs each site by its Estimated Volume (G) share of the
+# product x area total. coverage_galileo may not carry those columns, so this
+# fork degrades in order:
+#     Galileo Volume  ->  Mapping flag  ->  Coverage % == 0
+# and falls back to null volumes, which the UI renders as "under review".
+# The key is ALWAYS emitted (possibly []) — CoveragePage.mappings_under_review
+# is non-optional in src/data/types.ts.
+# ---------------------------------------------------------------------------
+PRODUCT_FAMILY = {
+    "RX": "RX",
+    "Stock Lenses": "Stock Lenses",
+    "Finished Frames": "Frames",
+    "GV Frames": "Frames",
+}
+FAMILY_ORDER = ["Frames", "RX", "Stock Lenses"]
+
+
+def build_mappings_under_review(rows):
+    hdr = {c.strip(): i for i, c in enumerate(rows[0]) if c and str(c).strip()}
+    iSite, iProd, iArea = hdr.get("Site"), hdr.get("Product"), hdr.get("Area")
+    if iSite is None or iProd is None or iArea is None:
+        return []
+    iType = hdr.get("Site Type")
+    iGal  = hdr.get("Galileo Volume")
+    iEst  = hdr.get("Estimated Volume")
+    iMap  = hdr.get("Mapping")          # explicit flag, older workbooks
+    iCov  = hdr.get("Coverage")
+    if iGal is None and iMap is None and iCov is None:
+        print("  mappings_under_review: no Galileo Volume / Mapping / Coverage "
+              "column in the coverage table — emitting []")
+        return []
+
+    fam_area_vol = defaultdict(float)   # (family, area) -> total estimated volume
+    fam_sites = defaultdict(dict)       # family -> site -> rec
+
+    for r in rows[1:]:
+        site    = (r[iSite] or "").strip()
+        product = (r[iProd] or "").strip()
+        area    = norm_area(r[iArea])
+        if not site or product not in PRODUCTS_ORDER or area not in AREAS:
+            continue
+        fam = PRODUCT_FAMILY[product]
+        est = to_float(r[iEst]) if iEst is not None else 0.0
+        fam_area_vol[(fam, area)] += est
+
+        if iGal is not None:
+            not_mapped = to_float(r[iGal]) <= 0
+        elif iMap is not None:
+            flag = (r[iMap] or "").strip().upper()
+            not_mapped = flag in ("", "NOT MAPPED", "NOT_MAPPED", "UNMAPPED", "NO")
+        else:
+            pct = parse_pct(r[iCov])
+            not_mapped = pct is not None and pct <= 0
+
+        site_type = (r[iType] or "").strip() if iType is not None else ""
+        rec = fam_sites[fam].setdefault(site, {
+            "not_mapped": True, "area": area,
+            "site_type": site_type, "estimated_volume": 0.0,
+        })
+        # Any row feeding Galileo makes the whole site count as mapped.
+        if not not_mapped:
+            rec["not_mapped"] = False
+        rec["estimated_volume"] += est
+        if rec["not_mapped"]:
+            rec["area"] = area
+            if site_type:
+                rec["site_type"] = site_type
+
+    blocks = []
+    for fam in FAMILY_ORDER:
+        smap = fam_sites.get(fam, {})
+        under = []
+        for s, rec in smap.items():
+            if not rec["not_mapped"]:
+                continue
+            est = rec["estimated_volume"]
+            denom = fam_area_vol.get((fam, rec["area"]), 0.0)
+            has_vol = est > 0 and denom > 0
+            under.append({
+                "site":             s,
+                "area":             rec["area"],
+                "site_type":        rec["site_type"],
+                "estimated_volume": int(round(est)) if has_vol else None,
+                "weight_pct":       (est / denom) if has_vol else None,
+            })
+        # Biggest coverage drag first; sites without volume ("under review") last.
+        under.sort(key=lambda x: (
+            0 if x["weight_pct"] is not None else 1,
+            -(x["weight_pct"] or 0),
+            x["area"],
+            x["site"],
+        ))
+        blocks.append({
+            "product":      fam,
+            "under_review": len(under),
+            "total":        len(smap),
+            "sites":        under,
+        })
+    return blocks
+
+
+mappings_under_review = (
+    build_mappings_under_review(coverage_sheet["rows"]) if coverage_sheet else []
+)
 
 # Top sites by shipments per Geographical Area (current YTD window).
 agg_site_area = defaultdict(lambda: {"shipments": 0.0, "products": set(), "site_types": set()})
@@ -518,7 +630,7 @@ for area, top_sites in top_sites_by_area.items():
         s["share_pct"] = (site_in_cat / total_in_cat) if total_in_cat > 0 else None
 
 # Pivot: same data grouped by Area (rows = products).
-AREA_ORDER = ["EMEA", "LATAM", "APAC", "NA"]
+AREA_ORDER = GEOS  # EMEA -> NA -> APAC -> LATAM
 coverage_by_area = []
 for area in AREA_ORDER:
     rows = []
@@ -552,6 +664,7 @@ coverage_page = {
     "area_options":         [GEO_ALL] + AREA_ORDER,
     "coverage_efficiency":  coverage_efficiency,
     "coverage_by_area":     coverage_by_area,
+    "mappings_under_review": mappings_under_review,
     "top_sites_by_area":    top_sites_by_area,
     "top_sites_period":     f"{PERIOD_LABEL} {CUR_YEAR}",
     "columns": [

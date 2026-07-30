@@ -47,3 +47,14 @@ uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
   (`"94%"`). The Coverage page's "Coverage % vol" per area is the **mean** of its
   sites' percentages. Change `build_coverage_efficiency` if a different roll-up
   (e.g. volume-weighted) is wanted.
+- **Sites not mapped** (`coverage_page.mappings_under_review`, the panel at the
+  bottom of the Coverage page): a site counts as *not mapped* when it has no
+  `Galileo Volume`; each one is weighted by its `Estimated Volume` share of the
+  product×area total. If `coverage_galileo` carries neither column,
+  `build_mappings_under_review` falls back to a `Mapping` flag, then to
+  `Coverage == 0`, and reports the sites with a null weight (the UI shows them
+  as "under review"). With none of the three it emits `[]` and logs a warning —
+  the key is always present, since the frontend type requires it.
+- **Area order** (`GEOS` = EMEA → NA → APAC → LATAM) drives `geo_options` and
+  `area_options`; it mirrors `GEO_AREAS` in `../src/data/geo.ts`. Keep the two
+  in sync or the UI tabs and the payload will disagree.

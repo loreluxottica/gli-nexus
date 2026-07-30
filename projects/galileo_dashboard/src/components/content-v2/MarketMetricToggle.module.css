@@ -1,9 +1,17 @@
+/* The Filters zone: one bordered, tinted container holding the three segmented
+   controls, evenly distributed — Metric centred, Market and Perimeter on the
+   edges — so the surface reads as one clean, balanced filter bar. */
 .bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
+  gap: 16px 64px;
   align-items: center;
-  margin: 14px 0 16px;
+  justify-content: center;
+  margin: 16px 0 18px;
+  padding: 14px 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
 }
 .group {
   display: flex;

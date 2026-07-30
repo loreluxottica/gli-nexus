@@ -233,6 +233,27 @@ export interface TopSite {
   share_pct: number | null; // 0..1
 }
 
+/** One product family's not-yet-covered sites from the Coverage census. */
+export interface UnderReviewSite {
+  site: string;
+  area: Exclude<GeoArea, "ALL">;
+  site_type: string;
+  /** Estimated volume weight (null → show "under review" in the UI). */
+  estimated_volume: number | null;
+  /**
+   * Share of product×area estimated volume (0..1). This is how hard the site
+   * pulls on current coverage; null when volume is unknown.
+   */
+  weight_pct: number | null;
+}
+export interface MappingsUnderReviewBlock {
+  /** Product family label — "Frames" folds Finished + GV Frames. */
+  product: string;
+  under_review: number;
+  total: number;
+  sites: UnderReviewSite[];
+}
+
 export interface CoveragePage {
   intro: string;
   wip_status: string;
@@ -240,6 +261,7 @@ export interface CoveragePage {
   area_options: ("ALL" | GeoArea)[];
   coverage_efficiency: { product: Product; rows: CoverageRow[] }[];
   coverage_by_area: { area: GeoArea; rows: CoverageRow[] }[];
+  mappings_under_review: MappingsUnderReviewBlock[];
   top_sites_by_area: Partial<Record<Exclude<GeoArea, "ALL">, TopSite[]>>;
   top_sites_period: string;
   columns: { key: string; label: string; format: "text" | "int" | "coverage" | "pct"; tier?: Tier }[];

@@ -16,14 +16,16 @@ function Segmented<T extends string>({
   value,
   options,
   onChange,
+  dataTour,
 }: {
   label: string;
   value: T;
   options: { value: T; label: string; hint?: string }[];
   onChange: (v: T) => void;
+  dataTour?: string;
 }) {
   return (
-    <div className={styles.group}>
+    <div className={styles.group} data-tour={dataTour}>
       <span className={styles.label}>{label}</span>
       <div className={styles.track} role="radiogroup" aria-label={label}>
         {options.map((o) => {
@@ -47,16 +49,23 @@ function Segmented<T extends string>({
   );
 }
 
+type Perimeter = "geo" | "acct";
+
 export function MarketMetricToggle({
   market,
   metric,
+  acct,
   onMarket,
   onMetric,
+  onAcct,
 }: {
   market: Market;
   metric: Metric;
+  /** Accounting perimeter active. When `onAcct` is given, a Perimeter segment renders. */
+  acct?: boolean;
   onMarket: (m: Market) => void;
   onMetric: (m: Metric) => void;
+  onAcct?: (on: boolean) => void;
 }) {
   return (
     <div className={styles.bar} data-tour="v2-toggle">
@@ -83,6 +92,22 @@ export function MarketMetricToggle({
           },
         ]}
       />
+      {onAcct && (
+        <Segmented<Perimeter>
+          label="Perimeter"
+          value={acct ? "acct" : "geo"}
+          onChange={(v) => onAcct(v === "acct")}
+          dataTour="content-acct"
+          options={[
+            { value: "geo", label: "Geographical", hint: "Scope by Geographical Area" },
+            {
+              value: "acct",
+              label: "Accounting",
+              hint: "International accounting perimeter — the geo area filter does not apply",
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
