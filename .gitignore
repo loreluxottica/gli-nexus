@@ -46,3 +46,25 @@ Thumbs.db
 .idea/
 .vscode/
 *.code-workspace
+
+# Standalone portal prototype — not wired into app.py, not served by any route.
+# Kept locally; excluded from the repo.
+New Portal/
+
+# Build caches (each project also ignores its own; these catch the rest)
+.next/
+*.tsbuildinfo
+.mypy_cache/
+.ruff_cache/
+
+# Tooling noise
+npm-debug.log*
+yarn-error.log*
+*.log
+.write_probe
+
+# Merge/patch leftovers
+*.orig
+*.rej
+desktop.ini
+
