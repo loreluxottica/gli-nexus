@@ -5,7 +5,7 @@
    portano dritti a un prodotto o alla sua scheda.
 
    Salto prodotto via window.NexusSingle.goTo (API di single.js).
-   Card ricche: stato, kicker e tagline arrivano da NEXUS_DETAILS.
+   Card: logo, kicker e tagline da NEXUS_DETAILS (no status badge).
    Spotlight hover: bagliore nell'accento del prodotto che segue
    il cursore (--mx / --my) — pattern riusabile altrove.
    ============================================================ */
@@ -18,7 +18,6 @@
   const body = document.getElementById("launcherBody");
   const search = document.getElementById("launcherSearch");
   const searchHint = document.getElementById("launcherSearchHint");
-  const countEl = document.getElementById("launcherCount");
   const emptyEl = document.getElementById("launcherEmpty");
   const app = document.getElementById("nexusApp");
   if (!layer || !openBtn || !body) return;
@@ -55,19 +54,6 @@
   const detailOf = id =>
     (typeof NEXUS_DETAILS !== "undefined" && NEXUS_DETAILS[id]) || null;
 
-  /* Status badge: read from meta ("Status") on the detail card. */
-  function statusOf(id) {
-    const det = detailOf(id);
-    if (!det || !det.meta) return null;
-    const m = det.meta.find(x => x.label === "Status" || x.label === "Stato");
-    if (!m || !m.value) return null;
-    const key = m.value.trim().toLowerCase();
-    return {
-      label: m.value,
-      cls: key === "live" ? "is-live" : key === "beta" ? "is-beta" : ""
-    };
-  }
-
   let n = 0;
   groups.forEach(group => {
     const section = document.createElement("section");
@@ -87,7 +73,6 @@
     group.items.forEach(product => {
       const index = NEXUS_WORLDS.indexOf(product);
       const det = detailOf(product.id) || {};
-      const status = statusOf(product.id);
       const kicker = det.kicker || GROUP_LABELS[product.category] || product.category;
       const tagline = det.tagline || "";
 
@@ -107,12 +92,11 @@
               ? `<img src="${product.logo}" alt="" width="96" height="96">`
               : ""}
           </span>
-          ${status
-            ? `<span class="ltile-status ${status.cls}"><i></i>${status.label}</span>`
-            : ""}
+          <span class="ltile-identity">
+            <span class="ltile-name">${product.name}</span>
+            <span class="ltile-kicker">${kicker}</span>
+          </span>
         </span>
-        <span class="ltile-name">${product.name}</span>
-        <span class="ltile-kicker">${kicker}</span>
         <span class="ltile-tag">${tagline}</span>
         <span class="ltile-open" aria-hidden="true">View
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"
@@ -144,7 +128,6 @@
     body.appendChild(section);
   });
 
-  countEl.innerHTML = "<b>" + String(NEXUS_WORLDS.length).padStart(2, "0") + "</b> products";
   if (NEXUS_WORLDS.length > 12) layer.setAttribute("data-dense", "");
 
   function pick(index) {
@@ -170,9 +153,6 @@
 
     emptyEl.hidden = shown > 0;
     if (searchHint) searchHint.hidden = !(q && shown > 0);
-    countEl.innerHTML = q
-      ? "<b>" + String(shown).padStart(2, "0") + "</b> of " + String(tiles.length).padStart(2, "0")
-      : "<b>" + String(tiles.length).padStart(2, "0") + "</b> products";
   }
 
   search.addEventListener("input", applyFilter);

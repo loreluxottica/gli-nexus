@@ -13,7 +13,9 @@
 const NexusBG = (function () {
   let canvas, ctx;
   let W = 0, H = 0, DPR = 1;
-  let world = { type: "ai", accent: "#00D9FF", accent2: "#FF2E97" };
+  /* Defaults match Cortana (first roster product) so a first paint
+     before setWorld never shows the old neon cyan/pink palette. */
+  let world = { type: "ai", accent: "#4C8FD1", accent2: "#8FC6FF" };
   let warp = 0;
   let t0 = performance.now();
   let running = false;

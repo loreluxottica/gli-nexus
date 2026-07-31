@@ -1,10 +1,10 @@
 /* ============================================================
    GLI NEXUS — Detail View · controller
-   Scheda "come funziona": camera zoom, sfondo vivo, card glass.
+   Scheda "come funziona": card glass sopra lo stage (fade leggero).
 
    Un modo per volta, non due colonne che competono:
      story  (default all'apertura) il racconto in 6 passi, a tutta card
-     demo   gli screenshot del prodotto, uno per passo, in autoplay
+     demo   gli screenshot del prodotto, uno per passo (navigazione manuale)
    Il pill DEMO nella barra di modo — o il tasto D — commuta il corpo.
    Le stesse due frecce (e ←/→) guidano il modo attivo, qualunque sia.
 
@@ -80,9 +80,6 @@
   const gateDone = () => document.body.classList.contains("gate-done");
   const pad = n => String(n).padStart(2, "0");
 
-  const STEP_MS = 4200;       // durata di un passo dello storyboard
-  const LOOP_PAUSE_MS = 5400; // sosta sull'ultimo passo prima di ricominciare
-
   let isOpen = false;
   let lastFocus = null;
   let product = null;
@@ -91,7 +88,6 @@
   let stepIdx = 0;
   let startStep = 0;     // passo scenario, impostabile da ?s=<n>
   let startInDemo = false;
-  let stepTimer = 0;
   let trackEl = null;
 
   /* Storytelling: indici dei pannelli attivi (salta link se vuoto) */
@@ -315,9 +311,9 @@
      informazione detta due volte, in caratteri piccoli.
      --------------------------------------------------------- */
 
-  /* aria-disabled, non disabled: in demo è l'autoplay a toccare gli
-     estremi, e un `disabled` che scatta sotto le dita farebbe perdere
-     il focus a ogni giro. I due handler sono già no-op agli estremi. */
+  /* aria-disabled, non disabled: le frecce si spengono agli estremi
+     e i due handler sono già no-op lì — così il focus non salta via
+     se l'utente clicca di nuovo sul bordo. */
   function setOff(btn, off) {
     btn.classList.toggle("is-off", off);
     btn.setAttribute("aria-disabled", off ? "true" : "false");
@@ -325,8 +321,7 @@
 
   /* Frecce nude: si spengono agli estremi invece di riavvolgere.
      Un "→" che salta da 06 a 01 senza dirlo era una trappola; per
-     tornare all'inizio c'è la rail. In demo continua a ciclare solo
-     l'autoplay, che è esplicito perché si vede scorrere. */
+     tornare all'inizio c'è la rail. */
   function syncNav() {
     const idx = inDemo() ? stepIdx : storyIdx;
     const tot = inDemo() ? steps.length : storyActive.length;
@@ -493,8 +488,8 @@
     delete image.dataset.src;
   }
 
-  /* Entrando in demo scaldo anche la slide dopo: l'autoplay parte da
-     solo e non deve trovare un buco bianco al primo avanzamento. */
+  /* Entrando in demo (o avanzando) scaldo anche la slide dopo, così
+     la freccia non scopre un buco bianco al primo click. */
   function warmNextShot() {
     loadShot(Math.min(stepIdx + 1, steps.length - 1));
   }
@@ -523,31 +518,15 @@
     if (inDemo()) syncNav();
   }
 
-  function scheduleStep() {
-    window.clearTimeout(stepTimer);
-    if (reduced || !inDemo() || steps.length < 2) return;
-    const last = stepIdx >= steps.length - 1;
-    stepTimer = window.setTimeout(
-      () => showStep(last ? 0 : stepIdx + 1),
-      last ? LOOP_PAUSE_MS : STEP_MS
-    );
-  }
-
   function demoNext() {
     if (stepIdx >= steps.length - 1) return;
     showStep(stepIdx + 1);
-    scheduleStep();
   }
 
   function demoPrev() {
     if (stepIdx <= 0) return;
     showStep(stepIdx - 1);
-    scheduleStep();
   }
-
-  /* Con il mouse sullo stage l'utente sta guardando: niente autoplay */
-  els.stage.addEventListener("mouseenter", () => window.clearTimeout(stepTimer));
-  els.stage.addEventListener("mouseleave", scheduleStep);
 
   /* ---------------------------------------------------------
      Cambio modo — storia ⇄ demo, tutto il corpo della card
@@ -570,7 +549,7 @@
       });
     });
 
-    els.modeToggleLabel.textContent = inDemo() ? "Story" : "Demo";
+    els.modeToggleLabel.textContent = inDemo() ? "Back to story" : "Watch demo";
     els.modeToggle.setAttribute("aria-pressed", inDemo() ? "true" : "false");
     els.modeToggle.setAttribute(
       "aria-label",
@@ -581,9 +560,6 @@
     if (inDemo()) {
       showStep(stepIdx);
       warmNextShot();
-      scheduleStep();
-    } else {
-      window.clearTimeout(stepTimer);   // l'autoplay vive solo in demo
     }
 
     syncNav();
@@ -595,22 +571,9 @@
   els.modeToggle.addEventListener("click", () => setMode(inDemo() ? "story" : "demo"));
 
   /* ---------------------------------------------------------
-     Zoom di camera: una pulsazione di warp sullo sfondo, così
-     l'ingresso nella scheda sembra un movimento, non un pannello.
-     --------------------------------------------------------- */
-  function warpPulse(amount, dur) {
-    if (reduced || typeof NexusBG === "undefined") return;
-    const t0 = performance.now();
-    (function step(now) {
-      const prog = Math.min(1, (now - t0) / dur);
-      NexusBG.setWarp(Math.sin(prog * Math.PI) * amount);
-      if (prog < 1) requestAnimationFrame(step);
-      else NexusBG.setWarp(0);
-    })(t0);
-  }
-
-  /* ---------------------------------------------------------
      Apertura / chiusura
+     No background warp pulse: setWarp + canvas scale + stage
+     blur were stacking jank on close. Stage only fades out.
      --------------------------------------------------------- */
   function open() {
     if (isOpen || !gateDone()) return;
@@ -632,7 +595,6 @@
     layer.removeAttribute("aria-hidden");
     app.setAttribute("inert", "");
     if (typeof NexusBG !== "undefined" && NexusBG.pause) NexusBG.pause();
-    warpPulse(0.7, 640);
 
     stepIdx = Math.min(startStep, Math.max(0, steps.length - 1));
     startStep = 0;
@@ -647,7 +609,6 @@
   function close() {
     if (!isOpen) return;
     isOpen = false;
-    window.clearTimeout(stepTimer);
     closeCtaMenu();
 
     layer.classList.remove("is-open");
@@ -658,7 +619,6 @@
         && !document.body.classList.contains("launcher-open")) {
       NexusBG.resume();
     }
-    warpPulse(0.4, 480);
 
     // il video, se c'è, va fermato davvero
     window.setTimeout(() => { if (!isOpen) els.screen.innerHTML = ""; }, 420);

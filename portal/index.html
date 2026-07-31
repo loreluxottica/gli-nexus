@@ -74,13 +74,6 @@
         </div>
 
         <div class="head-tools">
-          <nav class="category-filter" id="categoryFilter" aria-label="Filter products by category">
-            <button class="category-toggle is-active" type="button" data-category="all" aria-pressed="true">All</button>
-            <button class="category-toggle" type="button" data-category="ai" aria-pressed="false">AI</button>
-            <button class="category-toggle" type="button" data-category="analytics" aria-pressed="false">Analytics</button>
-            <button class="category-toggle" type="button" data-category="reporting" aria-pressed="false">Reporting</button>
-          </nav>
-
           <button class="all-btn" id="allProducts" type="button" aria-haspopup="dialog">
             <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <rect x="1.5" y="1.5" width="5" height="5" rx="1.4"/>
@@ -96,8 +89,6 @@
 
       <!-- Hero: il prodotto attivo -->
       <div class="hero" id="hero">
-        <p class="hero-eyebrow">Nexus Worlds</p>
-
         <div class="hero-logo-wrap" id="heroLogoWrap">
           <span class="hero-backlight" aria-hidden="true"></span>
           <div class="hero-logo-flip" id="heroLogoFlip">
@@ -196,7 +187,8 @@
              lo dice già la rail numerata in fondo alla card. -->
         <div class="dmode danim" style="--i:1">
           <button class="dmode-btn" id="modeToggle" type="button"
-                  aria-controls="detailBody" aria-pressed="false">
+                  aria-controls="detailBody" aria-pressed="false"
+                  aria-label="Watch the demo">
             <span class="dmode-ico" aria-hidden="true">
               <svg class="dmode-ico-play" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M5.2 3.4a.6.6 0 0 1 .92-.5l6 4.1a.6.6 0 0 1 0 1l-6 4.1a.6.6 0 0 1-.92-.5z"/>
@@ -206,7 +198,7 @@
                 <path d="M10 3.5 5.5 8l4.5 4.5"/>
               </svg>
             </span>
-            <span id="modeToggleLabel">Demo</span>
+            <span id="modeToggleLabel">Watch demo</span>
           </button>
         </div>
 
@@ -220,10 +212,24 @@
 
           <div class="dpane dpane--story" id="paneStory">
             <div class="dstory-stage" id="storyStage">
-              <section class="dsec is-on" data-story role="tabpanel">
-                <h3 class="dsec-label">The problem</h3>
-                <p class="dproblem" id="detailProblem"></p>
-                <p class="danswer" id="detailAnswer"></p>
+              <section class="dsec is-on dsec--wide" data-story role="tabpanel">
+                <h3 class="dsec-label">Problem → Solution</h3>
+                <div class="dsolve">
+                  <div class="dsolve-cell dsolve-cell--problem">
+                    <span class="dsolve-kicker">The problem</span>
+                    <p class="dproblem" id="detailProblem"></p>
+                  </div>
+                  <span class="dsolve-bridge" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 12h14m-6-6 6 6-6 6"/>
+                    </svg>
+                  </span>
+                  <div class="dsolve-cell dsolve-cell--answer">
+                    <span class="dsolve-kicker">Our solution</span>
+                    <p class="danswer" id="detailAnswer"></p>
+                  </div>
+                </div>
               </section>
 
               <section class="dsec dsec--wide" data-story role="tabpanel" hidden>
@@ -312,7 +318,6 @@
         GLI <span>Nexus</span>
       </div>
       <h2 class="launcher-title">All products</h2>
-      <p class="launcher-count" id="launcherCount"></p>
 
       <div class="lsearch">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"

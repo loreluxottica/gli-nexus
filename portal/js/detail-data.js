@@ -26,11 +26,10 @@
    If the step has `shot: "assets/…"` it shows the image, otherwise
    detail.js generates a styled placeholder.
 
-   CONTENT: Galileo, Kelly, Cortana, Intake and Laplace use texts and
+   CONTENT: Galileo, Kelly, Cortana, Intake, Laplace and Prism use texts and
    screenshots from the intakes in `Project Details/` (wording aligned with
    the forms; shell is English so copy is translated from Italian intakes
-   where needed). Approval checklists may still be open. Prism remains a
-   demo placeholder until official content lands.
+   where needed). Approval checklists may still be open.
    Demo step count is per product (e.g. Intake 3, Laplace 5) — no fixed 4.
 
    PREVIEW — two modes, chosen per product:
@@ -59,7 +58,7 @@ const NEXUS_DETAILS = {
       in:  ["Natural-language question (e.g. “How many pieces did we ship…”)"],
       out: ["Number and sources (SQL query)", "Chart or table"]
     },
-    connects: ["laplace"],
+    connects: ["laplace", "galileo"],
     fitFor: "people ask you for numbers <b>faster than you can extract them</b>, or you want to take <b>data-driven decisions more naturally</b>.",
 
     meta: [
@@ -220,7 +219,7 @@ const NEXUS_DETAILS = {
     answer: "Laplace reads every package, <b>classifies the documents</b>, checks completeness and consistency with the customs declaration, and sends to review <b>only what does not match</b>.",
 
     shift: {
-      before: { label: "Before", metric: "Sample checks", text: "manual verification on selected packages, errors found in audit" },
+      before: { label: "Before", metric: "10% of packages", text: "manual verification on a sample; errors surface in audit" },
       after:  { label: "With Laplace", metric: "100% of packages", text: "every package checked; only anomalies go to review" }
     },
 
@@ -228,7 +227,7 @@ const NEXUS_DETAILS = {
       in:  ["Document packages from SFTP: PDFs, scans, email attachments and ZIPs (Italy and United States)"],
       out: ["Recordkeeping and post-entry audit result per package", "Operator review queue and structured data into BI"]
     },
-    connects: ["cortana", "data-entry"],
+    connects: ["cortana"],
     fitFor: "you receive customs documentation from brokers and suppliers and <b>someone has to check it piece by piece before the audit</b>.",
 
     meta: [
@@ -331,20 +330,20 @@ const NEXUS_DETAILS = {
     kicker: "Segmentation & Analytics",
     tagline: "One number, broken into everything it holds.",
 
-    problem: "The total is down 2% and the meeting turns into <b>an hour of guesses</b>, because nobody can <b>open the number fast enough</b>.",
-    answer: "Prism breaks the aggregate along the dimensions you choose, until the variance has <b>a name</b> and <b>a measurable residual</b>.",
+    problem: "Each function owns its performance KPIs, but <b>grey zones form between them</b> that <b>no department measures</b>.",
+    answer: "Prism analyses, for <b>every single order</b>, lead time, targets and on-time performance <b>at each process stage</b> — order, lab, international shipping and last mile.",
 
     shift: {
-      before: { label: "Before", metric: "1 hour of guesses", text: "successive trial extractions, in the meeting" },
-      after:  { label: "With Prism", metric: "3 clicks", text: "saved, reusable breakdown, explicit residual" }
+      before: { label: "Before", metric: "Siloed KPIs", text: "fragmented, stagnant metrics; successive trial extractions in meetings" },
+      after:  { label: "With Prism", metric: "Full process visibility", text: "every intermediate stage measured; saved, reusable breakdown" }
     },
 
     io: {
-      in:  ["An aggregate and a period"],
-      out: ["Contribution by segment", "Saved exportable view"]
+      in:  ["Tabular data from every department and system"],
+      out: ["One database with every leg for each order", "Performance view per sub-process"]
     },
     connects: ["galileo", "kelly"],
-    fitFor: "people ask you \"why\" in front of <b>a number that has already moved</b>.",
+    fitFor: "you want the most accurate read of the <b>RX product flow from order creation to store arrival</b>, including <b>every intermediate stage</b>.",
 
     meta: [
       { label: "Status", value: "Beta" },
@@ -352,18 +351,33 @@ const NEXUS_DETAILS = {
       { label: "Dimensions", value: "9" }
     ],
     team: [
-      { name: "Tommaso Z.", role: "Product Owner" },
-      { name: "Beatrice O.", role: "Analytics Engineer" },
-      { name: "Matteo H.", role: "Frontend" }
+      { name: "Simone Muraro", role: "Product Owner" },
+      { name: "Andrea Scot", role: "Analytics Engineer" }
     ],
 
     preview: {
-      note: "Demo placeholder: real product screenshots will scroll here.",
+      note: "Walkthrough assets from the Prism product-story intake (4 steps).",
       steps: [
-        { title: "Start from the aggregate", caption: "The number they put in front of you, as it arrived." },
-        { title: "Pick the dimension", caption: "Channel, market, family: stack the breakdown however you want." },
-        { title: "It opens into segments", caption: "Each segment carries its contribution to the variance, ordered by weight." },
-        { title: "Look at the residual",    caption: "How much of the variance is still unexplained. The most honest number on the screen." }
+        {
+          title: "Market assessment",
+          caption: "Bring the right people together: who the client is, what data they have, and whether Prism is feasible.",
+          shot: "assets/details/prism/step-01-market-assessment.png"
+        },
+        {
+          title: "Workshop phase",
+          caption: "Map requirements: the flow, where data comes from, which fields are needed, and the targets.",
+          shot: "assets/details/prism/step-02-workshop-phase.png"
+        },
+        {
+          title: "Build and integrate",
+          caption: "Create the Data Services job and the SQL tables that hold every leg of the order.",
+          shot: "assets/details/prism/step-03-development.png"
+        },
+        {
+          title: "Validate and publish",
+          caption: "Business validates the numbers, then the end-to-end performance report goes live.",
+          shot: "assets/details/prism/step-04-final-report.png"
+        }
       ]
     }
   }

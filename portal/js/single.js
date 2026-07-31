@@ -22,10 +22,6 @@
   const flash = document.getElementById("warpFlash");
   const prevButton = document.getElementById("singlePrev");
   const nextButton = document.getElementById("singleNext");
-  const categoryFilterEl = document.getElementById("categoryFilter");
-  const categoryButtons = categoryFilterEl
-    ? Array.from(categoryFilterEl.querySelectorAll(".category-toggle"))
-    : [];
 
   const projects = NEXUS_WORLDS;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -51,6 +47,12 @@
     if (backgroundStarted) return;
     backgroundStarted = true;
     NexusBG.init(document.getElementById("worldCanvas"));
+    /* Re-assert the active product after init so the first paint uses
+       roster accents, not the canvas module defaults. */
+    const p = projects[current];
+    if (p) {
+      NexusBG.setWorld({ type: p.backgroundType, accent: p.accent, accent2: p.accent2 });
+    }
     if ("requestIdleCallback" in window) {
       window.requestIdleCallback(preloadLogos, { timeout: 1500 });
     } else {
@@ -70,8 +72,7 @@
   if (startIdx < 0) startIdx = projects.findIndex(p => p.id === NEXUS_WORLDS_START);
   let current = Math.max(0, startIdx);
   let warping = false;
-  let activeCategory = "all";
-  let visibleIndices = projects.map((_, i) => i);
+  const visibleIndices = projects.map((_, i) => i);
 
   const visiblePosition = i => visibleIndices.indexOf(i);
 
@@ -90,40 +91,9 @@
 
   const pad = n => String(n).padStart(2, "0");
 
-  function syncCategoryUi() {
-    categoryButtons.forEach(button => {
-      const selected = button.dataset.category === activeCategory;
-      button.classList.toggle("is-active", selected);
-      button.setAttribute("aria-pressed", selected ? "true" : "false");
-    });
-    dots.forEach((dot, i) => {
-      dot.classList.toggle("is-filtered", !visibleIndices.includes(i));
-    });
-    const hasMultipleProducts = visibleIndices.length > 1;
-    prevButton.disabled = !hasMultipleProducts;
-    nextButton.disabled = !hasMultipleProducts;
-  }
-
-  function setCategory(category) {
-    if (warping || category === activeCategory) return;
-    const known = category === "all" || projects.some(p => p.category === category);
-    if (!known) return;
-
-    activeCategory = category;
-    visibleIndices = projects.reduce((indices, project, i) => {
-      if (category === "all" || project.category === category) indices.push(i);
-      return indices;
-    }, []);
-    syncCategoryUi();
-
-    if (!visibleIndices.length) return;
-    const target = visibleIndices.includes(current) ? current : visibleIndices[0];
-    applyProduct(target);
-  }
-
-  categoryButtons.forEach(button => {
-    button.addEventListener("click", () => setCategory(button.dataset.category));
-  });
+  const hasMultipleProducts = projects.length > 1;
+  prevButton.disabled = !hasMultipleProducts;
+  nextButton.disabled = !hasMultipleProducts;
 
   /* Product routes fail closed until /api/my-access resolves. */
   const access = () => window.NexusAccess;
@@ -249,8 +219,7 @@
       d.setAttribute("aria-current", idx === i ? "true" : "false");
     });
     if (liveEl) {
-      const scope = activeCategory === "all" ? "all products" : activeCategory;
-      liveEl.textContent = p.name + ", " + (position + 1) + " of " + visibleCount + " in " + scope;
+      liveEl.textContent = p.name + ", " + (position + 1) + " of " + visibleCount;
     }
     NexusBG.setWorld({ type: p.backgroundType, accent: p.accent, accent2: p.accent2 });
     document.dispatchEvent(new CustomEvent("nexus:product", { detail: p }));
@@ -296,14 +265,9 @@
     })(t0);
   }
 
-  /** Salto assoluto: resetta il filtro categoria se serve, poi goTo. */
+  /** Absolute jump to a product index (used by launcher / deep links). */
   function goToAbsolute(i) {
     if (i < 0 || i >= projects.length || warping) return;
-    if (activeCategory !== "all") {
-      activeCategory = "all";
-      visibleIndices = projects.map((_, idx) => idx);
-      syncCategoryUi();
-    }
     if (i === current) return;
     goTo(i, i > current ? 1 : -1);
   }
@@ -422,6 +386,5 @@
     hasMenu
   };
 
-  syncCategoryUi();
   applyProduct(current);
 })();

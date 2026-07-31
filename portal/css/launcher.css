@@ -195,17 +195,6 @@ body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
   background: rgba(168, 182, 198, 0.2);
 }
 
-.launcher-count {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  white-space: nowrap;
-}
-.launcher-count b { color: var(--accent); font-weight: 600; }
-
 /* --- ricerca: command bar, il comando principale della suite --- */
 .lsearch {
   position: relative;
@@ -351,36 +340,37 @@ body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
 }
 
 /* --- La card ---
-   Sinistra allineata, respiro da app di suite: art well + stato,
-   nome, kicker, tagline. L'hover alza la card e accende lo
-   spotlight nell'accento del prodotto. */
+   Logo + name on one row, kicker under the name, tagline filling
+   the rest. Soft contrast and calm hover — no status chrome. */
 .ltile {
   --tile: var(--paccent, var(--gli-blue));
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
-  padding: clamp(1.05rem, 1.8vw, 1.4rem);
-  border-radius: 18px;
-  border: 1px solid rgba(168, 182, 198, 0.1);
+  align-items: stretch;
+  gap: 0;
+  min-height: 11.5rem;
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+  border-radius: 20px;
+  border: 1px solid rgba(168, 182, 198, 0.09);
   background: linear-gradient(165deg,
-    rgba(255, 255, 255, 0.035),
-    rgba(255, 255, 255, 0.012) 55%,
-    rgba(255, 255, 255, 0.02));
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.014) 55%,
+    rgba(255, 255, 255, 0.022));
   transition:
     border-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-med) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-med) var(--ease-out);
 }
 .ltile[hidden] { display: none; }
 .ltile:hover, .ltile:focus-visible {
   outline: none;
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--tile) 45%, transparent);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--tile) 32%, transparent);
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.35),
-    0 0 30px color-mix(in srgb, var(--tile) 14%, transparent);
+    0 14px 36px rgba(0, 0, 0, 0.28),
+    0 0 24px color-mix(in srgb, var(--tile) 10%, transparent);
 }
 .ltile:active { transform: translateY(-1px); }
 
@@ -419,141 +409,114 @@ body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
 .ltile:hover::before, .ltile:hover::after,
 .ltile:focus-visible::before, .ltile:focus-visible::after { opacity: 1; }
 
-/* riga alta: pozzetto del logo + badge di stato */
+/* riga alta: logo + name/kicker affiancati, riempie la card */
 .ltile-top {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.95rem;
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.95rem;
 }
 
 .ltile-art {
   position: relative;
   display: grid;
   place-items: center;
-  width: 3.4rem;
+  flex: none;
+  width: 4.1rem;
   aspect-ratio: 1;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--tile) 26%, transparent);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--tile) 18%, transparent);
   background:
     radial-gradient(120% 120% at 30% 20%,
-      color-mix(in srgb, var(--tile) 22%, transparent),
-      transparent 60%),
-    color-mix(in srgb, var(--tile) 8%, rgba(255, 255, 255, 0.02));
-  box-shadow: inset 0 0 18px color-mix(in srgb, var(--tile) 10%, transparent);
+      color-mix(in srgb, var(--tile) 16%, transparent),
+      transparent 62%),
+    color-mix(in srgb, var(--tile) 6%, rgba(255, 255, 255, 0.025));
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--tile) 8%, transparent);
   transition: box-shadow var(--dur-med) var(--ease-out);
 }
 .ltile-art img {
-  width: 2.15rem;
+  width: 2.55rem;
   height: auto;
   aspect-ratio: 1;
   object-fit: contain;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.4));
   transition: transform var(--dur-fast) var(--ease-out);
 }
 .ltile:hover .ltile-art, .ltile:focus-visible .ltile-art {
   box-shadow:
-    inset 0 0 18px color-mix(in srgb, var(--tile) 16%, transparent),
-    0 0 24px color-mix(in srgb, var(--tile) 28%, transparent);
+    inset 0 0 16px color-mix(in srgb, var(--tile) 12%, transparent),
+    0 0 20px color-mix(in srgb, var(--tile) 18%, transparent);
 }
 .ltile:hover .ltile-art img, .ltile:focus-visible .ltile-art img {
-  transform: scale(1.06);
+  transform: scale(1.04);
 }
 
-/* badge di stato (Live / Beta, da meta.Stato della scheda) */
-.ltile-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.38rem;
-  padding: 0.22rem 0.6rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(168, 182, 198, 0.18);
-  background: rgba(4, 10, 22, 0.4);
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  white-space: nowrap;
-}
-.ltile-status i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text-3);
-}
-.ltile-status.is-live {
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 35%, transparent);
-}
-.ltile-status.is-live i {
-  background: var(--success);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 70%, transparent);
-}
-.ltile-status.is-beta {
-  color: var(--warning);
-  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
-}
-.ltile-status.is-beta i {
-  background: var(--warning);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--warning) 70%, transparent);
+.ltile-identity {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .ltile-name {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(1.02rem, 1.3vw, 1.18rem);
-  letter-spacing: -0.015em;
-  line-height: 1.2;
+  font-size: clamp(1.12rem, 1.5vw, 1.32rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
   color: var(--text-1);
 }
 .ltile-kicker {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--tile);
-}
-/* min-height a due righe: le card della stessa riga restano
-   allineate anche con tagline corta o assente */
-.ltile-tag {
-  margin-top: 0.25rem;
-  min-height: 2.32em;
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: var(--text-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  color: color-mix(in srgb, var(--tile) 78%, var(--text-2));
+  opacity: 0.92;
 }
 
-/* affordance "Apri": nascosta finché la card non è puntata */
+/* Tagline takes remaining space so cards feel full, not sparse */
+.ltile-tag {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 3.15em;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  color: color-mix(in srgb, var(--text-2) 92%, var(--text-1));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+/* affordance always lightly present, stronger on hover */
 .ltile-open {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  margin-top: 0.7rem;
+  gap: 0.35rem;
+  margin-top: 1rem;
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tile);
-  opacity: 0;
-  transform: translateX(-4px);
+  color: color-mix(in srgb, var(--tile) 70%, var(--text-2));
+  opacity: 0.45;
+  transform: none;
   transition:
     opacity var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+    color var(--dur-fast) var(--ease-out);
 }
-.ltile-open svg { width: 0.75rem; height: 0.75rem; }
+.ltile-open svg { width: 0.78rem; height: 0.78rem; }
 .ltile:hover .ltile-open, .ltile:focus-visible .ltile-open {
   opacity: 1;
-  transform: none;
+  color: var(--tile);
 }
 
 /* quello che stai già guardando dietro al pannello */
@@ -594,10 +557,15 @@ body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
 .launcher[data-dense] .lgrid {
   grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
 }
-.launcher[data-dense] .ltile { padding: clamp(0.85rem, 1.4vw, 1.1rem); }
+.launcher[data-dense] .ltile {
+  min-height: 10.5rem;
+  padding: clamp(1rem, 1.5vw, 1.25rem);
+}
+.launcher[data-dense] .ltile-art { width: 3.6rem; }
+.launcher[data-dense] .ltile-art img { width: 2.2rem; }
 .launcher[data-dense] .ltile-tag {
-  min-height: 1.45em;
-  -webkit-line-clamp: 1;
+  min-height: 2.7em;
+  -webkit-line-clamp: 2;
 }
 
 .lempty {
@@ -657,7 +625,6 @@ body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
 @media (max-width: 480px) {
   .launcher-brand { display: none; }
   .launcher-title { flex: 1; min-width: 0; }
-  .launcher-count { font-size: 0.55rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
