@@ -165,7 +165,7 @@ export function ContentViewV2({
     const load = () =>
       import("@/data/contentPeriods").then((m) => {
         if (!alive) return;
-        setPeriods(m.contentPeriods);
+        setPeriods(m.getContentPeriods());
         setPeriodsFull(true);
       });
     const want = parseInt(params.get("period") || "", 10);

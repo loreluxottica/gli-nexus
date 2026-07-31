@@ -1,7 +1,7 @@
 "use client";
 
 import type { SiteMarketMetrics } from "@/data/types";
-import { siteAnalysis } from "@/data/siteAnalysis";
+import { getSiteAnalysis } from "@/data/siteAnalysis";
 import { Button } from "@/components/ui/Button";
 import { fmtCompact, fmtPctSigned, fmtRatio, sign, trend } from "@/lib/format";
 import styles from "./SiteAnalysis.module.css";
@@ -58,7 +58,7 @@ export function SiteAnalysis({
   onBack: () => void;
   onClose: () => void;
 }) {
-  const s = siteAnalysis.sites[site];
+  const s = getSiteAnalysis().sites[site];
 
   return (
     <>
@@ -92,8 +92,8 @@ export function SiteAnalysis({
                 <span className={styles.geo}>{s.geo}</span>
               </h2>
               <p className={styles.subtitle}>
-                Site analysis · {siteAnalysis.period_label} {siteAnalysis.year} vs{" "}
-                {siteAnalysis.prior_year}
+                Site analysis · {getSiteAnalysis().period_label} {getSiteAnalysis().year} vs{" "}
+                {getSiteAnalysis().prior_year}
               </p>
 
               <div className={styles.tags}>

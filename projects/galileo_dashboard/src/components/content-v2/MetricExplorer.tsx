@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import type { ContentTrends, CurrentView, GeoArea, Market, MetricCell } from "@/data/types";
 import { areaLabel } from "@/data/geo";
-import { siteAnalysis } from "@/data/siteAnalysis";
+import { getSiteAnalysis } from "@/data/siteAnalysis";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { CommentPanel } from "./CommentPanel";
@@ -257,7 +257,7 @@ export function MetricExplorer({
   // moved the figure; efficiency ranks the largest shippers and shows each
   // one's own batch size.
   const topSites = (a: GeoArea) => {
-    const areaMetrics = siteAnalysis.flow_site_metrics?.[String(period)]?.[rowKey]?.[a];
+    const areaMetrics = getSiteAnalysis().flow_site_metrics?.[String(period)]?.[rowKey]?.[a];
     if (!areaMetrics) return [];
     const b = market === "REP" ? 0 : 4;
     return Object.entries(areaMetrics)

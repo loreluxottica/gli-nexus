@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GeoArea, KpiComment, Market } from "@/data/types";
 import { seededComments } from "@/data/contentComments";
-import { siteAnalysis, siteNames } from "@/data/siteAnalysis";
+import { getSiteAnalysis, getSiteNames } from "@/data/siteAnalysis";
 import { areaLabel } from "@/data/geo";
 import { Button } from "@/components/ui/Button";
 import styles from "./CommentPanel.module.css";
 
 const LS_KEY = "galileo:eff-comments";
 const AREAS = ["ALL", "EMEA", "NA", "APAC", "LATAM"];
-const SITE_SET = new Set(siteNames);
+// Lazy: the payload arrives by fetch, so this cannot be built at module scope.
+let siteSet: Set<string> | null = null;
+const knownSite = (name: string) => (siteSet ??= new Set(getSiteNames())).has(name);
 const MENTION_RE = /@\[([^\]]+)\]/g;
 
 function loadLocal(): KpiComment[] {
@@ -63,7 +65,7 @@ export function CommentPanel({
 
   // Only plants that belong to THIS section (flow + the comment's area) are
   // taggable — e.g. Sedico (EMEA Frames/RX) never shows for Stock Lenses · NA.
-  const sectionSites = siteAnalysis.flow_sites[flow]?.[areaSel] ?? [];
+  const sectionSites = getSiteAnalysis().flow_sites[flow]?.[areaSel] ?? [];
   const q = siteQuery.trim().toLowerCase();
   const siteMatches = q
     ? sectionSites.filter((n) => n.toLowerCase().includes(q)).slice(0, 8)
@@ -99,7 +101,7 @@ export function CommentPanel({
       if (idx > last) out.push(body.slice(last, idx));
       const name = m[1];
       out.push(
-        SITE_SET.has(name) ? (
+        knownSite(name) ? (
           <button
             key={`s${key++}`}
             type="button"

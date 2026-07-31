@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { loadPayload } from "@/data/api";
 import styles from "./PageTabs.module.css";
 
 const PAGES = [
@@ -43,8 +44,12 @@ export function PageTabs() {
 
   const warmDatabase = () => {
     router.prefetch(qs ? `/database?${qs}` : "/database");
-    // Kick off the 900 KB records chunk before the route mounts.
-    void import("@/data/db.json");
+    // Start fetching the ~1.1 MB records before the route mounts. Memoised by
+    // loadPayload, so DatabaseView reuses this very request rather than issuing
+    // a second one.
+    void loadPayload("db").catch(() => {
+      /* a failed warm-up is not worth reporting: the route retries on mount */
+    });
   };
 
   return (

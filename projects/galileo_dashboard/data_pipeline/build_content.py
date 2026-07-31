@@ -20,8 +20,11 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "src" / "data"                       # Next app data (build input)
-RAW = ROOT / "data_pipeline" / "data" / "raw.json"
+# Both paths are env-overridable so the Flask app can run this pipeline into a
+# scratch directory at request time (see ../data_service.py) instead of writing
+# into the repo. Unset, they keep the offline behaviour run.py relies on.
+DATA = Path(os.environ.get("GALILEO_DATA_DIR") or ROOT / "src" / "data")
+RAW = Path(os.environ.get("GALILEO_RAW_JSON") or ROOT / "data_pipeline" / "data" / "raw.json")
 raw = json.loads(RAW.read_text(encoding="utf-8"))
 
 _SHEETS = {s["name"]: s for s in raw["sheets"]}
@@ -253,7 +256,7 @@ current_view = {
 
 # Export Labs drill: list of sites with per-geo and per-accounting metrics.
 export_labs_sites = []
-for site in (export_labs_agg.keys() | export_labs_acct_agg.keys()):
+for site in sorted(export_labs_agg.keys() | export_labs_acct_agg.keys()):
     payload = {
         "site": site,
         "geo_data":  geo_data_for(export_labs_agg.get(site, {})),
@@ -333,7 +336,10 @@ for m in PERIODS:
             "acct_data": data_for(s1a.get(key, {}), ACCT_AREAS),
         })
     drills_p = {}
-    for site in (el.keys() | ela.keys()):
+    # sorted(): the set union has no stable order, so without this the JSON keys
+    # come out shuffled on every run and the payload's ETag churns even when the
+    # data has not changed.
+    for site in sorted(el.keys() | ela.keys()):
         drills_p[site] = {
             "geo_data":  geo_data_for(el.get(site, {})),
             "acct_data": data_for(ela.get(site, {}), ACCT_AREAS),
