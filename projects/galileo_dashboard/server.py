@@ -4,9 +4,9 @@ Serves the prebuilt Next.js static export (out/) under /galileo. Databricks Apps
 runs gunicorn with no Node build step, so the site is built + committed offline
 (see data_pipeline/) and this blueprint just streams the static files.
 
-Page navigations are gated by the central GLI Nexus access table (project
-GALILEO); static assets (_next/*, images, fonts) are served ungated — they are
-meaningless without the page and keep the SPA loading fast.
+Every path under /galileo is gated by the central GLI Nexus access table
+(project GALILEO), including static assets (_next/*, *.txt, images). The SPA
+bakes metrics into client payloads; ungated assets would defeat project grants.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ bp = Blueprint("galileo", __name__)
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _OUT = os.path.join(_DIR, "out")
+_OUT_NORM = os.path.normpath(_OUT)
 _PROJECT_KEY = "GALILEO"
 
 
@@ -66,18 +67,29 @@ def _is_page(subpath: str) -> bool:
     return "." not in last
 
 
+def _under_out(full: str) -> bool:
+    try:
+        return os.path.commonpath([_OUT_NORM, full]) == _OUT_NORM
+    except ValueError:
+        return False
+
+
 def _serve(subpath: str):
     if not os.path.isdir(_OUT):
         abort(503)  # site not built yet
-    is_page = _is_page(subpath)
-    if is_page:
-        if not auth.authorized(_PROJECT_KEY):
+
+    # Gate pages and static/data assets alike — see module docstring.
+    if not auth.authorized(_PROJECT_KEY):
+        if _is_page(subpath):
             return _denied_page(), 403
-        rel = os.path.join(subpath, "index.html") if subpath else "index.html"
-    else:
-        rel = subpath
+        abort(403)
+
+    is_page = _is_page(subpath)
+    rel = os.path.join(subpath, "index.html") if is_page and subpath else (
+        "index.html" if is_page else subpath
+    )
     full = os.path.normpath(os.path.join(_OUT, rel))
-    if not full.startswith(os.path.normpath(_OUT)) or not os.path.isfile(full):
+    if not _under_out(full) or not os.path.isfile(full):
         abort(404)
     if is_page:
         # Patch the prebuilt export at serve time to add the portal back link

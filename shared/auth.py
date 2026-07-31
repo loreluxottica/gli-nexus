@@ -37,8 +37,16 @@ _lock = threading.Lock()
 
 
 def _in_databricks_app() -> bool:
+    """True when running as a Databricks App (or with App credentials present).
+
+    Also treats DATABRICKS_APP_PORT as a deploy signal so misconfigured
+    production without APP_NAME/CLIENT_ID still fails closed on missing identity
+    instead of granting local-dev full access.
+    """
     return bool(
-        os.environ.get("DATABRICKS_APP_NAME") or os.environ.get("DATABRICKS_CLIENT_ID")
+        os.environ.get("DATABRICKS_APP_NAME")
+        or os.environ.get("DATABRICKS_CLIENT_ID")
+        or os.environ.get("DATABRICKS_APP_PORT")
     )
 
 

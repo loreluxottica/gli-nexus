@@ -31,9 +31,12 @@
   --warning:  #FFCC66;
   --critical: #FF5A7A;
 
-  /* --- Typography --- */
-  --font-ui:   "Geist", "Inter Tight", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Geist Mono", "IBM Plex Mono", Consolas, monospace;
+  /* --- Typography ---
+     Brand face: Avenir LT Std (self-hosted, css/fonts.css).
+     Mono: IBM Plex Mono from Google Fonts (no mono cut in brand pack). */
+  --font-ui:      "Avenir LT Std", "Avenir", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Avenir LT Std", "Avenir", "Segoe UI", system-ui, sans-serif;
+  --font-mono:    "IBM Plex Mono", Consolas, ui-monospace, monospace;
   --track-hero:  0.34em;  /* wordmark */
   --track-micro: 0.24em;  /* micro-label uppercase */
 

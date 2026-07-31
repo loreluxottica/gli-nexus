@@ -107,8 +107,6 @@ body.page-leave { animation: page-leave 260ms ease-in forwards; }
   box-shadow: 0 0 24px rgba(0, 217, 255, 0.22), inset 0 0 18px rgba(0, 217, 255, 0.06);
 }
 .cta:active { transform: scale(0.98); }
-
-/* Prodotto non accessibile (grant mancante) o non ancora disponibile. */
 .cta.is-disabled {
   opacity: 0.42;
   cursor: not-allowed;
