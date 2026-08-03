@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import type { GeoArea } from "@/data/types";
 import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
@@ -29,16 +30,23 @@ export function AreaTabs({ options }: { options: GeoArea[] }) {
     <nav className={styles.areatabs} aria-label="Geographical Area" data-tour="area-tabs">
       {options.map((a) => {
         const isActive = a === active;
+        // GEO_DEFAULT ("Global") is the starting point: styled as an anchored
+        // base segment and set off from the drill-down areas by a divider.
+        const isHome = a === GEO_DEFAULT;
         return (
-          <button
-            key={a}
-            type="button"
-            className={`${styles.areatab} ${isActive ? styles.active : ""}`}
-            aria-pressed={isActive}
-            onClick={() => select(a)}
-          >
-            {areaLabel(a)}
-          </button>
+          <Fragment key={a}>
+            <button
+              type="button"
+              className={`${styles.areatab} ${isHome ? styles.home : ""} ${
+                isActive ? styles.active : ""
+              }`}
+              aria-pressed={isActive}
+              onClick={() => select(a)}
+            >
+              {areaLabel(a)}
+            </button>
+            {isHome && <span className={styles.divider} aria-hidden="true" />}
+          </Fragment>
         );
       })}
     </nav>

@@ -1,18 +1,35 @@
-import contentJson from "./content.json";
 import type { Content } from "./types";
+import { loadPayload } from "./api";
 
 /**
- * The static content payload (formerly window.CONTENT).
- * Imported directly so it is bundled/tree-shaken per route rather than loaded
- * as a global side-effect script. The heavy DB records (db.js) stay OUT of this
- * module and are lazy-loaded only on the Database route (Phase 4).
+ * Main content payload (formerly window.CONTENT).
  *
- * Pure geo helpers (GEO_DEFAULT, isGeoArea, areaLabel) live in ./geo so that
- * client components can use them WITHOUT bundling this payload.
+ * Fetched at runtime rather than imported: the numbers live in Databricks, and
+ * baking them into the export meant a data load could not reach the dashboard
+ * without a rebuild. `loadContent()` is awaited once by <GalileoData>; every
+ * component below that gate reads it synchronously with `getContent()`.
+ *
+ * Geo helpers live in ./geo so client chrome need not touch this module.
  */
-export const content = contentJson as unknown as Content;
+let cached: Content | null = null;
+
+export async function loadContent(): Promise<Content> {
+  if (!cached) cached = await loadPayload<Content>("content");
+  return cached;
+}
+
+export function getContent(): Content {
+  if (!cached) {
+    throw new Error(
+      "Galileo: content payload not loaded — this component rendered outside <GalileoData>",
+    );
+  }
+  return cached;
+}
 
 /** Geo values that are valid in the URL ?area= param. */
-export const GEO_OPTIONS = content.geo_options;
+export function geoOptions(): Content["geo_options"] {
+  return getContent().geo_options;
+}
 
 export { GEO_DEFAULT, isGeoArea, areaLabel } from "./geo";

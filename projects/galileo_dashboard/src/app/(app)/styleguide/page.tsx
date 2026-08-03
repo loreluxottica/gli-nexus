@@ -7,8 +7,8 @@ import styles from "./styleguide.module.css";
 
 export const metadata: Metadata = { title: "Galileo — Style Guide" };
 
-const PRODUCTS: Product[] = ["RX", "Stock Lenses", "Finished Frames", "GV Frames"];
-const AREAS: GeoArea[] = ["APAC", "EMEA", "LATAM", "NA"];
+const PRODUCTS: Product[] = ["Finished Frames", "GV Frames", "RX", "Stock Lenses"];
+const AREAS: GeoArea[] = ["EMEA", "NA", "APAC", "LATAM"];
 const MARKETS: Market[] = ["REP", "LM"];
 const FLOWS = ["Glassed Direct", "Brille 24"];
 

@@ -32,6 +32,8 @@
   line-height: 1.1;
   display: flex;
   align-items: center;
+  font-size: 24px;
+  letter-spacing: -0.3px;
 }
 .lede {
   margin: 0;
@@ -62,21 +64,6 @@
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
-}
-
-/* Accounting-perimeter toggle. When active the trigger turns solid amber (the
-   accounting identity colour) to match the amber table frame, so the current
-   selection reads instantly. Element-qualified to beat the .accent variant. */
-button.acctBtnOn {
-  background: var(--cat-amber-ink);
-  border-color: var(--cat-amber-ink);
-  color: #fff;
-  box-shadow: 0 4px 14px -6px rgba(146, 96, 10, 0.5);
-}
-button.acctBtnOn:hover {
-  background: var(--cat-amber-ink);
-  filter: brightness(1.08);
-  transform: translateY(-1px);
 }
 
 /* Amber context banner above the table when the accounting view is active. */

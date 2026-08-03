@@ -1,16 +1,19 @@
+"use client";
+
 import Link from "next/link";
-import { content, GEO_OPTIONS } from "@/data/content";
+import { geoOptions, getContent } from "@/data/content";
 import { AreaTabs } from "./AreaTabs";
 import { PeriodChip } from "./PeriodChip";
 import styles from "./Masthead.module.css";
 
 /**
- * Midnight masthead. Server component: reads the static content for the period
- * label and hands the (small) geo options list to the client AreaTabs. The
- * 35 KB content payload never reaches the client bundle this way.
+ * Masthead: period label + geo options from the content payload.
+ *
+ * Client, because the payload is fetched rather than baked in. It renders under
+ * the data gate in (app)/layout.tsx, so the payload is guaranteed present here.
  */
 export function Masthead() {
-  const cv = content.current_view;
+  const cv = getContent().current_view;
   return (
     <header className={styles.topbar}>
       {/* Wordmark links back to the landing page. */}
@@ -28,7 +31,7 @@ export function Masthead() {
         </span>
       </Link>
 
-      <AreaTabs options={GEO_OPTIONS} />
+      <AreaTabs options={geoOptions()} />
 
       <div className={styles.right}>
         <PeriodChip period={`${cv.period_label} ${cv.year}`} />

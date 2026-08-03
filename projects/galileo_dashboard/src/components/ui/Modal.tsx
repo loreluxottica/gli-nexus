@@ -12,6 +12,8 @@ interface ModalProps {
   onClose: () => void;
   /** id of the element labelling the dialog (aria-labelledby). */
   labelledBy?: string;
+  /** Optional width preset for narrow explainers vs wide explorers. */
+  size?: "default" | "sm";
   children: ReactNode;
 }
 
@@ -19,7 +21,7 @@ interface ModalProps {
  * Accessible dialog: focus trap + Escape + scroll lock + return focus on close.
  * (The prototype had Escape/initial/return focus but no trap — MASTER §5 #3.)
  */
-export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
+export function Modal({ open, onClose, labelledBy, size = "default", children }: ModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   // Render only after mount so the body portal never runs during SSR/first
@@ -90,7 +92,7 @@ export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
     >
       <div
         ref={cardRef}
-        className={styles.card}
+        className={`${styles.card} ${size === "sm" ? styles.cardSm : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}

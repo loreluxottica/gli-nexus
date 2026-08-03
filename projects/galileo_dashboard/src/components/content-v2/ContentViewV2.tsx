@@ -1,18 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { AcctArea, ContentTrends, CurrentView, ExportLabSite, Market } from "@/data/types";
+import type {
+  AcctArea,
+  ContentTrends,
+  CurrentView,
+  ExportLabSite,
+  Market,
+  PeriodSnapshot,
+} from "@/data/types";
 import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
-import { Button } from "@/components/ui/Button";
-import { Tour, type TourStep } from "@/components/ui/Tour";
+import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
 import { FirstRunHint } from "@/components/ui/FirstRunHint";
 import { MarketMetricToggle, type Metric } from "./MarketMetricToggle";
 import { ContentTableV2 } from "./ContentTableV2";
-import { MetricExplorer } from "./MetricExplorer";
 import { PeriodSelect } from "./PeriodSelect";
 import styles from "./ContentViewV2.module.css";
+
+/** Heavy surfaces — deferred so Content first paint stays lean. */
+const MetricExplorer = dynamic(
+  () => import("./MetricExplorer").then((m) => m.MetricExplorer),
+  { ssr: false },
+);
+const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
+  ssr: false,
+});
 
 const ACCT_INTL: AcctArea = "INTERNATIONAL";
 
@@ -84,8 +99,7 @@ const TOUR_STEPS: TourStep[] = [
       <>
         Switch <strong>Metric</strong> to <strong>Efficiency</strong> to see pieces
         and shipments together as <strong>batch size</strong>: rising means each
-        shipment carries more (consolidation). Click a ratio to open the same
-        explorer, scoped to batch size.
+        shipment carries more (consolidation).
       </>
     ),
   },
@@ -96,13 +110,13 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="content-acct"]',
-    title: "Accounting Area",
+    title: "Perimeter",
     body: (
       <>
-        Toggle the same table onto the <strong>International</strong> accounting
-        perimeter. It turns <strong>amber</strong> — button and frame — so you
-        always know which view you are reading. Toggle again to return to the
-        geographical view.
+        Switch the same table between the <strong>Geographical</strong> areas and
+        the <strong>International</strong> accounting perimeter. On Accounting the
+        table turns <strong>amber</strong>, so you always know which perimeter you
+        are reading.
       </>
     ),
   },
@@ -117,10 +131,13 @@ export function ContentViewV2({
   view,
   drills,
   trends,
+  periodsLazy = false,
 }: {
   view: CurrentView;
   drills: ExportLabSite[];
   trends: ContentTrends;
+  /** When true, only the latest period is in `view.periods`; load the rest on idle. */
+  periodsLazy?: boolean;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -137,6 +154,43 @@ export function ContentViewV2({
   const acct = params.get("acct") === "1";
 
   const [tourOpen, setTourOpen] = useState(false);
+  const [periods, setPeriods] = useState<Record<string, PeriodSnapshot>>(view.periods);
+  const [periodsFull, setPeriodsFull] = useState(!periodsLazy);
+
+  // Pull the full multi-month map after first paint (or immediately when a
+  // non-default period is requested before the chunk has arrived).
+  useEffect(() => {
+    if (!periodsLazy || periodsFull) return;
+    let alive = true;
+    const load = () =>
+      import("@/data/contentPeriods").then((m) => {
+        if (!alive) return;
+        setPeriods(m.getContentPeriods());
+        setPeriodsFull(true);
+      });
+    const want = parseInt(params.get("period") || "", 10);
+    const latestN = Number(view.period_number);
+    const needNow = Number.isFinite(want) && want !== latestN;
+    if (needNow) {
+      load();
+      return () => {
+        alive = false;
+      };
+    }
+    const ric = window.requestIdleCallback?.bind(window);
+    if (ric) {
+      const id = ric(() => load(), { timeout: 1800 });
+      return () => {
+        alive = false;
+        window.cancelIdleCallback?.(id);
+      };
+    }
+    const t = window.setTimeout(load, 350);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [periodsLazy, periodsFull, view.period_number, params]);
 
   // End month of the cumulative YTD window. Defaults to the latest available
   // month; ?period=N (1..latest) rescopes the whole Content surface to that
@@ -144,26 +198,39 @@ export function ContentViewV2({
   const latest = Number(view.period_number);
   const rawPeriod = parseInt(params.get("period") || "", 10);
   const periodNum =
-    Number.isFinite(rawPeriod) && view.periods[String(rawPeriod)] ? rawPeriod : latest;
+    Number.isFinite(rawPeriod) &&
+    (periods[String(rawPeriod)] || view.period_options.some((o) => o.n === rawPeriod))
+      ? rawPeriod
+      : latest;
   const periodOpt = view.period_options.find((o) => o.n === periodNum);
   const period = `${periodOpt?.label ?? view.period_label} ${view.year}`;
 
+  const viewWithPeriods = useMemo(
+    () => ({ ...view, periods }),
+    [view, periods],
+  );
+
   const scopedView = useMemo(() => {
-    if (periodNum === latest) return view;
-    const snap = view.periods[String(periodNum)];
-    return { ...view, rows: view.rows.map((r, i) => ({ ...r, ...snap.rows[i] })) };
-  }, [view, periodNum, latest]);
+    if (periodNum === latest) return viewWithPeriods;
+    const snap = periods[String(periodNum)];
+    if (!snap) return viewWithPeriods; // still loading periods chunk
+    return {
+      ...viewWithPeriods,
+      rows: view.rows.map((r, i) => ({ ...r, ...snap.rows[i] })),
+    };
+  }, [view, viewWithPeriods, periods, periodNum, latest]);
 
   const scopedDrills = useMemo(() => {
     if (periodNum === latest) return drills;
-    const snap = view.periods[String(periodNum)];
+    const snap = periods[String(periodNum)];
+    if (!snap) return drills;
     // A site absent from the period had no activity yet → empty cells so the
     // table filters it out (never show a later month's number for it).
     return drills.map((d) => {
       const pc = snap.drills[d.site];
       return pc ? { ...d, ...pc } : { ...d, geo_data: {}, acct_data: {} };
     });
-  }, [view, drills, periodNum, latest]);
+  }, [drills, periods, periodNum, latest]);
 
   /** Merge search-param updates and replace the URL (no history spam, no scroll). */
   const commit = (updates: Record<string, string | null>) => {
@@ -177,8 +244,10 @@ export function ContentViewV2({
   };
 
   const setMarket = (m: Market) => commit({ market: m === "REP" ? null : m });
-  // The explorer is metric-aware, so switching metric no longer closes it.
-  const setMetric = (m: Metric) => commit({ metric: m === "pieces" ? null : m });
+  // Efficiency has no explorer, so entering it closes any open one; Pieces /
+  // Shipments keep the explorer open (it's metric-aware).
+  const setMetric = (m: Metric) =>
+    commit({ metric: m === "pieces" ? null : m, ...(m === "efficiency" ? { explore: null } : {}) });
   const setExplore = (key: string | null) => commit({ explore: key });
   const setPeriod = (n: number) => commit({ period: n === latest ? null : String(n) });
   // Toggling the accounting perimeter also closes the (geo-only) explorer.
@@ -201,24 +270,16 @@ export function ContentViewV2({
           </div>
           <div className={styles.headActions}>
             <TutorialButton onClick={() => setTourOpen(true)} />
-            <Button
-              variant="accent"
-              className={acct ? styles.acctBtnOn : undefined}
-              data-tour="content-acct"
-              aria-pressed={acct}
-              onClick={() => setAcct(!acct)}
-            >
-              <span>{acct ? "Accounting Area · International" : "View by Accounting Area"}</span>
-              <span aria-hidden="true">{acct ? "×" : "›"}</span>
-            </Button>
           </div>
         </div>
 
         <MarketMetricToggle
           market={market}
           metric={metric}
+          acct={acct}
           onMarket={setMarket}
           onMetric={setMetric}
+          onAcct={setAcct}
         />
 
         <div className={styles.legend}>
@@ -280,19 +341,23 @@ export function ContentViewV2({
         {acct && view.footnote && <p className={styles.footnote}>{view.footnote}</p>}
       </section>
 
-      <MetricExplorer
-        open={!!explore}
-        onClose={() => setExplore(null)}
-        rowKey={explore}
-        view={scopedView}
-        trends={trends}
-        market={market}
-        metric={metric}
-        area={area}
-        period={periodNum}
-      />
+      {explore ? (
+        <MetricExplorer
+          open
+          onClose={() => setExplore(null)}
+          rowKey={explore}
+          view={scopedView}
+          trends={trends}
+          market={market}
+          metric={metric}
+          area={area}
+          period={periodNum}
+        />
+      ) : null}
 
-      <Tour steps={TOUR_STEPS} open={tourOpen} onClose={() => setTourOpen(false)} label="Content tutorial" />
+      {tourOpen ? (
+        <Tour steps={TOUR_STEPS} open onClose={() => setTourOpen(false)} label="Content tutorial" />
+      ) : null}
     </>
   );
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { story } from "@/data/story";
-import { contentTrends } from "@/data/contentTrends";
+import { getContentTrends } from "@/data/contentTrends";
 import { fmtCompact, fmtPctSigned, sign, trend, yoy } from "@/lib/format";
 import styles from "./Story.module.css";
 
@@ -14,6 +14,7 @@ const stops = story.stops;
  *  REP and LM stay side by side (different units, never one shared scale);
  *  the headline total is the only place the two piece counts are summed. */
 function networkStats() {
+  const contentTrends = getContentTrends();
   const n = contentTrends.period_number;
   const sum = (a: number[]) => a.slice(0, n).reduce((x, y) => x + y, 0);
   let repCur = 0;

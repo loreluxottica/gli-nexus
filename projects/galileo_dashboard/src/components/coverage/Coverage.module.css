@@ -127,6 +127,12 @@
   stroke-width: 0.8;
 }
 
+/* Slot for long multi-block pages: skip off-screen paint work. */
+.blockSlot {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+
 /* ---- Coverage / efficiency block ---- */
 .covBlock {
   padding: 20px 24px 16px;
@@ -136,6 +142,7 @@
   align-items: center;
   gap: 11px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 .blockHead h3 {
   margin: 0;
@@ -143,6 +150,96 @@
   font-weight: 560;
   font-size: 19px;
   letter-spacing: 0.2px;
+}
+/* Product/area total: percentage readout (distinct from table CoverageBar). */
+.blockCov {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0 4px 14px;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.blockCovValue {
+  font-family: var(--mono), monospace;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.blockCovLabel {
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.blockCovMuted {
+  font-family: var(--mono), monospace;
+  font-size: 18px;
+  color: var(--ink-faint);
+}
+
+/* Clickable coverage: bar + % + ? as one unit, centered under the header. */
+.covHit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background var(--dur-micro);
+}
+button.blockCov.covHit {
+  padding: 4px 8px 4px 14px;
+  border-radius: var(--radius);
+  align-items: center;
+}
+.covHit:hover {
+  background: var(--accent-tint);
+}
+.covHit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.covHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-deep);
+  background: var(--accent-tint);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  opacity: 0.75;
+  flex: 0 0 16px;
+}
+.covHit:hover .covHint {
+  opacity: 1;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
 }
 .marker {
   display: inline-block;
@@ -201,8 +298,36 @@
 .firstCell {
   font-weight: 600;
 }
-.covCell {
+/* Centered metric columns — .table th/td prefix beats default text-align:left. */
+.table th.centerHead {
+  text-align: center;
   white-space: nowrap;
+}
+.table td.centerNum {
+  text-align: center;
+  font-family: var(--mono), monospace;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+/* Coverage % vol: unit (bar + % + ?) centered under the header. */
+.table th.covHead {
+  text-align: center;
+  white-space: nowrap;
+}
+.table td.covCell {
+  white-space: nowrap;
+  min-width: 138px;
+  text-align: center;
+  vertical-align: middle;
+}
+.covUnit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  margin-inline: auto;
 }
 .chipArea {
   min-width: 92px;
@@ -211,6 +336,23 @@
 .chipProduct {
   min-width: 144px;
   justify-content: center;
+}
+
+/* Automation level: coloured label centered under the header. */
+.table th.autoHead {
+  font-family: var(--mono), monospace;
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  min-width: 88px;
+  text-align: center;
+}
+.table td.autoCell {
+  white-space: nowrap;
+  text-align: center;
+  vertical-align: middle;
 }
 
 /* tier columns */
@@ -234,6 +376,224 @@
 .high { background: var(--tier-high-cell); color: var(--tier-high-fg); }
 .tierZero { color: var(--ink-faint); font-weight: 450; }
 .tierMuted { color: var(--ink-faint); font-weight: 450; background: var(--surface); }
+
+/* ---- Sites not mapped ---- */
+.mur {
+  padding: 20px 24px 18px;
+}
+.murHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.murTitle {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 19px;
+  letter-spacing: 0.2px;
+}
+.murLede {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  max-width: 52ch;
+}
+.murCount {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+.murCount b {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.murList {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+.murItem + .murItem {
+  border-top: 1px solid var(--line);
+}
+.murRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  background: var(--surface);
+  border: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-micro);
+}
+.murRow:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.murRow:disabled {
+  cursor: default;
+}
+.murItem[data-open="true"] .murRow {
+  background: var(--surface-2);
+}
+.murChev {
+  display: inline-flex;
+  width: 12px;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 11px;
+  transition: transform 0.18s ease;
+}
+.murChevOpen {
+  transform: rotate(90deg);
+}
+.murChevHidden {
+  visibility: hidden;
+}
+.murProduct {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+}
+.murBadge {
+  margin-left: auto;
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--cat-amber-ink);
+  background: var(--cat-amber-surface);
+  border: 1px solid var(--cat-amber-line);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.murBadgeOk {
+  color: var(--pos);
+  background: color-mix(in srgb, var(--pos) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--pos) 26%, transparent);
+}
+.murPanel {
+  padding: 12px 16px 16px 40px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+}
+.murColHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 12px 8px;
+  font-family: var(--mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+/* Expanded list: group by area on Global, plain list when scoped. */
+.murGroups {
+  display: grid;
+  gap: 16px;
+}
+.murGroup {
+  min-width: 0;
+}
+.murGroupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.murGroupCount {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.murSiteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.murSiteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.murSiteRow:last-child {
+  border-bottom: 0;
+}
+.murSiteMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.murSiteName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+}
+.murSiteType {
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.murSiteMetrics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  font-family: var(--mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+.murSiteVol {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.murSiteWeight {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cat-amber-ink);
+}
+.murSiteReview {
+  flex: 0 0 auto;
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
 
 /* ---- Top sites ---- */
 .topSites {

@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[424],{7424:(e,r,n)=>{n.r(r),n.d(r,{getContentPeriods:()=>s});var t=n(6506);function s(){return(0,t._A)().current_view.periods}}}]);

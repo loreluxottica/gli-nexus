@@ -1,27 +1,55 @@
+"use client";
+
 import { Suspense } from "react";
-import { content } from "@/data/content";
-import { contentTrends } from "@/data/contentTrends";
+import { getContent } from "@/data/content";
+import { getContentTrends } from "@/data/contentTrends";
+import { GalileoData } from "@/data/GalileoData";
 import { ContentViewV2 } from "@/components/content-v2/ContentViewV2";
+import type { CurrentView, PeriodSnapshot } from "@/data/types";
 
 /**
- * Content — the canonical volumes view. Server component: selects the Content
- * slice of the payload (current_view + export_labs_sites) plus the compact
- * monthly trend series and passes them to the client view. Renders a single
- * market/metric at a time (REP and LM are different units and must not share a
- * scale) with an insight strip, paired YoY bars and sparklines.
+ * Content — volumes / YoY surface.
  *
- * This route hosts the trend-augmented experience formerly at /content-v2; the
- * old Excel-faithful table (components/content/ContentView) is retired but kept
- * in the tree for reference. /content-v2 now redirects here.
+ * Payload slim-down: render only the *latest* period cells in `view.rows`. The
+ * full multi-month `periods` map already arrived with content.json, but keeping
+ * the slim shape means the table does not walk every month on first paint.
+ *
+ * This is the only route that needs the per-plant site analysis (comment
+ * mentions drill into it), so it takes the extra payload here rather than
+ * making the landing and the other routes wait for it.
  */
+function slimView(full: CurrentView): CurrentView {
+  const n = full.period_number;
+  const latest: PeriodSnapshot = full.periods[n] ?? {
+    rows: full.rows.map((r) => ({ geo_data: r.geo_data, acct_data: r.acct_data })),
+    drills: {},
+  };
+  return {
+    ...full,
+    // Keep a single snapshot so the client can still resolve the default
+    // without walking the whole periods map.
+    periods: { [n]: latest },
+  };
+}
+
+function ContentBody() {
+  const content = getContent();
+  return (
+    <ContentViewV2
+      view={slimView(content.current_view)}
+      drills={content.export_labs_sites}
+      trends={getContentTrends()}
+      periodsLazy
+    />
+  );
+}
+
 export default function ContentPage() {
   return (
     <Suspense fallback={null}>
-      <ContentViewV2
-        view={content.current_view}
-        drills={content.export_labs_sites}
-        trends={contentTrends}
-      />
+      <GalileoData needsSiteAnalysis>
+        <ContentBody />
+      </GalileoData>
     </Suspense>
   );
 }

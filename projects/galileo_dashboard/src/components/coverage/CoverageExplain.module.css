@@ -1,0 +1,287 @@
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.kicker {
+  margin: 0 0 4px;
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+}
+.title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 560;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+}
+.close {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--radius);
+  transition: background var(--dur-micro), color var(--dur-micro);
+}
+.close:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* Big answer number — same family as product header total. */
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: var(--accent-tint);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+  border-radius: var(--radius-lg);
+}
+.resultValue {
+  font-family: var(--mono), monospace;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent-deep);
+  font-variant-numeric: tabular-nums;
+}
+.resultLabel {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+.stepBody {
+  min-width: 0;
+  padding-top: 2px;
+}
+.stepTitle {
+  margin: 0 0 4px;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.stepText {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.stepText b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.plainList {
+  margin: 8px 0 0;
+  padding: 0 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.plainList li {
+  margin-bottom: 4px;
+}
+.plainList b {
+  color: var(--ink);
+  font-weight: 650;
+}
+.yes {
+  color: var(--pos) !important;
+}
+.no {
+  color: var(--ink-faint) !important;
+}
+
+/* Site dots — simple “boxes we can see” picture. */
+.dotRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+.dotEmpty,
+.dotYes,
+.dotNo {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.dotEmpty {
+  background: var(--surface-3);
+  border: 1px solid var(--line-strong);
+}
+.dotYes {
+  background: var(--accent);
+  border: 1px solid var(--accent-deep);
+}
+.dotNo {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 10px;
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+/* Simple division strip. */
+.formula {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+.formulaPart {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 4px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.formulaOp {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-faint);
+}
+.formulaResult {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+
+.note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+.note b {
+  color: var(--ink-soft);
+  font-weight: 650;
+}
+
+/* Product-total step 2: plain “seen of total” lines per area/row. */
+.mixList {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.mixRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.mixRow:last-child {
+  border-bottom: 0;
+}
+.mixLabel {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+}
+.mixDetail {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-faint);
+}
+.mixSeen {
+  font-weight: 700;
+  color: var(--accent-deep);
+}
+.mixOf {
+  font-weight: 400;
+}
+.mixTot {
+  font-weight: 600;
+  color: var(--ink);
+}
+.mixPct {
+  font-weight: 500;
+  color: var(--ink-faint);
+}

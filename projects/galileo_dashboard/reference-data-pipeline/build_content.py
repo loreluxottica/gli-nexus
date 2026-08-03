@@ -70,7 +70,7 @@ def to_float(s):
 CUR_YEAR   = 2026
 PY_YEAR    = 2025
 YTD_MONTHS = (1, 2, 3, 4)
-GEOS       = ["APAC", "EMEA", "LATAM", "NA"]
+GEOS       = ["EMEA", "NA", "APAC", "LATAM"]
 GEO_ALL    = "ALL"
 
 # Accounting dimension (a second way to scope every table, independent from the
@@ -349,22 +349,38 @@ sites_in_db_by_product = {k: len(v) for k, v in sites_by_product.items()}
 product_options = [GEO_ALL] + sorted(k for k in sites_by_product if k != "ALL")
 
 # ---------------------------------------------------------------------------
-# Coverage & Efficiency view — built from the per-site "COverage" sheet.
-# Keeps the exact same layout used so far (per Product, one row per Area, with
-# columns Tot sites / Estimated volume / Coverage % vol / Low / Mid / High).
-# Each metric is now derived from the site-level sheet:
-#   * Tot sites        : distinct sites in that Product x Area
-#   * Coverage % vol    : covered sites (Coverage=1) / total sites
-#   * Low / Mid / High  : share of sites in each Automation tier
-#                         (denominator = sites that carry a tier)
-#   * Estimated volume  : sum of current-YTD Pieces from the main DB for that
-#                         Product x Area
+# Coverage & Efficiency — Excel sheet "Coverage" (with live formulas).
+#
+# Columns:
+#   Site, Market, Product, Site Type,
+#   Galileo Volume   (E)  — pieces flowing into Galileo (year 2026 in the file)
+#   Coverage         (F)  — group formula, see below (same value for every site
+#                           of a Product×Area)
+#   Estimated Volume (G)  — expected weight from prior year (2025 in the file)
+#   Covered 2025     (H)  — =IF(E>0, G, 0)
+#   Area, Automation
+#
+# Excel definitions (row-level formulas):
+#   H_i = IF(GalileoVolume_i > 0, EstimatedVolume_i, 0)
+#   F_i = SUMIFS(H, Product, Area) / SUMIFS(G, Product, Area)
+#         i.e. coverage is a Product×Area ratio, not a per-site rate.
+#
+# In plain words:
+#   A site is "in Galileo" if it has any Galileo Volume.
+#   If it is, its full Estimated Volume counts as covered.
+#   Coverage % = covered estimated volume / all estimated volume
+#                for that product and area.
+#
+# Aggregates we publish (per Product × Area):
+#   * Tot sites         : distinct sites
+#   * Estimated volume  : sum(G)
+#   * Coverage % vol    : sum(H) / sum(G)   with H recomputed as IF(E>0,G,0)
+#   * Low / Mid / High  : share of sites by Automation tier
 # ---------------------------------------------------------------------------
-PRODUCTS_ORDER = ["RX", "Stock Lenses", "Finished Frames", "GV Frames"]
+PRODUCTS_ORDER = ["Finished Frames", "GV Frames", "RX", "Stock Lenses"]
 AREAS = {"EMEA", "LATAM", "APAC", "NA"}
 TIERS = ["Low", "Mid", "High"]
 
-# Normalize messy area labels (e.g. "Latam" -> "LATAM").
 def norm_area(s):
     return (s or "").strip().upper()
 
@@ -372,62 +388,67 @@ def norm_tier(s):
     t = (s or "").strip().capitalize()
     return t if t in TIERS else None
 
-# Estimated volume per (Product, Area): current-YTD Pieces from the main DB.
-est_volume = defaultdict(float)
-for r in db_rows[1:]:
-    y, m = year_month(r[DB_IDX["Month/Year"]])
-    if y != CUR_YEAR or m not in YTD_MONTHS:
-        continue
-    product = r[DB_IDX["Product"]]
-    area    = norm_area(effective_geo(r))
-    if not product or area not in AREAS:
-        continue
-    est_volume[(product, area)] += to_float(r[DB_IDX["Pieces"]])
-
 def build_coverage_efficiency(rows):
-    """Aggregate the per-site COverage sheet into per-product / per-area blocks
-    matching the existing table layout."""
-    hdr = {c.strip(): i for i, c in enumerate(rows[0])}
-    iSite, iProd, iCov, iArea, iAuto = (
-        hdr["Site"], hdr["Product"], hdr["Coverage"], hdr["Area"], hdr["Automation"],
-    )
+    """Replicate the Excel Coverage formulas at Product × Area grain.
 
-    # (product, area) -> { site -> {"covered": bool, "tier": str|None} }
-    sites = defaultdict(dict)
+    Volume math follows SUMIFS over *rows* (duplicate site names both count).
+    Tot sites / automation tiers count *distinct* site names.
+    """
+    hdr = {c.strip(): i for i, c in enumerate(rows[0]) if c and str(c).strip()}
+    iSite = hdr["Site"]
+    iProd = hdr["Product"]
+    iArea = hdr["Area"]
+    iAuto = hdr["Automation"]
+    iEst  = hdr.get("Estimated Volume")
+    iGal  = hdr.get("Galileo Volume")
+
+    # (product, area) -> list of row contributions + distinct site meta
+    groups = defaultdict(lambda: {
+        "rows": [],          # {est, galileo}
+        "sites": {},         # site -> {tier}
+    })
     for r in rows[1:]:
-        site    = r[iSite].strip()
-        product = r[iProd].strip()
+        site    = (r[iSite] or "").strip()
+        product = (r[iProd] or "").strip()
         area    = norm_area(r[iArea])
         if not site or product not in PRODUCTS_ORDER or area not in AREAS:
             continue
-        rec = sites[(product, area)].setdefault(site, {"covered": False, "tier": None})
-        if r[iCov].strip() == "1":
-            rec["covered"] = True
+        est = to_float(r[iEst]) if iEst is not None else 0.0
+        gal = to_float(r[iGal]) if iGal is not None else 0.0
         tier = norm_tier(r[iAuto])
-        if tier and rec["tier"] is None:
-            rec["tier"] = tier
+        g = groups[(product, area)]
+        # Excel SUMIFS sums every matching row — keep duplicates.
+        g["rows"].append({"est": est, "galileo": gal})
+        site_rec = g["sites"].setdefault(site, {"tier": None, "galileo": 0.0})
+        site_rec["galileo"] = max(site_rec["galileo"], gal)
+        if tier and site_rec["tier"] is None:
+            site_rec["tier"] = tier
 
     blocks = []
     for product in PRODUCTS_ORDER:
         rows_out = []
-        for area in ["EMEA", "LATAM", "APAC", "NA"]:
-            site_map = sites.get((product, area))
-            if not site_map:
+        for area in GEOS:
+            g = groups.get((product, area))
+            if not g or not g["rows"]:
                 continue
-            tot = len(site_map)
-            covered = sum(1 for s in site_map.values() if s["covered"])
+            est_total = 0.0
+            covered_total = 0.0  # sum of H_i = IF(E_i>0, G_i, 0)
+            for row in g["rows"]:
+                est_total += row["est"]
+                if row["galileo"] > 0:
+                    covered_total += row["est"]
             tier_counts = {t: 0 for t in TIERS}
             tier_total = 0
-            for s in site_map.values():
+            for s in g["sites"].values():
                 if s["tier"]:
                     tier_counts[s["tier"]] += 1
                     tier_total += 1
-            vol = est_volume.get((product, area), 0.0)
+            cov_pct = (covered_total / est_total) if est_total > 0 else None
             rows_out.append({
                 "area":             area,
-                "tot_sites":        tot,
-                "estimated_volume": int(round(vol)) if vol else None,
-                "coverage_pct":     (covered / tot) if tot else None,
+                "tot_sites":        len(g["sites"]),
+                "estimated_volume": int(round(est_total)) if est_total else None,
+                "coverage_pct":     cov_pct,
                 "low":  (tier_counts["Low"]  / tier_total) if tier_total else None,
                 "mid":  (tier_counts["Mid"]  / tier_total) if tier_total else None,
                 "high": (tier_counts["High"] / tier_total) if tier_total else None,
@@ -436,8 +457,126 @@ def build_coverage_efficiency(rows):
             blocks.append({"product": product, "rows": rows_out})
     return blocks
 
-coverage_sheet = next((s for s in raw["sheets"] if s["name"].strip().lower() == "coverage"), None)
+coverage_sheet = next(
+    (s for s in raw["sheets"]
+     if s["name"].strip().lower().replace(" ", "") == "coverage"),
+    None,
+)
 coverage_efficiency = build_coverage_efficiency(coverage_sheet["rows"]) if coverage_sheet else []
+
+# ---------------------------------------------------------------------------
+# Sites not mapped — sites with no Galileo Volume (E == 0).
+# They sit in the coverage denominator but add 0 to the numerator, so their
+# estimated volume is the weight they pull on coverage.
+# Grouped by product family (Finished + GV Frames -> "Frames").
+# Each unmapped site carries:
+#   estimated_volume  — G from the Coverage sheet (null if missing/0)
+#   weight_pct        — share of that product×area total estimated volume
+#                       (how hard this site pulls on current coverage)
+# Sites with no estimated volume are still listed, flagged for UI as
+# "under review" (weight_pct null).
+# ---------------------------------------------------------------------------
+PRODUCT_FAMILY = {
+    "RX": "RX",
+    "Stock Lenses": "Stock Lenses",
+    "Finished Frames": "Frames",
+    "GV Frames": "Frames",
+}
+FAMILY_ORDER = ["Frames", "RX", "Stock Lenses"]
+
+def build_mappings_under_review(rows):
+    hdr = {c.strip(): i for i, c in enumerate(rows[0]) if c and str(c).strip()}
+    iSite = hdr["Site"]
+    iProd = hdr["Product"]
+    iArea = hdr["Area"]
+    iType = hdr["Site Type"]
+    iGal  = hdr.get("Galileo Volume")
+    iEst  = hdr.get("Estimated Volume")
+    iMap  = hdr.get("Mapping")  # older workbooks used an explicit flag
+
+    # (family, area) total estimated volume — all sites (mapped + not), for weight.
+    fam_area_vol = defaultdict(float)
+    # family -> site -> rec
+    fam_sites = defaultdict(dict)
+
+    for r in rows[1:]:
+        site    = (r[iSite] or "").strip()
+        product = (r[iProd] or "").strip()
+        area    = norm_area(r[iArea])
+        if not site or product not in PRODUCTS_ORDER or area not in AREAS:
+            continue
+        fam = PRODUCT_FAMILY[product]
+        est = to_float(r[iEst]) if iEst is not None else 0.0
+        gal = to_float(r[iGal]) if iGal is not None else 0.0
+        fam_area_vol[(fam, area)] += est
+
+        if iGal is not None:
+            not_mapped = gal <= 0
+        elif iMap is not None:
+            flag = (r[iMap] or "").strip().upper()
+            not_mapped = flag in ("", "NOT MAPPED", "NOT_MAPPED", "UNMAPPED", "NO")
+        else:
+            not_mapped = False
+
+        rec = fam_sites[fam].setdefault(
+            site,
+            {
+                "not_mapped": True,
+                "area": area,
+                "site_type": (r[iType] or "").strip(),
+                "estimated_volume": 0.0,
+            },
+        )
+        # If any row for the site is feeding Galileo, the site counts as mapped.
+        if not not_mapped:
+            rec["not_mapped"] = False
+        rec["estimated_volume"] += est
+        if rec["not_mapped"]:
+            rec["area"] = area
+            if (r[iType] or "").strip():
+                rec["site_type"] = (r[iType] or "").strip()
+
+    blocks = []
+    for fam in FAMILY_ORDER:
+        smap = fam_sites.get(fam, {})
+        under = []
+        for s, rec in smap.items():
+            if not rec["not_mapped"]:
+                continue
+            area = rec["area"]
+            est = rec["estimated_volume"]
+            denom = fam_area_vol.get((fam, area), 0.0)
+            if est > 0 and denom > 0:
+                weight = est / denom
+                est_out = int(round(est))
+            else:
+                weight = None
+                est_out = None
+            under.append({
+                "site":              s,
+                "area":              area,
+                "site_type":         rec["site_type"],
+                "estimated_volume":  est_out,
+                "weight_pct":        weight,
+            })
+        # Biggest coverage drag first; sites without volume ("under review") last.
+        under.sort(key=lambda x: (
+            0 if x["weight_pct"] is not None else 1,
+            -(x["weight_pct"] or 0),
+            x["area"],
+            x["site"],
+        ))
+        blocks.append({
+            "product":      fam,
+            "under_review": len(under),
+            "total":        len(smap),
+            "sites":        under,
+        })
+    return blocks
+
+mappings_under_review = (
+    build_mappings_under_review(coverage_sheet["rows"]) if coverage_sheet else []
+)
 
 # Top sites by shipments per Geographical Area (YTD April 2026, same window
 # as the rest of the page). Used by the map ranking panel.
@@ -505,7 +644,7 @@ for area, top_sites in top_sites_by_area.items():
         s["share_pct"] = (site_in_cat / total_in_cat) if total_in_cat > 0 else None
 
 # Pivot: same data grouped by Area instead of by Product (rows = products).
-AREA_ORDER = ["EMEA", "LATAM", "APAC", "NA"]
+AREA_ORDER = GEOS  # EMEA → NA → APAC → LATAM
 coverage_by_area = []
 for area in AREA_ORDER:
     rows = []
@@ -590,6 +729,7 @@ coverage_page = {
     "area_options":         [GEO_ALL] + AREA_ORDER,
     "coverage_efficiency":  coverage_efficiency,
     "coverage_by_area":     coverage_by_area,
+    "mappings_under_review": mappings_under_review,
     "top_sites_by_area":    top_sites_by_area,
     "top_sites_period":     "YTD April 2026",
     "columns": [

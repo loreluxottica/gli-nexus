@@ -19,6 +19,9 @@
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: 0.6px;
+  /* "Global" comes from the data lower-cased; the area codes are already caps.
+     Uppercasing here lines them all up without touching areaLabel elsewhere. */
+  text-transform: uppercase;
   color: var(--on-night-soft);
   cursor: pointer;
   white-space: nowrap;
@@ -30,6 +33,28 @@
   color: var(--on-night);
   background: var(--surface);
   box-shadow: var(--shadow-card);
+}
+
+/* Home segment (Global) — a quietly filled base chip so it reads as the
+   starting point even when a specific area is selected. .active (below) wins
+   when Global itself is the current scope. */
+.home {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  color: var(--on-night);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.home:hover {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), var(--shadow-card);
+}
+
+/* Hairline setting Global apart from the drill-down areas. */
+.divider {
+  align-self: stretch;
+  width: 1px;
+  margin: 4px 3px;
+  background: var(--line);
+  flex: 0 0 auto;
 }
 
 .active,

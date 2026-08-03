@@ -1,8 +1,19 @@
-# Galileo data pipeline (Databricks → static JSON)
+# Galileo data pipeline (Databricks → payloads)
 
-Regenerates the JSON files the Next app bakes in at build time, querying three
-Unity Catalog tables instead of the old Excel workbook. This is the real,
-runnable replacement for `../reference-data-pipeline/` (kept only as history).
+Turns three Unity Catalog tables into the four payloads the dashboard renders.
+
+Before changing the pipeline or its frontend contract, read
+[`../DATA_PIPELINE_READTHROUGH.md`](../DATA_PIPELINE_READTHROUGH.md).
+
+These scripts run in **two places, with one implementation**:
+
+- **At runtime**, called by `../data_service.py` on a cache miss. This is how the
+  live dashboard gets its data — no build, no commit.
+- **Offline**, via `run.py`, writing into `../src/data/` for inspection. Those
+  files are gitignored: they are a debugging convenience, not the source.
+
+The two modes differ only in where the files land, through `GALILEO_RAW_JSON`
+and `GALILEO_DATA_DIR`.
 
 ## Sources
 
@@ -15,21 +26,35 @@ runnable replacement for `../reference-data-pipeline/` (kept only as history).
 Table names are overridable via `GALILEO_TABLE`, `GALILEO_COVERAGE_TABLE`,
 `GALILEO_MAPPING_TABLE`.
 
-## Outputs (regenerated)
+## Getting a new month in
 
-`../src/data/`: `content.json`, `db.json`, `content_trends.json`, `site_analysis.json`.
-Hand-written `content_comments.json` and `story.json` are left untouched.
+1. Drop the CSV into `/Volumes/sbx-logistics/gli_nexus/galileo_volume`.
+2. Run `galileo_datauploading.py` (import it into the workspace as a notebook).
+   It picks the newest `SQL Source*.csv`, detects its encoding, validates it and
+   overwrites the tables.
+3. Nothing else. The app rebuilds its payloads within `GALILEO_CACHE_TTL`
+   (10 minutes). To see it immediately, `POST /galileo/api/refresh`.
 
-## Run
+Uploading to the Volume on its own changes nothing — no job watches it. The
+notebook is what loads the tables.
+
+## Outputs
+
+`content.json`, `db.json`, `content_trends.json`, `site_analysis.json` — served
+from `/galileo/api/*.json`. Hand-written `content_comments.json` and `story.json`
+are not produced here and are still imported at build time.
+
+## Run offline
 
 ```bash
 pip install -r data_pipeline/requirements.txt        # once
 DATABRICKS_CONFIG_PROFILE=luxottica \
 DATABRICKS_WAREHOUSE_ID=2663c9a13af5c078 \
 python data_pipeline/run.py
-npm run build          # re-bake the static export in out/
-# commit src/data/*.json and out/
 ```
+
+Writes into `../src/data/` (gitignored). Useful to diff a payload or check the
+reporting window; the deployed app does not read those files.
 
 Connection/auth reuses `kelly_dashboard/data_loader.py` (the same helpers Cortana
 uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
@@ -43,7 +68,27 @@ uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
   coverage% / driver, plus scope) has no source table and is hand-seeded in
   `build_content.py` (`STRUCTURAL_ROWS`). Edit there if the Content taxonomy
   changes.
-- **Coverage %**: `coverage_galileo.Coverage` is a per-site percent string
-  (`"94%"`). The Coverage page's "Coverage % vol" per area is the **mean** of its
-  sites' percentages. Change `build_coverage_efficiency` if a different roll-up
-  (e.g. volume-weighted) is wanted.
+- **Coverage contract**: `coverage_galileo` mirrors `Coverage Galileo.csv` and
+  the authoritative `Galileo Frontend.xlsx` formulas. For each Product x Area,
+  `Estimated Volume` is the denominator and a row contributes its full
+  `Estimated Volume` to the numerator when `Galileo Volume > 0`. The published
+  `Coverage % vol` is `sum(covered estimated volume) / sum(estimated volume)`.
+  The source `Coverage` column may remain for traceability, but the builder
+  recomputes the result. Active builds reject missing required headers.
+- **Sites not mapped** (`coverage_page.mappings_under_review`, the panel at the
+  bottom of the Coverage page): a site counts as *not mapped* when it has no
+  `Galileo Volume`; each one is weighted by its `Estimated Volume` share of the
+  product×area total. `Galileo Volume` and `Estimated Volume` are required in
+  production. Historical fallback branches remain for isolated legacy inputs,
+  but the active build rejects a Coverage table missing either column.
+- **Area order** (`GEOS` = EMEA → NA → APAC → LATAM) drives `geo_options` and
+  `area_options`; it mirrors `GEO_AREAS` in `../src/data/geo.ts`. Keep the two
+  in sync or the UI tabs and the payload will disagree.
+- **Determinism is a requirement, not a nicety.** Payload ETags are hashes of the
+  serialised bytes, so output that varies at identical data makes every client
+  re-download on every rebuild. Sort anything derived from a `set` before it
+  reaches the JSON — `build_content.py` does this for the `drills` keys and the
+  Export Labs list.
+- **`Customer Country` is load-bearing.** It drives the Export Labs → EMEA
+  reattribution (~60% of Export Labs pieces). A load that drops it fails loudly
+  with `KeyError` rather than silently shifting volume from EMEA to APAC.

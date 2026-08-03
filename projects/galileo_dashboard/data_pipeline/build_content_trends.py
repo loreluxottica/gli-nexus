@@ -14,7 +14,7 @@ from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-DATA = os.path.join(ROOT, "src", "data")
+DATA = os.environ.get("GALILEO_DATA_DIR") or os.path.join(ROOT, "src", "data")
 DB_PATH = os.path.join(DATA, "db.json")
 CONTENT_PATH = os.path.join(DATA, "content.json")
 OUT_PATH = os.path.join(DATA, "content_trends.json")

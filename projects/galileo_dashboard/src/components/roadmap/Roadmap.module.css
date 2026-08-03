@@ -1,0 +1,1156 @@
+/* ===========================================================================
+   Development roadmap — DETACHABLE MODULE.
+   Everything the feature needs lives here: the page frame (used by
+   src/app/roadmap/page.tsx), the chart, and the landing entry link.
+   Palette is module-local (--rm-*) exactly like the landing's --lp-*, so
+   globals.css and the Daylight theme of the app routes stay untouched.
+   ======================================================================== */
+
+.page {
+  /* Night palette, shared visual family with the landing. */
+  --rm-ink: #eaf0fa;
+  --rm-soft: #b9c5d8;
+  --rm-faint: #7f8fa6;
+  --rm-line: rgba(255, 255, 255, 0.1);
+  --rm-line-strong: rgba(255, 255, 255, 0.18);
+  /* Selection/interaction accent. Deliberately LIGHTER than --rm-run below:
+     when the two were the same value, the ring around a running bar was the
+     same colour as the bar, so "selected" and "in progress" collapsed. */
+  --rm-accent: #b6ccff;
+  --rm-accent-rgb: 182, 204, 255;
+
+  /* Status encoding: green delivered · blue running · ghost planned.
+     The TODAY marker is amber so it never reads as one of the three. */
+  --rm-done: #6fd79a;
+  --rm-done-fill: rgba(111, 215, 154, 0.2);
+  --rm-done-line: rgba(111, 215, 154, 0.55);
+  --rm-run: #7aa2ff;
+  --rm-run-solid: #2553e9;
+  --rm-plan-line: rgba(174, 192, 224, 0.42);
+  --rm-today: #f5c451;
+
+  /* Chart geometry. Only a lane carrying milestone flags needs room under its
+     bar for their labels; the others get the short track, which is where most
+     of the reclaimed vertical space comes from. */
+  --rm-label-w: 186px;
+  --rm-gap: 22px;
+  --rm-track-h: 76px;
+  --rm-track-tall: 104px;
+  --rm-axis-h: 42px;
+  --rm-pad-top: 16px;
+
+  position: relative;
+  z-index: 1;
+  /* The whole roadmap is meant to be taken in at once, so the page is a
+     column that fills exactly one viewport and never hands off to the
+     scrollbar. Galaxy and the topbar are both fixed, so the shell is the
+     only child actually in flow here. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* On a viewport too short to hold the plan, plain centring would push the
+     header off the top edge with no way to scroll back to it. "safe" falls
+     back to start alignment exactly in that case; browsers that do not know
+     the keyword keep the line above. */
+  justify-content: safe center;
+  /* Top clears the fixed topbar; both ends give way on short screens. */
+  padding: clamp(70px, 8vh, 96px) 24px clamp(16px, 3vh, 40px);
+  background:
+    radial-gradient(120% 80% at 70% -10%, #1d2c4d 0%, rgba(29, 44, 77, 0) 60%),
+    #131c30;
+  color: var(--rm-soft);
+}
+
+/* --- Topbar (fixed), mirrors the landing ---------------------------------- */
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px;
+  background: linear-gradient(rgba(19, 28, 48, 0.9), rgba(19, 28, 48, 0));
+}
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  text-decoration: none;
+}
+.wordmarkName {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rm-ink);
+}
+.wordmarkOrg {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--rm-faint);
+}
+.topbarLinks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbarLink {
+  font-family: var(--mono), monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rm-ink);
+  text-decoration: none;
+  padding: 9px 14px;
+  border: 1px solid var(--rm-line-strong);
+  border-radius: 999px;
+  background: rgba(14, 21, 38, 0.6);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.topbarLink:hover {
+  border-color: var(--rm-accent);
+  background: rgba(var(--rm-accent-rgb), 0.1);
+}
+
+/* --- Shell ---------------------------------------------------------------- */
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(1240px, 100%);
+  /* Sized by its content and centred by the page, rather than stretched to
+     fill the viewport. Stretching is what made the panel swell to absorb
+     every leftover pixel. */
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  padding: 22px 30px 24px;
+  border: 1px solid var(--rm-line);
+  border-radius: 16px;
+  background: rgba(13, 20, 37, 0.62);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9);
+}
+/* Presenting no longer adds any chrome of its own — stepping is a keyboard
+   job — so the shell keeps its normal padding in both modes. */
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 24px;
+  margin-bottom: 18px;
+}
+.headText {
+  min-width: 260px;
+}
+.title {
+  margin: 0;
+  font-size: clamp(21px, 2.4vw, 29px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--rm-ink);
+}
+/* Header signal: the plan read as one live number, fading in once "now" is
+   known on the client (it is not in the static HTML, like the TODAY line). */
+.signal {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 9px 0 0;
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--rm-faint);
+  animation: rmFadeIn 0.5s ease both;
+}
+.signal em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--rm-run);
+}
+.signalDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rm-run);
+  animation: rmPulse 2.2s ease-out infinite;
+}
+@keyframes rmPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(122, 162, 255, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgba(122, 162, 255, 0);
+  }
+}
+@keyframes rmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.headTools {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--rm-faint);
+}
+.swatch {
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.swatch.done {
+  background: var(--rm-done-fill);
+  border-color: var(--rm-done-line);
+}
+.swatch.active {
+  background: var(--rm-run-solid);
+  border-color: var(--rm-run);
+}
+.swatch.planned {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--rm-plan-line);
+}
+
+.present {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--rm-run-solid);
+  cursor: pointer;
+  box-shadow: 0 12px 30px -14px rgba(37, 83, 233, 0.9);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.present:hover {
+  transform: translateY(-1px);
+  background: #3d6bff;
+}
+
+/* --- Chart ---------------------------------------------------------------- */
+.chart {
+  position: relative;
+  flex: 0 0 auto; /* sized by its lanes; the panel takes what is left */
+  padding-top: var(--rm-pad-top);
+}
+
+.axisRow,
+.lane {
+  display: grid;
+  grid-template-columns: var(--rm-label-w) 1fr;
+  gap: 0 var(--rm-gap);
+  align-items: center;
+}
+.axisRow {
+  height: var(--rm-axis-h);
+}
+.lane {
+  height: var(--rm-track-h);
+  border-top: 1px solid var(--rm-line);
+}
+/* Milestone flags hang below the bar and need the room; lanes without them
+   were paying for space they never used. */
+.hasGates {
+  height: var(--rm-track-tall);
+}
+.track {
+  position: relative;
+  height: 100%;
+}
+
+/* Axis = a year strip over a month strip, so a plan crossing new year reads
+   without repeating the year on every month. */
+.yearBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18px;
+}
+.yearSeg {
+  position: absolute;
+  top: 0;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  padding-left: 9px;
+  border-left: 1px solid var(--rm-line-strong);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--rm-soft);
+}
+.monthBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 24px;
+}
+.month {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rm-faint);
+  text-align: center;
+}
+
+.laneLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.laneTitle {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--rm-ink);
+}
+.laneSub {
+  font-size: 12.5px;
+  color: var(--rm-faint);
+}
+
+/* Gridlines + TODAY marker, drawn once behind every lane. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.grid {
+  position: absolute;
+  left: calc(var(--rm-label-w) + var(--rm-gap));
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+.gridline {
+  position: absolute;
+  top: calc(var(--rm-pad-top) + var(--rm-axis-h));
+  bottom: 0;
+  width: 1px;
+  background: var(--rm-line);
+}
+/* Elapsed wash: everything left of TODAY recedes, so delivered vs. ahead
+   reads before a single bar is parsed. Fades out toward the marker. */
+.past {
+  position: absolute;
+  left: 0;
+  top: calc(var(--rm-pad-top) + var(--rm-axis-h));
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(6, 10, 20, 0.24), rgba(6, 10, 20, 0.05));
+}
+/* Year boundary: stronger than a month gridline, runs the full chart. */
+.yearline {
+  position: absolute;
+  top: var(--rm-pad-top);
+  bottom: 0;
+  width: 1px;
+  background: var(--rm-line-strong);
+}
+.today {
+  position: absolute;
+  top: calc(var(--rm-pad-top) + 20px);
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(var(--rm-today), rgba(245, 196, 81, 0.35));
+  border-radius: 2px;
+}
+.todayTag {
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #24170a;
+  background: var(--rm-today);
+  white-space: nowrap;
+  animation: rmTodayGlow 2.4s ease-out infinite;
+}
+@keyframes rmTodayGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 196, 81, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(245, 196, 81, 0);
+  }
+}
+
+/* --- Bars ----------------------------------------------------------------- */
+.slot {
+  transition: opacity 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.shown {
+  opacity: 1;
+  transform: none;
+}
+.hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+.faded {
+  opacity: 0.4;
+}
+
+.bar {
+  position: absolute;
+  top: 20px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid;
+  font: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.bar:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+}
+/* Delivered = set in stone: opaque fill, a carved inner edge, a lit top and a
+   shadowed base. No motion, and it does not lift on hover. */
+.bar.done {
+  background: rgba(111, 215, 154, 0.26);
+  border-color: var(--rm-done-line);
+  color: #dff6e9;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.34),
+    0 1px 0 rgba(0, 0, 0, 0.45);
+}
+.bar.done .barLabel {
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+.bar.done:hover {
+  transform: none;
+}
+
+/* In progress = a live building site: the stretch still to be built carries
+   slow moving stripes, and the working edge breathes. */
+.bar.active {
+  background-color: rgba(37, 83, 233, 0.28);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.055) 0 8px,
+    rgba(255, 255, 255, 0) 8px 16px
+  );
+  border-color: var(--rm-run);
+  color: #fff;
+  animation: rmBuild 2s linear infinite;
+}
+
+/* Planned = pending: the dashed edge breathes and a soft light passes over
+   the bar every few seconds. The edge carries the effect because on a bar
+   this transparent the dashes are the only thing the eye can hold onto. */
+.bar.planned {
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+  border-color: var(--rm-plan-line);
+  color: var(--rm-soft);
+  animation: rmPending 3.8s ease-in-out infinite;
+}
+.bar.planned::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 38%,
+    rgba(200, 216, 245, 0.16) 50%,
+    transparent 62%
+  );
+  transform: translateX(-110%);
+  animation: rmPendingSweep 3.8s ease-in-out infinite;
+}
+
+@keyframes rmBuild {
+  to {
+    /* one full stripe period, so the loop is seamless */
+    background-position: 22.63px 0;
+  }
+}
+@keyframes rmPending {
+  0%,
+  100% {
+    border-color: rgba(174, 192, 224, 0.28);
+    opacity: 0.82;
+  }
+  50% {
+    border-color: rgba(174, 192, 224, 0.78);
+    opacity: 1;
+  }
+}
+@keyframes rmPendingSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  62%,
+  100% {
+    transform: translateX(110%);
+  }
+}
+@keyframes rmEdge {
+  0%,
+  100% {
+    box-shadow: 5px 0 10px -6px rgba(122, 162, 255, 0.5);
+  }
+  50% {
+    box-shadow: 10px 0 18px -4px rgba(122, 162, 255, 0.9);
+  }
+}
+/* Selected bar: accent ring plus a glow carried by drop-shadow (a filter, so
+   it layers over each status' own box-shadow instead of replacing it). The
+   hover brightness is overridden here to keep the glow stable. */
+.bar.current {
+  outline: 2px solid var(--rm-accent);
+  outline-offset: 2px;
+  filter: drop-shadow(0 0 12px rgba(var(--rm-accent-rgb), 0.45));
+}
+.bar:focus-visible {
+  outline: 2px solid var(--rm-accent);
+  outline-offset: 2px;
+}
+.present:focus-visible,
+.topbarLink:focus-visible {
+  outline: 2px solid var(--rm-accent);
+  outline-offset: 2px;
+}
+.progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, var(--rm-run-solid), #4f79f2);
+  border-right: 2px solid var(--rm-ink);
+  animation: rmEdge 2.6s ease-in-out infinite;
+}
+.barLabel {
+  position: relative;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.tail {
+  position: absolute;
+  right: 9px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+
+/* --- Milestones on the bar ------------------------------------------------ */
+/* Straddling the bar's BOTTOM edge: still visibly attached to the bar, but
+   clear of the caption above it and of the bar's own label inside it. */
+/* Anchored to the bar's bottom edge: top offset (20) + bar height (38). */
+.ms {
+  position: absolute;
+  top: 58px;
+  width: 0;
+}
+/* Validation gates carry the story of the accounting lane, so they are drawn
+   as bright flags with a dark halo that lifts them off the bar underneath. */
+.msDot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 2px solid;
+  transform: translate(-50%, -50%) rotate(45deg);
+  box-shadow: 0 0 0 3px rgba(16, 24, 43, 0.9);
+}
+.ms.done .msDot {
+  background: var(--rm-done);
+  border-color: #c2f2d8;
+}
+.ms.planned .msDot,
+.ms.active .msDot {
+  background: #e8effc;
+  border-color: #ffffff;
+}
+.msLabel {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translateX(-50%);
+}
+.ms[data-align="right"] .msLabel {
+  transform: translateX(-100%);
+  align-items: flex-end;
+}
+.ms[data-align="left"] .msLabel {
+  transform: none;
+  align-items: flex-start;
+}
+.msName {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rm-ink);
+  white-space: nowrap;
+}
+.msWhen {
+  font-family: var(--mono), monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--rm-faint);
+  white-space: nowrap;
+}
+.ms.done .msName {
+  color: var(--rm-done);
+}
+
+/* --- Detail panel ---------------------------------------------------------
+   The destination, not a footnote. The chart answers "when and how far along"
+   on its own, so NOTHING here repeats it: no dates chip, no status pill, no
+   second progress figure. What is left is the substance a bar cannot carry. */
+.panel {
+  /* Height comes from .panelStack below: exactly the tallest phase, measured
+     by the browser. No absorbed leftover space, and no guessed min-height to
+     go stale the next time the content is edited. */
+  flex: 0 0 auto;
+  margin-top: 20px;
+  padding: 22px 28px 24px;
+  border: 1px solid var(--rm-line-strong);
+  border-radius: 14px;
+  background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 22px 48px -30px rgba(0, 0, 0, 0.85);
+}
+
+/* Every phase stacked into ONE grid cell. Hidden layers keep their box (that
+   is the whole point of `visibility` over `display: none`), so the cell is as
+   tall as the tallest phase and the panel cannot change size between steps.
+   The empty-state hint shares the cell, so even deselecting holds the height. */
+.panelStack {
+  display: grid;
+}
+.panelStack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.panelLayer[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+/* Head: quiet eyebrow and the phase said in full, with the status pushed to
+   the opposite end — there was width going spare and no height to spare.
+   Separated from the body by a hairline. */
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rm-line);
+}
+.panelId {
+  min-width: 0;
+}
+.panelLane {
+  display: block;
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-faint);
+}
+.panelLaneSep {
+  margin: 0 8px;
+  opacity: 0.5;
+}
+.panelTitle {
+  margin: 6px 0 0;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--rm-ink);
+}
+/* Status word alone. Every date the chart already plots — the span, the end
+   month, the weeks remaining — is deliberately absent. */
+.stance {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding-bottom: 3px; /* sits on the title's baseline */
+  font-size: 13.5px;
+}
+.stanceStatus {
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.stanceStatus.done {
+  color: var(--rm-done);
+}
+.stanceStatus.active {
+  color: var(--rm-run);
+}
+.stanceStatus.planned {
+  color: var(--rm-soft);
+}
+
+/* Panel body: substance, then payoff, then gates — each its OWN column.
+   Stacking payoff above gates made the body as tall as the two combined,
+   which is what pushed Phase 2 (three gates) past the panel and produced a
+   scrollbar. Side by side the body is only as tall as its tallest group.
+   The panel is 1240px wide, so the width was there for the taking. */
+.panelGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 22px 36px;
+  margin-top: 18px;
+}
+.withGates {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr) minmax(190px, 0.8fr);
+}
+.substance {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.aside {
+  min-width: 0;
+  padding-left: 28px;
+  border-left: 1px solid var(--rm-line);
+}
+.group {
+  min-width: 0;
+}
+.colTitle {
+  margin: 0 0 12px;
+  font-family: var(--mono), monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rm-faint);
+}
+
+/* Points of substance. Every row is marker + text on a fixed two-column grid,
+   so a dot, a "+" and an icon all leave the prose on the same left edge. */
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 2px 0 0;
+  list-style: none;
+}
+.points li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.marker {
+  display: grid;
+  place-items: center;
+  height: 22px; /* matches the first line box, so markers sit on the cap line */
+  font-family: var(--mono), monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--rm-accent);
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rm-accent);
+}
+/* A pill is a single tall line box, so its marker centres on it; plain prose
+   can wrap, and there the marker must stay on the first line. */
+.points li:has(.emphasis) {
+  align-items: center;
+}
+.pointBody {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.pointText {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--rm-ink);
+}
+/* Additions read brighter than improvements: new capability is the part of
+   the plan a stakeholder is being asked to care about. */
+.pointsAdd .marker {
+  font-size: 17px;
+  color: var(--rm-accent);
+}
+.pointsAdd .pointText {
+  color: #fff;
+}
+.bulletIcon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: var(--rm-accent);
+}
+/* Feature pill: what separates a real added capability from a line of
+   detail. The "+" stays outside it, so the row reads "+ ⟨ Wearables ⟩". */
+.pointBody.emphasis {
+  padding: 8px 17px 8px 13px;
+  border: 1px solid var(--rm-accent);
+  border-radius: 999px;
+  background: rgba(var(--rm-accent-rgb), 0.13);
+  box-shadow: 0 0 20px -7px rgba(var(--rm-accent-rgb), 0.6);
+}
+.pointBody.emphasis .pointText {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.pointBody.emphasis .bulletIcon {
+  width: 19px;
+  height: 19px;
+  color: #dfeaff;
+}
+/* Gates: the milestone timeline the bars can only hint at — a vertical rail
+   of diamonds, done ones filled green, the next one lit with the accent. */
+.gates {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin: 0;
+  padding: 2px 0 0;
+  list-style: none;
+}
+.gates li {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap; /* the aside is narrow — let "end of year" drop a line */
+  gap: 4px 9px;
+  padding-left: 27px;
+}
+.gates li::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 15px;
+  bottom: -14px;
+  width: 1px;
+  background: var(--rm-line-strong);
+}
+.gates li:last-child::before {
+  content: none;
+}
+.gateDot {
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--rm-plan-line);
+  border-radius: 3px;
+  transform: rotate(45deg);
+}
+.gates li.done .gateDot {
+  background: var(--rm-done);
+  border-color: #c2f2d8;
+}
+.gates li.next .gateDot {
+  border-color: var(--rm-accent);
+  box-shadow: 0 0 12px -2px rgba(var(--rm-accent-rgb), 0.85);
+}
+.gateLabel {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--rm-ink);
+}
+.gates li.done .gateLabel {
+  color: var(--rm-faint);
+}
+.nextTag {
+  padding: 1px 7px;
+  border: 1px solid var(--rm-accent);
+  border-radius: 999px;
+  font-family: var(--mono), monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rm-accent);
+}
+
+/* The payoff line. Set larger and lighter than the surrounding metadata —
+   it is the sentence a stakeholder should leave the slide remembering. */
+.impact {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--rm-ink);
+  text-wrap: balance;
+}
+
+.hint {
+  margin: 0;
+  padding: 62px 0;
+  text-align: center;
+  font-size: 14.5px;
+  color: var(--rm-faint);
+}
+.hint strong {
+  color: var(--rm-soft);
+}
+
+/* --- Present mode indicator -----------------------------------------------
+   There are no step buttons: ← → Home End drive the walkthrough, and the
+   header toggle enters and leaves it. All that remains to display is the
+   position, so it sits inline with the legend instead of in a floating card
+   that covered the panel and had to have its height reserved. */
+.stepNow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--rm-line);
+  font-family: var(--mono), monospace;
+  font-size: 13px;
+}
+.stepIdx {
+  font-weight: 700;
+  color: var(--rm-ink);
+}
+.stepOf {
+  color: var(--rm-faint);
+}
+.kbdHint {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+}
+.kbdHint kbd,
+.hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--rm-line-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--mono), monospace;
+  font-size: 11px;
+  color: var(--rm-faint);
+}
+
+/* --- Landing entry link (rendered on "/" by RoadmapLink) ------------------ */
+.landingLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #eaf0fa;
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+/* Literal colours on purpose: this link renders on "/", inside the landing's
+   own .page, so the roadmap's --rm-* scope does not reach it. */
+.landingLink:hover {
+  transform: translateY(-1px);
+  border-color: #b6ccff;
+  background: rgba(182, 204, 255, 0.12);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 900px) {
+  /* Stacked on a phone the plan cannot fit one screen, and pretending
+     otherwise would squash it — so the one-viewport layout is handed back
+     to normal document flow here. */
+  .page {
+    --rm-label-w: 0px;
+    --rm-gap: 0px;
+    --rm-track-h: 106px;
+    display: block;
+    padding: 88px 16px 96px;
+  }
+  .shell {
+    flex: none;
+    max-height: none;
+    display: block;
+    padding: 22px 16px 24px;
+  }
+  .hasGates {
+    height: auto;
+  }
+  .panel {
+    flex: none;
+    min-height: 0;
+  }
+  .panel {
+    padding: 16px 18px 18px;
+  }
+  .panelGrid,
+  .withGates {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  /* Stacked: the gates rail sits under the substance, so its divider has to
+     move from the left edge to the top. */
+  .aside {
+    padding-left: 0;
+    padding-top: 20px;
+    border-left: 0;
+    border-top: 1px solid var(--rm-line);
+  }
+  .axisRow,
+  .lane {
+    grid-template-columns: 1fr;
+    height: auto;
+    align-items: stretch;
+  }
+  .axisRow {
+    height: auto;
+  }
+  .lane {
+    padding: 10px 0 0;
+  }
+  .laneLabel {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 6px;
+  }
+  .track {
+    height: var(--rm-track-h);
+  }
+  .gridline,
+  .yearline,
+  .past {
+    top: 0;
+  }
+  .today {
+    top: 0;
+  }
+  .todayTag {
+    display: none;
+  }
+  .kbdHint {
+    display: none; /* no physical keyboard to hint at */
+  }
+  .headTools {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .bar,
+  .present,
+  .landingLink {
+    transition: none;
+  }
+  .bar.active,
+  .bar.planned,
+  .bar.planned::after,
+  .progress,
+  .signal,
+  .signalDot,
+  .todayTag {
+    animation: none;
+  }
+  .bar.planned::after {
+    display: none;
+  }
+  .hidden {
+    transform: none;
+  }
+}

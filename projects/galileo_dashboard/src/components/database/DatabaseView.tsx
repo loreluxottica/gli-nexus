@@ -1,16 +1,22 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { useSearchParams } from "next/navigation";
 import type { DatabasePage, DbRow } from "@/data/types";
+import { loadPayload } from "@/data/api";
 import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
 import { fmtInt } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
-import { Tour, type TourStep } from "@/components/ui/Tour";
+import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
 import { MappingGrid } from "./MappingGrid";
 import { DbTable } from "./DbTable";
 import styles from "./Database.module.css";
+
+const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
+  ssr: false,
+});
 
 /** Walkthrough of how to explore the source records. The flow: browse the
  *  records for granularity, then — if a site is unclear — drill into the
@@ -93,12 +99,13 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
   const raw = useSearchParams().get("area");
   const area = isGeoArea(raw) ? raw : GEO_DEFAULT;
 
-  // Heavy records (944 KB) lazy-loaded ONLY when this route mounts (MASTER §7).
+  // Heavy records (~1.1 MB) fetched ONLY when this route mounts (MASTER §7).
+  // Served with an ETag, so a revisit is a 304 rather than another megabyte.
   const [rows, setRows] = useState<DbRow[] | null>(null);
   useEffect(() => {
     let alive = true;
-    import("@/data/db.json").then((m) => {
-      if (alive) setRows((m.default ?? m) as unknown as DbRow[]);
+    loadPayload<DbRow[]>("db").then((data) => {
+      if (alive) setRows(data);
     });
     return () => {
       alive = false;
@@ -274,12 +281,14 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
         </div>
       )}
 
-      <Tour
-        steps={TOUR_STEPS}
-        open={tourOpen}
-        onClose={() => setTourOpen(false)}
-        label="Database tutorial"
-      />
+      {tourOpen ? (
+        <Tour
+          steps={TOUR_STEPS}
+          open
+          onClose={() => setTourOpen(false)}
+          label="Database tutorial"
+        />
+      ) : null}
     </section>
   );
 }
