@@ -23,7 +23,7 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 _PORTAL_DIR = os.path.join(_ROOT, "portal")
-_PORTAL = os.path.join(_PORTAL_DIR, "index-single.html")
+_PORTAL = os.path.join(_PORTAL_DIR, "index.html")
 
 # Make the sub-projects importable as top-level packages
 # (e.g. `import kelly_dashboard`), matching each project's own sys.path shim.
@@ -56,6 +56,13 @@ def portal_js(filename):
     return send_from_directory(os.path.join(_PORTAL_DIR, "js"), filename)
 
 
+@root.route("/assets/<path:filename>")
+def portal_assets(filename):
+    return send_from_directory(os.path.join(_PORTAL_DIR, "assets"), filename)
+
+
+# Kept for one compatibility cycle so cached copies of the previous portal can
+# still resolve their branding assets after the new portal is released.
 @root.route("/GLI-Branding/<path:filename>")
 def portal_branding(filename):
     return send_from_directory(os.path.join(_PORTAL_DIR, "GLI-Branding"), filename)

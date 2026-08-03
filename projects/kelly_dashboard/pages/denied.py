@@ -12,7 +12,12 @@ from kelly_dashboard.warehouses import get_warehouse
 
 def layout(warehouse_id: str = "") -> html.Div:
     wh = get_warehouse(warehouse_id)
-    label = wh["label"] if wh else (warehouse_id.title() or "this plant")
+    if wh:
+        label = wh["label"]
+    elif warehouse_id:
+        label = warehouse_id.title()
+    else:
+        label = "Project Kelly"
 
     skeleton = html.Div([
         html.Div(className="sidebar"),

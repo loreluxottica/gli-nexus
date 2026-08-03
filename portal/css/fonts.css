@@ -1,0 +1,73 @@
+/* ============================================================
+   GLI NEXUS — EssilorLuxottica brand type (Avenir LT Std)
+   Self-hosted from portal/assets/fonts. Weights not in the pack
+   (600, 700, 800) map to the nearest available face so existing
+   font-weight rules keep working without synthetic bold.
+   Mono is still IBM Plex Mono (no mono cut in the brand pack).
+   ============================================================ */
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Book.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-BookOblique.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Semibold → Medium (no 65+ cut between Medium and Black) */
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Medium.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold / extrabold / black → Black */
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Black.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Black.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Avenir LT Std";
+  src: url("../assets/fonts/AvenirLTStd-Black.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}

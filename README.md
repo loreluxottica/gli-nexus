@@ -3,7 +3,7 @@
 Databricks App unica che espone il **portale GLI Nexus** come front-end e ospita
 più sotto-progetti sotto un singolo server (un solo deploy).
 
-Il portale (`portal/gli_nexus_portal.html`) è servito a `/`; ogni progetto è
+Il portale (`portal/index.html`) è servito a `/`; ogni progetto è
 montato a un subpath (es. Project Kelly a `/kelly/`).
 
 ---
@@ -16,7 +16,10 @@ gli-nexus/
 ├── app.yaml               ← command Databricks (gunicorn app:application)
 ├── requirements.txt       ← deps root + include quelle dei progetti
 ├── portal/
-│   └── gli_nexus_portal.html   ← front-end (coverflow launcher)
+│   ├── index.html           ← launcher, vista prodotto e schede dettaglio
+│   ├── assets/             ← monoliti e immagini del portale
+│   ├── css/                ← stile responsive delle tre viste
+│   └── js/                 ← roster, accessi e controller UI
 ├── projects/
 │   ├── kelly_dashboard/   ← Project Kelly — forecast assenteismo (Dash)
 │   │   ├── app.py         ← app Dash (standalone o montata a subpath)
@@ -31,7 +34,7 @@ gli-nexus/
 │   │   ├── src/data/*.json← dati "baked" a build-time (rigenerati dal pipeline)
 │   │   └── data_pipeline/ ← offline: Databricks → JSON (dev, non a runtime)
 │   └── laplace_dashboard/ ← Laplace Pipeline Monitor (report HTML da tabella UC)
-│       ├── server.py      ← blueprint Flask: /laplace/ (gated, project LAPLACE)
+│       ├── server.py      ← blueprint Flask: /laplace/ (gated, project LAPLACEPIPELINE)
 │       └── data_pipeline/ ← publish_to_nexus.py: cella notebook di publish
 └── reference/             ← materiale frontend di riferimento (gitignored)
 ```
@@ -158,14 +161,20 @@ Le modifiche si propagano senza redeploy (cache TTL ~3 min, env
 `sbx-logistics.gli_nexus.user_access`), `KELLY_PROJECT_KEY` (default `KELLY`),
 `KELLY_DEV_USER_EMAIL` (solo sviluppo locale, ignorata quando deployata).
 
-Chiavi progetto canoniche (colonna `project`): `KELLY`,
-`VOLUMESDATAENTRY`, `CORTANA`, `GALILEO`, `LAPLACE`, `*`.
+Chiavi progetto canoniche (colonna `project`): `KELLY`, `VOLUMESDATAENTRY`,
+`CORTANA`, `GALILEO`, `LAPLACEPIPELINE`, `LAPLACEMULTIDOC`, `FLAGS`, `*`.
 
-**Card del portale**: l'endpoint `/api/my-access` restituisce i progetti
-dell'utente; le card senza grant mostrano "Access restricted" (bottone
-disabilitato). ⚠ È solo UX: per le app esterne (es. Volume Data Entry)
-l'enforcement reale è il permesso *Can use* sull'app Databricks di
-destinazione — rimuoverlo agli utenti non autorizzati.
+**Portale**: `/api/my-access` restituisce i grant dell'utente. Il launcher e le
+schede prodotto restano consultabili, ma ogni destinazione parte chiusa finché
+l'API non risponde. Le CTA senza grant mostrano "Access restricted"; Prism, che
+non ha ancora una route, mostra "Coming soon". Laplace espone Pipeline Monitor,
+Multidocument CT e Flags Download come destinazioni autorizzate separatamente.
+Per le app esterne resta necessario anche il permesso Databricks *Can use*.
+I deep link supportati sono `?w=<id>`, `?w=<id>&d=1&s=<step>` e `?all=1`.
+Le schede Galileo, Kelly, Cortana e Intake incorporano gli intake e gli
+screenshot ricevuti in `Project Details/` (checklist di approvazione ancora
+aperte dove non firmate). Laplace e Prism restano contenuti dimostrativi:
+tutte le schede devono essere approvate dai product owner prima del rilascio.
 
 **Cortana Usage Monitor** (`/cortana/`): legge
 `sbx-logistics.gli_nexus.cortana_usage` (env `CORTANA_USAGE_TABLE`), cache
@@ -197,7 +206,7 @@ LAPLACE → THAI → REGIONS → PENDING → GARAGE) generato dal notebook Datab
 completo a `sbx-logistics.gli_nexus.laplace_report` (env
 `LAPLACE_REPORT_TABLE`); il blueprint serve l'ultima riga con cache 5 min
 (`LAPLACE_CACHE_TTL_S`). Ogni run del notebook (manuale o job schedulato)
-aggiorna la dashboard **senza redeploy**. Pagina gated dal progetto `LAPLACE`.
+aggiorna la dashboard **senza redeploy**. Pagina gated dal progetto `LAPLACEPIPELINE`.
 
 ---
 
@@ -213,9 +222,9 @@ Due pattern possibili:
   `shared.auth` (`auth.authorized("<CHIAVE>")`) e in `app.py` fai
   `root.register_blueprint(bp, url_prefix="/<nome>")`.
 
-Poi aggiungi la card nel portale (`DATA[]` in `portal/gli_nexus_portal.html`)
-con `link` e `project` (chiave della tabella accessi) e inserisci i grant in
-`user_access`.
+Poi aggiungi il prodotto a `NEXUS_WORLDS` in `portal/js/worlds-data.js`, con
+`link` e `project` (chiave della tabella accessi); aggiungi la scheda opzionale a
+`NEXUS_DETAILS` in `portal/js/detail-data.js` e inserisci i grant in `user_access`.
 
 ---
 

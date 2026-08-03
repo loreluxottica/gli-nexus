@@ -7,13 +7,15 @@
      NexusBG.setWorld({ type, accent, accent2 })
      NexusBG.setWarp(0..1)
    Mondi: "ai" (cortana), "cosmic" (galileo), "forecast" (kelly),
-   "docs" (laplace), "database" (data entry).
+   "docs" (laplace), "database" (intake).
    ============================================================ */
 
 const NexusBG = (function () {
   let canvas, ctx;
   let W = 0, H = 0, DPR = 1;
-  let world = { type: "ai", accent: "#00D9FF", accent2: "#FF2E97" };
+  /* Defaults match Cortana (first roster product) so a first paint
+     before setWorld never shows the old neon cyan/pink palette. */
+  let world = { type: "ai", accent: "#4C8FD1", accent2: "#8FC6FF" };
   let warp = 0;
   let t0 = performance.now();
   let running = false;
@@ -58,7 +60,7 @@ const NexusBG = (function () {
 
   /* ============================================================
      Mondo 1 · Cortana — NEURAL FIELD (assistente AI)
-     (animazione ripresa da nexus-single.html, resa a tutto schermo)
+     Campo neurale a tutto schermo.
      Campo neurale: nodi in orbita ellittica ampia collegati da una
      rete sinaptica, ciascuno con nucleo bianco, tutto converge in un
      core luminoso centrale. Blending normale su base scura.
@@ -182,8 +184,8 @@ const NexusBG = (function () {
   }
 
   /* ============================================================
-     Mondo 3 · Data Entry — DATABASE
-     (animazione ripresa da nexus-single.html, resa a tutto schermo)
+     Mondo 3 · Intake — DATABASE
+     Matrice database a tutto schermo.
      Matrice di celle che riempie il viewport + evidenziazioni che
      scorrono riga per riga (onda diagonale). Blending normale su base scura.
      ============================================================ */
@@ -215,7 +217,7 @@ const NexusBG = (function () {
 
   /* ============================================================
      Mondo 4 · Kelly — FORECAST ("previsione mirata")
-     (animazione ripresa da nexus-single.html, resa a tutto schermo)
+     Forecast a tutto schermo.
      Griglia di targeting a tutto schermo + tre curve di forecast a
      tutta larghezza + reticolo che vaga. Ambra. Blending normale.
      ============================================================ */
@@ -258,7 +260,7 @@ const NexusBG = (function () {
 
   /* ============================================================
      Mondo 5 · Laplace — DOCS (document intelligence)
-     (animazione ripresa da nexus-single.html, resa a tutto schermo)
+     Document intelligence a tutto schermo.
      Costellazione di documenti sparsi su tutto il viewport + linee di
      estrazione che convergono verso l'hub centrale pulsante. Blending normale.
      ============================================================ */
@@ -436,8 +438,8 @@ const NexusBG = (function () {
       ctx.scale(1 + warp * 0.24, 1 + warp * 0.24);
       ctx.translate(-W / 2, -H / 2);
     }
-    // I mondi ripresi da nexus-single (ai/database/forecast/docs) sono
-    // calibrati per il blending normale su una base scura; gli altri
+    // I mondi ai/database/forecast/docs sono calibrati per il blending
+    // normale su una base scura; gli altri
     // (cosmic/spectrum) usano il blending additivo storico.
     const nexusStyle = world.type === "ai" || world.type === "database" || world.type === "forecast" || world.type === "docs";
     if (nexusStyle) {
@@ -518,6 +520,10 @@ const NexusBG = (function () {
     setWarp(v) {
       warp = Math.max(0, Math.min(1, v));
       if (reduced) start();
-    }
+    },
+    /* Pause while launcher/detail cover the stage (opacity:0 alone still
+       burns ~30fps). Resume when the overlay closes. */
+    pause() { pause(); },
+    resume() { if (enabled && !document.hidden) start(); }
   };
 })();

@@ -1,0 +1,636 @@
+/* ============================================================
+   GLI NEXUS — launcher "tutti i prodotti"
+   La suite è la home all'ingresso nel Nexus: card ricche in
+   griglia per famiglia, command-bar di ricerca, spotlight hover
+   (--mx / --my). Attivo con body.launcher-open.
+   ============================================================ */
+
+/* ============================================================
+   1 · L'INVITO — pulsante in testata
+   ============================================================ */
+
+.head-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid rgba(168, 182, 198, 0.18);
+  border-radius: var(--radius-pill);
+  background: rgba(5, 12, 27, 0.56);
+  backdrop-filter: blur(14px);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-2);
+  white-space: nowrap;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+.all-btn:hover, .all-btn:focus-visible {
+  color: var(--text-1);
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.all-btn svg { width: 0.95rem; height: 0.95rem; color: var(--accent); }
+.all-btn kbd {
+  padding: 0.14rem 0.36rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 5px;
+  font: inherit;
+  font-size: 0.55rem;
+  color: var(--text-3);
+}
+
+/* A venti prodotti i pallini non sono più un comando ragionevole:
+   restano come indicatore e vanno a capo invece di sfondare la
+   riga. Il salto da un prodotto all'altro lo fa il launcher. */
+.nexus-single .single-dots {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: min(28rem, 70vw);
+}
+
+/* ============================================================
+   2 · IL PANNELLO
+   ============================================================ */
+
+/* Attenzione: NIENTE opacity sul contenitore. Un antenato con
+   opacity < 1 crea un "backdrop root", e il backdrop-filter dello
+   scrim smetterebbe di vedere la pagina sotto: il blur sparisce.
+   Quindi il fade lo fanno lo scrim e i tre blocchi, ognuno per sé. */
+.launcher {
+  /* La suite è la home della piattaforma, non la pagina di un
+     prodotto: il suo accento è il blu GLI, non quello del mondo
+     che sta sotto. I colori dei prodotti restano sulle tile
+     (--paccent), dove significano qualcosa. */
+  --accent: var(--gli-blue);
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 320ms;
+}
+.launcher.is-open {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s;
+}
+/* Same defence as the detail layer: never let closed-state
+   descendants re-enable hit-testing over the Worlds view. */
+.launcher:not(.is-open),
+.launcher:not(.is-open) * {
+  pointer-events: none !important;
+}
+
+/* Fondale neutro e opaco: dietro l'elenco non deve restare il
+   mondo del prodotto che era a video (col blur si leggeva ancora
+   il suo nome in trasparenza). Stesso gradiente del body, più un
+   velo blu GLI: la suite ha lo sfondo della piattaforma. */
+.launcher-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 80% at 50% -10%,
+      rgba(var(--gli-blue-rgb), 0.13) 0%,
+      transparent 58%),
+    radial-gradient(115% 75% at 50% -12%,
+      var(--navy-nexus) 0%,
+      var(--navy-mid) 46%,
+      var(--navy-deep) 100%);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+/* la stessa texture del resto del sito: senza, il fondale è piatto */
+.launcher-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.028 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.launcher.is-open .launcher-scrim { opacity: 1; }
+
+/* L'app sotto si spegne mentre la suite entra: se restasse accesa
+   si vedrebbe il prodotto attraverso il fade dello scrim. */
+#worldCanvas { transition: opacity 300ms var(--ease-out); }
+body.launcher-open #worldCanvas { opacity: 0; }
+body.launcher-open .single-stage { opacity: 0; pointer-events: none; }
+
+.launcher-head,
+.launcher-body,
+.launcher-foot {
+  opacity: 0;
+  transition: opacity 260ms var(--ease-out) 60ms;
+}
+.launcher.is-open .launcher-head,
+.launcher.is-open .launcher-body,
+.launcher.is-open .launcher-foot { opacity: 1; }
+
+/* --- testata del pannello: lockup suite + titolo + command bar --- */
+.launcher-head {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.9rem, 2vw, 1.5rem);
+  padding: clamp(1.2rem, 2.4vw, 1.9rem) clamp(1.25rem, 4vw, 3.5rem) clamp(1rem, 1.8vw, 1.4rem);
+  border-bottom: 1px solid rgba(168, 182, 198, 0.1);
+}
+
+/* Lockup identità: è la home della suite, il marchio torna qui */
+.launcher-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: var(--track-hero);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+.launcher-brand span { color: var(--gli-blue); }
+.launcher-brand-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  filter: drop-shadow(0 0 10px rgba(47, 94, 255, 0.45));
+}
+
+.launcher-title {
+  position: relative;
+  margin: 0;
+  padding-left: clamp(0.9rem, 2vw, 1.5rem);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem);
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+/* filetto divisore tra lockup e titolo */
+.launcher-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 1.25em;
+  background: rgba(168, 182, 198, 0.2);
+}
+
+/* --- ricerca: command bar, il comando principale della suite --- */
+.lsearch {
+  position: relative;
+  margin-left: auto;
+  width: min(24rem, 40vw);
+}
+.lsearch svg {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  width: 0.95rem;
+  height: 0.95rem;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+.lsearch input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.6rem 4.6rem 0.6rem 2.6rem;
+  border: 1px solid rgba(168, 182, 198, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  color: var(--text-1);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.lsearch input::placeholder { color: var(--text-3); }
+.lsearch input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 24px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+/* hint "⏎ Apri": compare solo quando un filtro è attivo */
+.lsearch-hint {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  pointer-events: none;
+}
+.lsearch-hint[hidden] { display: none; }
+
+.lclose-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: none;
+}
+.lclose-wrap kbd {
+  padding: 0.18rem 0.45rem;
+  border: 1px solid rgba(168, 182, 198, 0.24);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-3);
+}
+.lclose {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 182, 198, 0.2);
+  color: var(--text-2);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.lclose:hover, .lclose:focus-visible {
+  color: var(--text-1);
+  border-color: var(--accent);
+  transform: rotate(90deg);
+}
+.lclose svg { width: 1rem; height: 1rem; }
+
+/* ============================================================
+   3 · LA GRIGLIA — card ricche, una per prodotto
+   ============================================================ */
+
+.launcher-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1.2rem, 2.6vw, 2.2rem) clamp(1.25rem, 4vw, 3.5rem) 2.2rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 40%, transparent) transparent;
+}
+.launcher-body::-webkit-scrollbar { width: 8px; }
+.launcher-body::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 36%, transparent);
+}
+
+.lsection {
+  max-width: 1160px;
+  margin: 0 auto clamp(1.6rem, 3.4vh, 2.6rem);
+}
+.lsection[hidden] { display: none; }
+.lsection-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-bottom: clamp(0.85rem, 1.8vh, 1.2rem);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.lsection-head b { color: var(--text-2); font-weight: 600; }
+/* filetti ai due lati: l'intestazione sta al centro come la griglia */
+.lsection-head::before,
+.lsection-head::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168, 182, 198, 0.18));
+}
+.lsection-head::after {
+  background: linear-gradient(90deg, rgba(168, 182, 198, 0.18), transparent);
+}
+
+/* 3 colonne a tutta larghezza, 2 su tablet, 1 su telefono */
+.lgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: clamp(0.7rem, 1.4vw, 1.1rem);
+}
+
+/* --- La card ---
+   Logo + name on one row, kicker under the name, tagline filling
+   the rest. Soft contrast and calm hover — no status chrome. */
+.ltile {
+  --tile: var(--paccent, var(--gli-blue));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  min-height: 11.5rem;
+  padding: clamp(1.15rem, 2vw, 1.55rem);
+  border-radius: 20px;
+  border: 1px solid rgba(168, 182, 198, 0.09);
+  background: linear-gradient(165deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0.014) 55%,
+    rgba(255, 255, 255, 0.022));
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-med) var(--ease-out);
+}
+.ltile[hidden] { display: none; }
+.ltile:hover, .ltile:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--tile) 32%, transparent);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.28),
+    0 0 24px color-mix(in srgb, var(--tile) 10%, transparent);
+}
+.ltile:active { transform: translateY(-1px); }
+
+/* Spotlight (pattern da testing ground): anello di bordo che
+   segue il cursore, stesso mask-trick del bordo di .dcard… */
+.ltile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--tile) 70%, transparent),
+    transparent 72%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--dur-med) var(--ease-out);
+  pointer-events: none;
+}
+/* …e alone interno abbinato */
+.ltile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, var(--tile) 12%, transparent),
+    transparent 75%);
+  opacity: 0;
+  transition: opacity var(--dur-med) var(--ease-out);
+  pointer-events: none;
+}
+.ltile:hover::before, .ltile:hover::after,
+.ltile:focus-visible::before, .ltile:focus-visible::after { opacity: 1; }
+
+/* riga alta: logo + name/kicker affiancati, riempie la card */
+.ltile-top {
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  width: 100%;
+  margin-bottom: 0.95rem;
+}
+
+.ltile-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 4.1rem;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--tile) 18%, transparent);
+  background:
+    radial-gradient(120% 120% at 30% 20%,
+      color-mix(in srgb, var(--tile) 16%, transparent),
+      transparent 62%),
+    color-mix(in srgb, var(--tile) 6%, rgba(255, 255, 255, 0.025));
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--tile) 8%, transparent);
+  transition: box-shadow var(--dur-med) var(--ease-out);
+}
+.ltile-art img {
+  width: 2.55rem;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.4));
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ltile:hover .ltile-art, .ltile:focus-visible .ltile-art {
+  box-shadow:
+    inset 0 0 16px color-mix(in srgb, var(--tile) 12%, transparent),
+    0 0 20px color-mix(in srgb, var(--tile) 18%, transparent);
+}
+.ltile:hover .ltile-art img, .ltile:focus-visible .ltile-art img {
+  transform: scale(1.04);
+}
+
+.ltile-identity {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ltile-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.12rem, 1.5vw, 1.32rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-1);
+}
+.ltile-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--tile) 78%, var(--text-2));
+  opacity: 0.92;
+}
+
+/* Tagline takes remaining space so cards feel full, not sparse */
+.ltile-tag {
+  flex: 1 1 auto;
+  margin: 0;
+  min-height: 3.15em;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  color: color-mix(in srgb, var(--text-2) 92%, var(--text-1));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+/* affordance always lightly present, stronger on hover */
+.ltile-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--tile) 70%, var(--text-2));
+  opacity: 0.45;
+  transform: none;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.ltile-open svg { width: 0.78rem; height: 0.78rem; }
+.ltile:hover .ltile-open, .ltile:focus-visible .ltile-open {
+  opacity: 1;
+  color: var(--tile);
+}
+
+/* quello che stai già guardando dietro al pannello */
+.ltile.is-current {
+  border-color: color-mix(in srgb, var(--tile) 50%, transparent);
+  background: linear-gradient(165deg,
+    color-mix(in srgb, var(--tile) 9%, rgba(255, 255, 255, 0.02)),
+    rgba(255, 255, 255, 0.012) 60%);
+}
+/* spillo sul bordo: marcatura "sei qui", non collide col badge */
+.ltile-flag {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tile);
+  box-shadow:
+    0 0 0 3px rgba(4, 10, 22, 0.9),
+    0 0 12px var(--tile);
+  opacity: 0;
+}
+.ltile.is-current .ltile-flag { opacity: 1; }
+
+/* entrata scaglionata: la griglia si compone invece di apparire */
+.launcher.is-open .ltile {
+  animation: ltile-in 420ms var(--ease-out) both;
+  animation-delay: calc(var(--n, 0) * 26ms);
+}
+@keyframes ltile-in {
+  from { opacity: 0; transform: translateY(12px); filter: blur(5px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+
+/* Oltre la dozzina di prodotti le card si stringono: si guadagna
+   una colonna e le famiglie tornano a stare su una riga sola. */
+.launcher[data-dense] .lgrid {
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+}
+.launcher[data-dense] .ltile {
+  min-height: 10.5rem;
+  padding: clamp(1rem, 1.5vw, 1.25rem);
+}
+.launcher[data-dense] .ltile-art { width: 3.6rem; }
+.launcher[data-dense] .ltile-art img { width: 2.2rem; }
+.launcher[data-dense] .ltile-tag {
+  min-height: 2.7em;
+  -webkit-line-clamp: 2;
+}
+
+.lempty {
+  padding: 3.5rem 1rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-3);
+}
+.lempty[hidden] { display: none; }
+
+/* ============================================================
+   4 · PIEDE
+   ============================================================ */
+
+.launcher-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2.2rem);
+  padding: 0.85rem 1.4rem 1.2rem;
+  border-top: 1px solid rgba(168, 182, 198, 0.1);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.launcher-foot kbd {
+  padding: 0.14rem 0.4rem;
+  margin-right: 0.4rem;
+  border: 1px solid rgba(168, 182, 198, 0.22);
+  border-radius: 5px;
+  font: inherit;
+  color: var(--text-2);
+}
+
+/* ============================================================
+   5 · RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 720px) {
+  .launcher-head { flex-wrap: wrap; gap: 0.75rem; padding-inline: 1rem; }
+  .launcher-brand { font-size: 0.7rem; }
+  .launcher-title { padding-left: 0; }
+  .launcher-title::before { display: none; }
+  .lsearch { order: 3; width: 100%; margin-left: 0; }
+  .lsearch input { min-height: 2.7rem; padding-right: 0.9rem; }
+  .lsearch-hint { display: none; }
+  .lclose-wrap { margin-left: auto; }
+  .lclose-wrap kbd { display: none; }
+  .launcher-foot { display: none; }
+  .all-btn kbd { display: none; }
+  .all-btn span { display: none; }
+  .all-btn { padding: 0.5rem 0.7rem; }
+}
+
+@media (max-width: 480px) {
+  .launcher-brand { display: none; }
+  .launcher-title { flex: 1; min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launcher.is-open .ltile { animation: none; }
+  .ltile:hover, .ltile:focus-visible { transform: none; box-shadow: none; }
+  .ltile::before, .ltile::after { display: none; }
+  .ltile-open { transition: none; }
+  .ltile:hover .ltile-art img, .ltile:focus-visible .ltile-art img { transform: none; }
+}
