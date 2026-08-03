@@ -104,6 +104,17 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
     [steps.length]
   );
   const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), []);
+  const close = useCallback(() => {
+    const restore = restoreRef.current;
+    restoreRef.current = null;
+    onCloseRef.current();
+    // The parent conditionally unmounts Tour as soon as onClose runs. Restore
+    // focus after that commit instead of waiting for an open=false render that
+    // never occurs.
+    requestAnimationFrame(() => {
+      if (restore?.isConnected) restore.focus({ preventScroll: true });
+    });
+  }, []);
 
   const regionDefs = useCallback((s: TourStep): TourRegion[] => {
     if (s.regions) return s.regions;
@@ -199,7 +210,7 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
 
   // Position the tooltip near the anchor (or centered when there's no target).
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || !mounted) return;
     const tip = tipRef.current;
     if (!tip) return;
     const tw = tip.offsetWidth;
@@ -224,12 +235,12 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
     let left = anchor.left + anchor.width / 2 - tw / 2;
     left = Math.max(margin, Math.min(left, vw - tw - margin));
     setTipStyle({ left: Math.round(left), top: Math.round(top), opacity: 1 });
-  }, [anchor, open, index]);
+  }, [anchor, open, index, mounted]);
 
   // Land keyboard focus on the primary action each step.
   useEffect(() => {
-    if (open) nextRef.current?.focus();
-  }, [open, index]);
+    if (open && mounted) nextRef.current?.focus();
+  }, [open, index, mounted]);
 
   // Keyboard: Esc closes, arrows navigate, Tab trapped inside the tooltip.
   useEffect(() => {
@@ -237,10 +248,10 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onCloseRef.current();
+        close();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        isLast ? onCloseRef.current() : next();
+        isLast ? close() : next();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         prev();
@@ -264,7 +275,7 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [open, isLast, next, prev]);
+  }, [open, isLast, next, prev, close]);
 
   // Restore focus to the trigger when the tour closes.
   useEffect(() => {
@@ -349,7 +360,7 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
           <button
             type="button"
             className={styles.close}
-            onClick={onClose}
+            onClick={close}
             aria-label="Close tutorial"
           >
             ×
@@ -375,7 +386,7 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
               ref={nextRef}
               type="button"
               className={styles.nextBtn}
-              onClick={isLast ? onClose : next}
+              onClick={isLast ? close : next}
             >
               {isLast ? "Done" : "Next →"}
             </button>

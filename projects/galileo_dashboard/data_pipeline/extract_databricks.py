@@ -5,13 +5,13 @@ Catalog tables and emits the same {"source_file", "sheets": [...]} shape the
 build_* scripts consume, so the downstream aggregation logic is unchanged:
 
     sbx-logistics.gli_nexus.galileo          -> sheet "DB"       (shipment fact)
-    sbx-logistics.gli_nexus.coverage_galileo -> sheet "Coverage" (per-site tiers)
+    sbx-logistics.gli_nexus.coverage_galileo -> sheet "Coverage" (coverage census)
     sbx-logistics.gli_nexus.mapping_galileo  -> sheet "Mapping"  (per-plant map)
 
 Every cell is stringified and stripped (mirroring the Excel extractor's
-`str(v).strip()`), because the build scripts parse strings (num_or_none,
-Coverage == "1"/"94%", etc.). The galileo `Month/Year` DATE column is rendered
-as "YYYY-MM" so the reference year_month() regex keeps working.
+`str(v).strip()`), because the build scripts parse values from strings. The
+galileo `Month/Year` DATE column is rendered as "YYYY-MM" so the shared
+year_month() parser keeps working.
 
 Connection/auth/identifier-quoting is reused from the Kelly data_loader (the
 same helpers Cortana uses).

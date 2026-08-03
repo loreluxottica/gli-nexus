@@ -68,3 +68,5 @@ yarn-error.log*
 *.rej
 desktop.ini
 
+# Local project reference material
+Project Details/

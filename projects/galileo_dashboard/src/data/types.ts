@@ -216,7 +216,7 @@ export interface CoverageRow {
   /** Present on area-grouped rows. */
   product?: Product;
   tot_sites: number;
-  estimated_volume: number;
+  estimated_volume: number | null;
   coverage_pct: number | null; // 0..1
   low: number | null; // share 0..1
   mid: number | null;
@@ -283,8 +283,9 @@ export interface DbFilter {
 }
 
 /**
- * One mapping reference row. PRIMARY source is the Excel "Mapping" sheet
- * (per-plant); when that sheet is absent the builder falls back to unique
+ * One mapping reference row. PRIMARY source is the Databricks
+ * `mapping_galileo` table (per-plant); when that table is absent the builder
+ * falls back to unique
  * (Product · Site Type) pairs (then site/geo/source/owner are null). It explains
  * where a DB record (plant / flow / product / site type / market) lands on the
  * Content rows (category · sub-category) and the rule/source behind it.
@@ -323,7 +324,7 @@ export interface DatabasePage {
   acct_col: number; // = 8
   row_count: number;
   mapping: DbMapping[];
-  /** "sheet" = from the Excel Mapping sheet; "derived" = fallback. */
+  /** "sheet" = from `mapping_galileo` (legacy label); "derived" = fallback. */
   mapping_source: "sheet" | "derived";
   page_size: number; // 50
 }

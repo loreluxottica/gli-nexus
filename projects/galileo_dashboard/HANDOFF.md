@@ -1,5 +1,9 @@
 # Galileo — Frontend (handoff)
 
+> Prima di modificare la pipeline o il contratto dati, leggere
+> [`DATA_PIPELINE_READTHROUGH.md`](DATA_PIPELINE_READTHROUGH.md), che documenta
+> il percorso end-to-end e le aree protette.
+
 Applicazione **Next.js (App Router) in static export**, TypeScript. L'export
 contiene solo il guscio: **i dati arrivano a runtime** da `/galileo/api/*.json`,
 serviti dal blueprint Flask che li costruisce dalle tabelle Unity Catalog.
