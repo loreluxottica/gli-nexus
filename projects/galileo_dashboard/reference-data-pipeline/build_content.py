@@ -354,27 +354,16 @@ product_options = [GEO_ALL] + sorted(k for k in sites_by_product if k != "ALL")
 # Columns:
 #   Site, Market, Product, Site Type,
 #   Galileo Volume   (E)  — pieces flowing into Galileo (year 2026 in the file)
-#   Coverage         (F)  — group formula, see below (same value for every site
-#                           of a Product×Area)
+#   Coverage         (F)  — authoritative group percentage (same value for
+#                           every site of a Product×Area)
 #   Estimated Volume (G)  — expected weight from prior year (2025 in the file)
 #   Covered 2025     (H)  — =IF(E>0, G, 0)
 #   Area, Automation
 #
-# Excel definitions (row-level formulas):
-#   H_i = IF(GalileoVolume_i > 0, EstimatedVolume_i, 0)
-#   F_i = SUMIFS(H, Product, Area) / SUMIFS(G, Product, Area)
-#         i.e. coverage is a Product×Area ratio, not a per-site rate.
-#
-# In plain words:
-#   A site is "in Galileo" if it has any Galileo Volume.
-#   If it is, its full Estimated Volume counts as covered.
-#   Coverage % = covered estimated volume / all estimated volume
-#                for that product and area.
-#
 # Aggregates we publish (per Product × Area):
 #   * Tot sites         : distinct sites
 #   * Estimated volume  : sum(G)
-#   * Coverage % vol    : sum(H) / sum(G)   with H recomputed as IF(E>0,G,0)
+#   * Coverage % vol    : source Coverage value, validated within the group
 #   * Low / Mid / High  : share of sites by Automation tier
 # ---------------------------------------------------------------------------
 PRODUCTS_ORDER = ["Finished Frames", "GV Frames", "RX", "Stock Lenses"]
@@ -388,24 +377,39 @@ def norm_tier(s):
     t = (s or "").strip().capitalize()
     return t if t in TIERS else None
 
-def build_coverage_efficiency(rows):
-    """Replicate the Excel Coverage formulas at Product × Area grain.
+def parse_pct(s):
+    """'94%' -> 0.94 ; '1' -> 1.0 ; '' / None -> None."""
+    if s is None:
+        return None
+    t = str(s).strip().replace("%", "")
+    if t == "":
+        return None
+    try:
+        v = float(t)
+    except ValueError:
+        return None
+    return v / 100.0 if "%" in str(s) else (v if v <= 1 else v / 100.0)
 
-    Volume math follows SUMIFS over *rows* (duplicate site names both count).
-    Tot sites / automation tiers count *distinct* site names.
+def build_coverage_efficiency(rows):
+    """Consume the source Coverage percentage at Product × Area grain.
+
+    Estimated volume sums *rows* (duplicate site names both count). Tot sites /
+    automation tiers count *distinct* site names.
     """
     hdr = {c.strip(): i for i, c in enumerate(rows[0]) if c and str(c).strip()}
     iSite = hdr["Site"]
     iProd = hdr["Product"]
     iArea = hdr["Area"]
     iAuto = hdr["Automation"]
-    iEst  = hdr.get("Estimated Volume")
-    iGal  = hdr.get("Galileo Volume")
+    iEst  = hdr["Estimated Volume"]
+    iGal  = hdr["Galileo Volume"]
+    iCov  = hdr["Coverage"]
 
     # (product, area) -> list of row contributions + distinct site meta
     groups = defaultdict(lambda: {
         "rows": [],          # {est, galileo}
         "sites": {},         # site -> {tier}
+        "coverage_values": [],
     })
     for r in rows[1:]:
         site    = (r[iSite] or "").strip()
@@ -413,12 +417,24 @@ def build_coverage_efficiency(rows):
         area    = norm_area(r[iArea])
         if not site or product not in PRODUCTS_ORDER or area not in AREAS:
             continue
-        est = to_float(r[iEst]) if iEst is not None else 0.0
-        gal = to_float(r[iGal]) if iGal is not None else 0.0
+        est = to_float(r[iEst])
+        gal = to_float(r[iGal])
+        cov_raw = r[iCov]
+        coverage = parse_pct(cov_raw)
+        if str(cov_raw or "").strip() and coverage is None:
+            raise ValueError(
+                f"invalid Coverage value for {product} / {area}: {cov_raw!r}"
+            )
+        if coverage is not None and not 0 <= coverage <= 1:
+            raise ValueError(
+                f"Coverage value outside 0-100% for {product} / {area}: {cov_raw!r}"
+            )
         tier = norm_tier(r[iAuto])
         g = groups[(product, area)]
-        # Excel SUMIFS sums every matching row — keep duplicates.
+        # Estimated-volume totals sum every matching row — keep duplicates.
         g["rows"].append({"est": est, "galileo": gal})
+        if coverage is not None:
+            g["coverage_values"].append(coverage)
         site_rec = g["sites"].setdefault(site, {"tier": None, "galileo": 0.0})
         site_rec["galileo"] = max(site_rec["galileo"], gal)
         if tier and site_rec["tier"] is None:
@@ -432,18 +448,24 @@ def build_coverage_efficiency(rows):
             if not g or not g["rows"]:
                 continue
             est_total = 0.0
-            covered_total = 0.0  # sum of H_i = IF(E_i>0, G_i, 0)
             for row in g["rows"]:
                 est_total += row["est"]
-                if row["galileo"] > 0:
-                    covered_total += row["est"]
+            coverage_values = g["coverage_values"]
+            cov_pct = coverage_values[0] if coverage_values else None
+            if cov_pct is not None and any(
+                abs(value - cov_pct) > 1e-6
+                for value in coverage_values[1:]
+            ):
+                values = ", ".join(f"{value:.6g}" for value in sorted(set(coverage_values)))
+                raise ValueError(
+                    f"inconsistent Coverage values for {product} / {area}: {values}"
+                )
             tier_counts = {t: 0 for t in TIERS}
             tier_total = 0
             for s in g["sites"].values():
                 if s["tier"]:
                     tier_counts[s["tier"]] += 1
                     tier_total += 1
-            cov_pct = (covered_total / est_total) if est_total > 0 else None
             rows_out.append({
                 "area":             area,
                 "tot_sites":        len(g["sites"]),

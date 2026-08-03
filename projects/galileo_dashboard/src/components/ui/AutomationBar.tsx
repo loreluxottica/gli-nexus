@@ -1,5 +1,21 @@
 import styles from "./AutomationBar.module.css";
 
+export type AutomationLevel = "Low" | "Mid" | "High";
+
+/** Dominant automation tier among the existing site-share values. */
+export function getAutomationLevel(
+  low: number | null | undefined,
+  mid: number | null | undefined,
+  high: number | null | undefined,
+): AutomationLevel | null {
+  if (low == null && mid == null && high == null) return null;
+
+  const l = Math.max(0, Number(low ?? 0));
+  const m = Math.max(0, Number(mid ?? 0));
+  const h = Math.max(0, Number(high ?? 0));
+  return h >= m && h >= l ? "High" : m >= l ? "Mid" : "Low";
+}
+
 /**
  * Automation level as a single coloured word (Low / Mid / High) — the dominant
  * tier among the site shares. No bar.
@@ -13,16 +29,11 @@ export function AutomationBar({
   mid: number | null | undefined;
   high: number | null | undefined;
 }) {
-  const hasAny = low != null || mid != null || high != null;
-  if (!hasAny) {
+  const label = getAutomationLevel(low, mid, high);
+  if (!label) {
     return <span className={styles.muted}>—</span>;
   }
-  const l = Math.max(0, Number(low ?? 0));
-  const m = Math.max(0, Number(mid ?? 0));
-  const h = Math.max(0, Number(high ?? 0));
-  const tier: "low" | "mid" | "high" =
-    h >= m && h >= l ? "high" : m >= l ? "mid" : "low";
-  const label = tier === "high" ? "High" : tier === "mid" ? "Mid" : "Low";
+  const tier = label.toLowerCase() as "low" | "mid" | "high";
 
   return (
     <span

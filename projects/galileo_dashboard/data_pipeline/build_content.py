@@ -9,8 +9,8 @@ Ported from reference-data-pipeline/build_content.py. Differences:
   * The reporting window (current year / prior year / YTD months) is derived
     from the data by default (env-overridable) instead of hard-coded.
   * coverage_galileo preserves the authoritative Galileo Frontend.xlsx Coverage
-    columns and formulas. Estimated Volume is the weight, and a row is covered
-    when Galileo Volume is greater than zero.
+    columns and formulas. The source Coverage percentage is authoritative at
+    Product x Area grain; Estimated Volume remains the aggregation weight.
   * Output goes straight to ../src/data (no app-next mirror).
 """
 import json
@@ -372,12 +372,12 @@ PRODUCTS_ORDER = ["Finished Frames", "GV Frames", "RX", "Stock Lenses"]
 AREAS = {"EMEA", "LATAM", "APAC", "NA"}
 TIERS = ["Low", "Mid", "High"]
 
-# Coverage & Efficiency reproduces the authoritative Galileo Frontend.xlsx
-# formulas from Coverage Galileo.csv:
-#   covered_i = Estimated Volume_i when Galileo Volume_i > 0, otherwise 0
-#   Coverage % vol = sum(covered_i) / sum(Estimated Volume_i)
-# at Product x Area grain. Volume math counts every CSV row, while Tot sites
-# and Automation shares count distinct site names.
+# Coverage & Efficiency consumes the authoritative Product x Area percentage
+# already published in the Coverage column of Coverage Galileo.csv. The same
+# value is expected on every row in a group; the builder validates that contract
+# instead of deriving a second percentage from Galileo/Estimated Volume.
+# Estimated Volume still sums every CSV row, while Tot sites and Automation
+# shares count distinct site names.
 
 def norm_area(s):
     return (s or "").strip().upper()
@@ -400,14 +400,14 @@ def parse_pct(s):
     return v / 100.0 if "%" in str(s) else (v if v <= 1 else v / 100.0)
 
 def build_coverage_efficiency(rows):
-    """Replicate the frontend Excel Coverage formulas at Product x Area grain.
+    """Consume the source Coverage percentage at Product x Area grain.
 
-    Volume math follows SUMIFS over rows, so duplicate site names both count.
-    Tot sites and Automation tiers count distinct site names.
+    Estimated volume sums rows, so duplicate site names both count. Tot sites
+    and Automation tiers count distinct site names.
     """
     hdr = {c.strip(): i for i, c in enumerate(rows[0]) if c and str(c).strip()}
     required = {
-        "Site", "Product", "Site Type", "Galileo Volume",
+        "Site", "Product", "Site Type", "Galileo Volume", "Coverage",
         "Estimated Volume", "Area", "Automation",
     }
     missing = sorted(required - hdr.keys())
@@ -421,10 +421,12 @@ def build_coverage_efficiency(rows):
     iAuto = hdr["Automation"]
     iEst = hdr["Estimated Volume"]
     iGal = hdr["Galileo Volume"]
+    iCov = hdr["Coverage"]
 
     groups = defaultdict(lambda: {
         "rows": [],
         "sites": {},
+        "coverage_values": [],
     })
     for r in rows[1:]:
         site = (r[iSite] or "").strip()
@@ -434,9 +436,21 @@ def build_coverage_efficiency(rows):
             continue
         est = to_float(r[iEst])
         gal = to_float(r[iGal])
+        cov_raw = r[iCov]
+        coverage = parse_pct(cov_raw)
+        if str(cov_raw or "").strip() and coverage is None:
+            raise ValueError(
+                f"invalid Coverage value for {product} / {area}: {cov_raw!r}"
+            )
+        if coverage is not None and not 0 <= coverage <= 1:
+            raise ValueError(
+                f"Coverage value outside 0-100% for {product} / {area}: {cov_raw!r}"
+            )
         tier = norm_tier(r[iAuto])
         group = groups[(product, area)]
         group["rows"].append({"est": est, "galileo": gal})
+        if coverage is not None:
+            group["coverage_values"].append(coverage)
         site_rec = group["sites"].setdefault(site, {"tier": None, "galileo": 0.0})
         site_rec["galileo"] = max(site_rec["galileo"], gal)
         if tier and site_rec["tier"] is None:
@@ -450,20 +464,24 @@ def build_coverage_efficiency(rows):
             if not group or not group["rows"]:
                 continue
             estimated_total = 0.0
-            covered_total = 0.0
             for row in group["rows"]:
                 estimated_total += row["est"]
-                if row["galileo"] > 0:
-                    covered_total += row["est"]
+            coverage_values = group["coverage_values"]
+            coverage_pct = coverage_values[0] if coverage_values else None
+            if coverage_pct is not None and any(
+                abs(value - coverage_pct) > 1e-6
+                for value in coverage_values[1:]
+            ):
+                values = ", ".join(f"{value:.6g}" for value in sorted(set(coverage_values)))
+                raise ValueError(
+                    f"inconsistent Coverage values for {product} / {area}: {values}"
+                )
             tier_counts = {t: 0 for t in TIERS}
             tier_total = 0
             for site in group["sites"].values():
                 if site["tier"]:
                     tier_counts[site["tier"]] += 1
                     tier_total += 1
-            coverage_pct = (
-                covered_total / estimated_total if estimated_total > 0 else None
-            )
             rows_out.append({
                 "area":             area,
                 "tot_sites":        len(group["sites"]),
@@ -678,10 +696,10 @@ for area in AREA_ORDER:
 coverage_page = {
     "intro": (
         "Coverage & efficiency view per product and Geographical Area. "
-        "Tot sites and Coverage % vol come from Coverage Galileo.csv; Estimated "
-        "volume is its reference weight, and a row is fully covered when its "
-        "Galileo Volume is greater than zero; Low / Mid / High is the share of "
-        "distinct sites in each Automation tier."
+        "Tot sites and Coverage % vol come from Coverage Galileo.csv; the "
+        "source Coverage percentage is authoritative for each product and area, "
+        "while Estimated volume is its reference weight; Low / Mid / High is "
+        "the share of distinct sites in each Automation tier."
     ),
     "wip_status": "Built from Coverage Galileo.csv via coverage_galileo.",
     "product_options":      [GEO_ALL] + PRODUCTS_ORDER,

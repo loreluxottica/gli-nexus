@@ -69,12 +69,12 @@ uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
   `build_content.py` (`STRUCTURAL_ROWS`). Edit there if the Content taxonomy
   changes.
 - **Coverage contract**: `coverage_galileo` mirrors `Coverage Galileo.csv` and
-  the authoritative `Galileo Frontend.xlsx` formulas. For each Product x Area,
-  `Estimated Volume` is the denominator and a row contributes its full
-  `Estimated Volume` to the numerator when `Galileo Volume > 0`. The published
-  `Coverage % vol` is `sum(covered estimated volume) / sum(estimated volume)`.
-  The source `Coverage` column may remain for traceability, but the builder
-  recomputes the result. Active builds reject missing required headers.
+  the authoritative `Galileo Frontend.xlsx` output. For each Product x Area,
+  the source `Coverage` percentage is authoritative. Repeated nonblank values
+  in a group must agree and remain between 0% and 100%; invalid or conflicting
+  values fail the build. `Estimated Volume` still sums every matching row and
+  weights cross-row totals in the frontend. Active builds reject missing
+  required headers, including `Coverage`.
 - **Sites not mapped** (`coverage_page.mappings_under_review`, the panel at the
   bottom of the Coverage page): a site counts as *not mapped* when it has no
   `Galileo Volume`; each one is weighted by its `Estimated Volume` share of the

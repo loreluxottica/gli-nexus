@@ -178,26 +178,28 @@ reorder, or casually extract it into another abstraction.
 
 `Coverage Galileo.csv` mirrors the authoritative `Galileo Frontend.xlsx`
 Coverage sheet. The active builder requires the exact headers `Site`,
-`Product`, `Site Type`, `Galileo Volume`, `Estimated Volume`, `Area`,
-and `Automation`; it fails before generation if any is missing. `Market` is
-expected in the mirrored CSV, while precomputed `Coverage` and `Covered 2025`
-columns may remain for traceability. The builder recomputes the published
-percentage. `Automation` normalizes to `Low`, `Mid`, or `High`.
+`Product`, `Site Type`, `Galileo Volume`, `Coverage`, `Estimated Volume`,
+`Area`, and `Automation`; it fails before generation if any is missing.
+`Market` is expected in the mirrored CSV, while `Covered 2025` may remain for
+traceability. The source `Coverage` percentage is authoritative for each
+Product + Area group. `Automation` normalizes to `Low`, `Mid`, or `High`.
 
 Important semantics:
 
-- Coverage is calculated at Product + Area grain using the frontend Excel
-  formula: each row contributes its full `Estimated Volume` to the numerator
-  when `Galileo Volume > 0`, and zero otherwise.
-- `Coverage % vol` is `sum(covered Estimated Volume) / sum(Estimated Volume)`.
-- Volume math counts every matching CSV row, including duplicate site names.
+- Coverage is published at Product + Area grain from the source `Coverage`
+  value; the builder parses percentages such as `90%`, `90`, or `0.9` as `0.9`.
+- Every nonblank `Coverage` value within the same Product + Area group must be
+  consistent and between 0% and 100%; invalid or conflicting values fail the
+  build instead of silently selecting one.
+- `Estimated Volume` still sums every matching CSV row, including duplicate
+  site names, and remains the weight for cross-row totals in the frontend.
 - `Tot sites` and Low/Mid/High Automation shares count distinct site names.
 - `Estimated Volume` comes only from `Coverage Galileo.csv`; main-table `Pieces`
   must not replace or alter it.
 - A site is not mapped when all of its rows have `Galileo Volume <= 0`. Its
   weight is its `Estimated Volume` share of the Product-family + Area total.
-- A missing or zero estimated-volume denominator produces `null`, which the
-  frontend intentionally displays as under review.
+- A Product + Area group with no usable source `Coverage` value produces
+  `null`, which the frontend intentionally displays as under review.
 - Finished Frames and GV Frames fold into the `Frames` family in the not-mapped
   panel.
 

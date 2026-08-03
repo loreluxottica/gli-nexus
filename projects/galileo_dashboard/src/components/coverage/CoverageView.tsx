@@ -11,7 +11,6 @@ import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
 import { CovBlock, type CovEffRowVM } from "./CovBlock";
 import { MappingsUnderReview } from "./MappingsUnderReview";
-import { TopSiteCard } from "./TopSiteCard";
 import styles from "./Coverage.module.css";
 
 const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
@@ -70,15 +69,6 @@ const TOUR_STEPS: TourStep[] = [
       </>
     ),
   },
-  {
-    title: "Top sites per area",
-    body: (
-      <>
-        Pick a single area (on the tabs or the map) to reveal its{" "}
-        <strong>top sites by shipments</strong> below the table.
-      </>
-    ),
-  },
 ];
 
 function toAreaRows(product: Product, rows: CoverageRow[]): CovEffRowVM[] {
@@ -125,11 +115,6 @@ export function CoverageView({ page }: { page: CoveragePage }) {
     const qs = sp.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
-
-  const topSites = useMemo(
-    () => (!isGlobal ? page.top_sites_by_area[area as Exclude<GeoArea, "ALL">] ?? [] : []),
-    [isGlobal, page.top_sites_by_area, area],
-  );
 
   const productBlocks = useMemo(
     () =>
@@ -207,23 +192,6 @@ export function CoverageView({ page }: { page: CoveragePage }) {
               <p className={styles.lede}>No coverage data for {areaLabel(area)}.</p>
             </section>
           )}
-
-      {!isGlobal && topSites.length > 0 && (
-        <section className={`panel ${styles.topSites}`} data-tour="cov-topsites">
-          <header className={styles.topHead}>
-            <h3>
-              Top {topSites.length} sites in{" "}
-              <span className={styles.topArea}>{areaLabel(area)}</span>
-            </h3>
-            <span className={styles.topSub}>by shipments · {page.top_sites_period}</span>
-          </header>
-          <div className={styles.topGrid}>
-            {topSites.slice(0, 3).map((s, i) => (
-              <TopSiteCard key={s.site} rank={(i + 1) as 1 | 2 | 3} site={s} area={area} />
-            ))}
-          </div>
-        </section>
-      )}
 
       <MappingsUnderReview page={page} area={area} />
 
