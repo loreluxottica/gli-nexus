@@ -31,93 +31,111 @@ const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
 
 const ACCT_INTL: AcctArea = "INTERNATIONAL";
 
+function TourConcepts({
+  concepts,
+  takeaway,
+}: {
+  concepts: string[];
+  takeaway?: string;
+}) {
+  return (
+    <>
+      <ul className={styles.tourConcepts}>
+        {concepts.map((concept) => (
+          <li key={concept} className={styles.tourConcept}>
+            {concept}
+          </li>
+        ))}
+      </ul>
+      {takeaway ? <p className={styles.tourTakeaway}>{takeaway}</p> : null}
+    </>
+  );
+}
+
 const TOUR_STEPS: TourStep[] = [
   {
-    title: "Content — read trends at a glance",
+    title: "Content at a glance",
     body: (
-      <>
-        Same volumes as before, rebuilt to <strong>confront this year against
-        the same period last year</strong> and surface what moved. Quick tour.
-      </>
+      <TourConcepts
+        concepts={["Current YTD", "Same period last year", "What moved"]}
+        takeaway="Direct comparison. Same reporting window."
+      />
     ),
   },
   {
     target: '[data-tour="area-tabs"]',
-    title: "Pick the area",
+    title: "Area",
     body: (
-      <>
-        Every figure re-scopes to the <strong>Geographical Area</strong> selected
-        here.
-      </>
+      <TourConcepts
+        concepts={["Geographical Area", "Every value updates", "Shared scope"]}
+      />
     ),
   },
   {
     target: '[data-tour="v2-toggle"]',
-    title: "One market, one metric",
+    title: "Market & metric",
     body: (
-      <>
-        <strong>REP</strong> (Replenishment, bulk to DCs) and <strong>LM</strong>{" "}
-        (Last Mile, to the ECP / customer) are different units, so you view one at
-        a time. Switch <strong>Pieces / Shipments</strong> alongside.
-      </>
+      <TourConcepts
+        concepts={[
+          "REP · bulk to DCs",
+          "LM · last mile",
+          "Pieces",
+          "Shipments",
+          "Efficiency · pcs / shipment",
+        ]}
+        takeaway="One market. One metric."
+      />
     ),
   },
   {
     target: '[data-tour="v2-bar"]',
-    title: "This year vs last year",
+    title: "Current vs prior",
     body: (
-      <>
-        The paired bar shows the current YTD (solid) over the same period last
-        year (ghost) on a shared scale, so size and direction read instantly.
-      </>
+      <TourConcepts
+        concepts={["Solid · current YTD", "Ghost · prior YTD", "Shared scale"]}
+        takeaway="Length = size. Gap = direction."
+      />
     ),
   },
   {
     target: '[data-tour="v2-yoy"]',
-    title: "Why did it move?",
+    title: "Explain the change",
     body: (
-      <>
-        Click any <strong>YoY chip</strong> and the change explains itself: a
-        one-line answer, the monthly trend and the areas that drove the move.
-      </>
+      <TourConcepts
+        concepts={["Click YoY", "One-line cause", "Monthly trend", "Area drivers"]}
+      />
     ),
   },
   {
     target: '[data-tour="v2-trend"]',
-    title: "The monthly trend",
+    title: "Monthly pattern",
     body: (
-      <>
-        The sparkline draws this year (solid) over last year&rsquo;s full shape
-        (ghost) so you see seasonality and exactly where the lines diverge.
-      </>
-    ),
-  },
-  {
-    target: '[data-tour="v2-toggle"]',
-    title: "Efficiency — pcs / shipment",
-    body: (
-      <>
-        Switch <strong>Metric</strong> to <strong>Efficiency</strong> to see pieces
-        and shipments together as <strong>batch size</strong>: rising means each
-        shipment carries more (consolidation).
-      </>
+      <TourConcepts
+        concepts={[
+          "Solid · current year",
+          "Ghost · prior year",
+          "Seasonality",
+          "Divergence",
+        ]}
+        takeaway="Hover to compare each month."
+      />
     ),
   },
   {
     target: '[data-tour="v2-drill"]',
-    title: "Drill into Export Labs",
-    body: <>Open an <strong>Export Labs</strong> row to see the sites behind the total.</>,
+    title: "Export Labs detail",
+    body: (
+      <TourConcepts concepts={["Export Labs", "Expand row", "Sites behind total"]} />
+    ),
   },
   {
     target: '[data-tour="content-acct"]',
     title: "Perimeter",
     body: (
-      <>
-        Switch the same table between the <strong>Geographical</strong> areas and
-        the <strong>International</strong> accounting perimeter. On Accounting the
-        table turns <strong>amber</strong>, so you always know which perimeter you
-        are reading.
-      </>
+      <TourConcepts
+        concepts={["Geographical", "International", "Amber · accounting view"]}
+        takeaway="The area filter does not apply in International."
+      />
     ),
   },
 ];
