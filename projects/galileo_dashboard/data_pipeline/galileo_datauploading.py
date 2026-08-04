@@ -113,6 +113,42 @@ def overwrite_table(df, table):
     aligned.write.mode("overwrite").insertInto(table)
 
 
+def prepare_coverage_table(df):
+    """Validate Mapping and add it to the legacy Coverage table if necessary.
+
+    ``overwrite_table`` intentionally aligns to the existing Delta schema, so
+    an additive CSV column would otherwise be reported as source-only and then
+    dropped. Mapping is now part of the explicit Coverage contract and is the
+    only source column this loader is allowed to add automatically.
+    """
+    if "Mapping" not in df.columns:
+        raise ValueError("Coverage Galileo is missing the required `Mapping` column")
+
+    invalid = (
+        df.filter(
+            F.col("`Mapping`").isNull()
+            | ~F.upper(F.trim(F.col("`Mapping`"))).isin("MAPPED", "UNMAPPED")
+        )
+        .select("Site", "Product", "Area", "Mapping")
+        .limit(10)
+        .collect()
+    )
+    if invalid:
+        raise ValueError(
+            "Coverage Galileo contains invalid Mapping values; expected mapped/unmapped. "
+            f"Examples: {[row.asDict() for row in invalid]}"
+        )
+
+    if "Mapping" in spark.table(TABLE_COVERAGE).columns:
+        return
+    if DRY_RUN:
+        print("    DRY RUN — would add `Mapping` STRING to the Coverage table")
+        return
+
+    spark.sql(f"ALTER TABLE {TABLE_COVERAGE} ADD COLUMNS (`Mapping` STRING)")
+    print("    Added `Mapping` STRING to the Coverage table schema")
+
+
 def material_months(df, date_col="Month/Year", value_col="Pieces"):
     """{year: [months reaching MATERIAL_SHARE of that year's peak]}."""
     agg = (
@@ -210,6 +246,8 @@ for name, table in (("Coverage Galileo", TABLE_COVERAGE), ("Mapping Galileo", TA
     chosen = max(match, key=lambda f: f.modificationTime)
     print(f"\n>>> {chosen.name} -> {table}")
     df = read_csv(f"{VOLUME_PATH}/{chosen.name}")
+    if name == "Coverage Galileo":
+        prepare_coverage_table(df)
     n = df.count()
     if n == 0:
         raise ValueError(f"{chosen.name} produced no rows")

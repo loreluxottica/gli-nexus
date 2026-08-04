@@ -67,6 +67,71 @@ def to_float(s):
     try:    return float(s) if s not in ("", None, "-") else 0.0
     except: return 0.0
 
+
+def parse_coverage_volume(value):
+    """Parse localized Excel/CSV Estimated Volume values without losing them."""
+    if value is None:
+        return 0.0
+    raw = str(value).strip()
+    if raw.upper() in {"", "-", "—", "N/A", "NA", "NULL"}:
+        return 0.0
+
+    negative_parentheses = raw.startswith("(") and raw.endswith(")")
+    if negative_parentheses:
+        raw = raw[1:-1].strip()
+    raw = (raw.replace("\u00a0", "")
+              .replace("\u202f", "")
+              .replace(" ", "")
+              .replace("'", "")
+              .replace("−", "-"))
+
+    exponent = ""
+    exp_match = re.search(r"[eE][+-]?\d+$", raw)
+    if exp_match:
+        exponent = exp_match.group(0)
+        raw = raw[:exp_match.start()]
+    if not re.fullmatch(r"[+-]?(?:\d[\d.,]*|[.,]\d+)", raw):
+        raise ValueError(f"invalid Estimated Volume value: {value!r}")
+
+    sign = ""
+    if raw[:1] in {"+", "-"}:
+        sign, raw = raw[0], raw[1:]
+    if negative_parentheses:
+        if sign:
+            raise ValueError(f"invalid Estimated Volume value: {value!r}")
+        sign = "-"
+
+    if "," in raw and "." in raw:
+        decimal_sep = "," if raw.rfind(",") > raw.rfind(".") else "."
+        grouping_sep = "." if decimal_sep == "," else ","
+        normalized = raw.replace(grouping_sep, "").replace(decimal_sep, ".")
+    elif "," in raw or "." in raw:
+        sep = "," if "," in raw else "."
+        parts = raw.split(sep)
+        if len(parts) > 2:
+            if 1 <= len(parts[0]) <= 3 and all(len(p) == 3 for p in parts[1:]):
+                normalized = "".join(parts)
+            else:
+                raise ValueError(f"invalid Estimated Volume value: {value!r}")
+        else:
+            whole, fraction = parts
+            is_grouped_integer = (
+                1 <= len(whole) <= 3
+                and whole != "0"
+                and len(fraction) == 3
+            )
+            normalized = whole + fraction if is_grouped_integer else whole + "." + fraction
+    else:
+        normalized = raw
+
+    try:
+        number = float(sign + normalized + exponent)
+    except ValueError as exc:
+        raise ValueError(f"invalid Estimated Volume value: {value!r}") from exc
+    if not -float("inf") < number < float("inf"):
+        raise ValueError(f"invalid Estimated Volume value: {value!r}")
+    return number
+
 CUR_YEAR   = 2026
 PY_YEAR    = 2025
 YTD_MONTHS = (1, 2, 3, 4)
@@ -417,7 +482,7 @@ def build_coverage_efficiency(rows):
         area    = norm_area(r[iArea])
         if not site or product not in PRODUCTS_ORDER or area not in AREAS:
             continue
-        est = to_float(r[iEst])
+        est = parse_coverage_volume(r[iEst])
         gal = to_float(r[iGal])
         cov_raw = r[iCov]
         coverage = parse_pct(cov_raw)
@@ -487,10 +552,9 @@ coverage_sheet = next(
 coverage_efficiency = build_coverage_efficiency(coverage_sheet["rows"]) if coverage_sheet else []
 
 # ---------------------------------------------------------------------------
-# Sites not mapped — sites with no Galileo Volume (E == 0).
-# They sit in the coverage denominator but add 0 to the numerator, so their
-# estimated volume is the weight they pull on coverage.
-# Grouped by product family (Finished + GV Frames -> "Frames").
+# Sites not mapped — sites explicitly marked UNMAPPED in the Mapping column.
+# Galileo Volume does not control membership. Sites are grouped by product
+# family and area (Finished + GV Frames -> "Frames").
 # Each unmapped site carries:
 #   estimated_volume  — G from the Coverage sheet (null if missing/0)
 #   weight_pct        — share of that product×area total estimated volume
@@ -512,13 +576,12 @@ def build_mappings_under_review(rows):
     iProd = hdr["Product"]
     iArea = hdr["Area"]
     iType = hdr["Site Type"]
-    iGal  = hdr.get("Galileo Volume")
-    iEst  = hdr.get("Estimated Volume")
-    iMap  = hdr.get("Mapping")  # older workbooks used an explicit flag
+    iEst  = hdr["Estimated Volume"]
+    iMap  = hdr["Mapping"]
 
     # (family, area) total estimated volume — all sites (mapped + not), for weight.
     fam_area_vol = defaultdict(float)
-    # family -> site -> rec
+    # family -> (area, site) -> rec
     fam_sites = defaultdict(dict)
 
     for r in rows[1:]:
@@ -528,44 +591,40 @@ def build_mappings_under_review(rows):
         if not site or product not in PRODUCTS_ORDER or area not in AREAS:
             continue
         fam = PRODUCT_FAMILY[product]
-        est = to_float(r[iEst]) if iEst is not None else 0.0
-        gal = to_float(r[iGal]) if iGal is not None else 0.0
+        est = parse_coverage_volume(r[iEst])
         fam_area_vol[(fam, area)] += est
 
-        if iGal is not None:
-            not_mapped = gal <= 0
-        elif iMap is not None:
-            flag = (r[iMap] or "").strip().upper()
-            not_mapped = flag in ("", "NOT MAPPED", "NOT_MAPPED", "UNMAPPED", "NO")
-        else:
-            not_mapped = False
+        mapping = (r[iMap] or "").strip().upper()
+        if mapping not in {"MAPPED", "UNMAPPED"}:
+            raise ValueError(
+                f"invalid Mapping value for {site} / {product} / {area}: {r[iMap]!r}"
+            )
 
         rec = fam_sites[fam].setdefault(
-            site,
+            (area, site),
             {
-                "not_mapped": True,
+                "mapping": mapping,
                 "area": area,
                 "site_type": (r[iType] or "").strip(),
                 "estimated_volume": 0.0,
             },
         )
-        # If any row for the site is feeding Galileo, the site counts as mapped.
-        if not not_mapped:
-            rec["not_mapped"] = False
+        if rec["mapping"] != mapping:
+            raise ValueError(
+                f"inconsistent Mapping values for {site} / {fam} / {area}: "
+                f"{rec['mapping']}, {mapping}"
+            )
         rec["estimated_volume"] += est
-        if rec["not_mapped"]:
-            rec["area"] = area
-            if (r[iType] or "").strip():
-                rec["site_type"] = (r[iType] or "").strip()
+        if (r[iType] or "").strip():
+            rec["site_type"] = (r[iType] or "").strip()
 
     blocks = []
     for fam in FAMILY_ORDER:
         smap = fam_sites.get(fam, {})
         under = []
-        for s, rec in smap.items():
-            if not rec["not_mapped"]:
+        for (area, site), rec in smap.items():
+            if rec["mapping"] != "UNMAPPED":
                 continue
-            area = rec["area"]
             est = rec["estimated_volume"]
             denom = fam_area_vol.get((fam, area), 0.0)
             if est > 0 and denom > 0:
@@ -575,7 +634,7 @@ def build_mappings_under_review(rows):
                 weight = None
                 est_out = None
             under.append({
-                "site":              s,
+                "site":              site,
                 "area":              area,
                 "site_type":         rec["site_type"],
                 "estimated_volume":  est_out,

@@ -31,7 +31,8 @@ Table names are overridable via `GALILEO_TABLE`, `GALILEO_COVERAGE_TABLE`,
 1. Drop the CSV into `/Volumes/sbx-logistics/gli_nexus/galileo_volume`.
 2. Run `galileo_datauploading.py` (import it into the workspace as a notebook).
    It picks the newest `SQL Source*.csv`, detects its encoding, validates it and
-   overwrites the tables.
+   overwrites the tables. For Coverage it also validates `Mapping` and adds the
+   column to a legacy target table before loading it.
 3. Nothing else. The app rebuilds its payloads within `GALILEO_CACHE_TTL`
    (10 minutes). To see it immediately, `POST /galileo/api/refresh`.
 
@@ -73,14 +74,17 @@ uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
   the source `Coverage` percentage is authoritative. Repeated nonblank values
   in a group must agree and remain between 0% and 100%; invalid or conflicting
   values fail the build. `Estimated Volume` still sums every matching row and
-  weights cross-row totals in the frontend. Active builds reject missing
-  required headers, including `Coverage`.
+  weights cross-row totals in the frontend. Localized Excel formats such as
+  `1.234.567,5` and `1,234,567.5` are accepted; other nonblank invalid values
+  fail instead of silently becoming zero. Active builds reject missing required
+  headers, including `Coverage` and `Mapping`.
 - **Sites not mapped** (`coverage_page.mappings_under_review`, the panel at the
-  bottom of the Coverage page): a site counts as *not mapped* when it has no
-  `Galileo Volume`; each one is weighted by its `Estimated Volume` share of the
-  product×area total. `Galileo Volume` and `Estimated Volume` are required in
-  production. Historical fallback branches remain for isolated legacy inputs,
-  but the active build rejects a Coverage table missing either column.
+  bottom of the Coverage page): `Mapping` is authoritative and accepts only
+  `MAPPED` or `UNMAPPED` after trimming and case normalization. Only explicitly
+  `UNMAPPED` sites are published; `Galileo Volume` does not affect membership,
+  so a zero-volume closed site marked `MAPPED` remains excluded. Each unmapped
+  site is weighted by its `Estimated Volume` share of the product-family × area
+  total. Aggregation is scoped by product family, area, and site.
 - **Area order** (`GEOS` = EMEA → NA → APAC → LATAM) drives `geo_options` and
   `area_options`; it mirrors `GEO_AREAS` in `../src/data/geo.ts`. Keep the two
   in sync or the UI tabs and the payload will disagree.
