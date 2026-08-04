@@ -47,38 +47,46 @@
   font-weight: 600;
 }
 
-/* Content tutorial: scan-first concepts instead of explanatory paragraphs. */
-.tourConcepts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
+/* Content tutorial: a decoder under the explanation — the mark on screen on the
+   left, what it means on the right. Only for steps that encode something. */
+.tourKey {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.4;
 }
-.tourConcept {
+.tourKeyRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.tourKeyRow + .tourKeyRow {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.tourKeyTerm {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 5px 9px;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-tint) 70%, var(--surface));
-  color: var(--accent-deep);
-  font-family: var(--mono), monospace;
-  font-size: 11px;
+  gap: 6px;
+  min-width: 92px;
   font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-}
-.tourTakeaway {
-  margin: 10px 0 0;
-  padding-left: 10px;
-  border-left: 3px solid var(--accent);
   color: var(--ink);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.35;
+}
+.tourKeyDef {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.tourSwatch {
+  flex: none;
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* Legend for the bar/sparkline encodings + an inline REP/LM/ECP glossary. */
@@ -143,6 +151,7 @@
 }
 .swCur { background: var(--accent); }
 .swPy { background: var(--line-strong); }
+.swAcct { background: var(--cat-amber-ink); }
 .legSep { color: var(--ink-faint); }
 
 .modalHead {

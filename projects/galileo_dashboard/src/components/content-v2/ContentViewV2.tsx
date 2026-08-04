@@ -31,114 +31,170 @@ const Tour = dynamic(() => import("@/components/ui/Tour").then((m) => m.Tour), {
 
 const ACCT_INTL: AcctArea = "INTERNATIONAL";
 
-function TourConcepts({
-  concepts,
-  takeaway,
+/** A decoder for one step: what you are looking at → what it means. Used only
+ *  where the page encodes something (a solid vs ghost bar, an amber table). */
+function TourKey({
+  items,
 }: {
-  concepts: string[];
-  takeaway?: string;
+  items: { term: string; def: string; swatch?: "cur" | "py" | "acct" }[];
 }) {
   return (
-    <>
-      <ul className={styles.tourConcepts}>
-        {concepts.map((concept) => (
-          <li key={concept} className={styles.tourConcept}>
-            {concept}
-          </li>
-        ))}
-      </ul>
-      {takeaway ? <p className={styles.tourTakeaway}>{takeaway}</p> : null}
-    </>
+    <dl className={styles.tourKey}>
+      {items.map((it) => (
+        <div key={it.term} className={styles.tourKeyRow}>
+          <dt className={styles.tourKeyTerm}>
+            {it.swatch ? (
+              <span
+                className={`${styles.tourSwatch} ${
+                  it.swatch === "cur"
+                    ? styles.swCur
+                    : it.swatch === "py"
+                      ? styles.swPy
+                      : styles.swAcct
+                }`}
+                aria-hidden="true"
+              />
+            ) : null}
+            {it.term}
+          </dt>
+          <dd className={styles.tourKeyDef}>{it.def}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-const TOUR_STEPS: TourStep[] = [
-  {
-    title: "Content at a glance",
-    body: (
-      <TourConcepts
-        concepts={["Current YTD", "Same period last year", "What moved"]}
-        takeaway="Direct comparison. Same reporting window."
-      />
-    ),
-  },
-  {
-    target: '[data-tour="area-tabs"]',
-    title: "Area",
-    body: (
-      <TourConcepts
-        concepts={["Geographical Area", "Every value updates", "Shared scope"]}
-      />
-    ),
-  },
-  {
-    target: '[data-tour="v2-toggle"]',
-    title: "Market & metric",
-    body: (
-      <TourConcepts
-        concepts={[
-          "REP · bulk to DCs",
-          "LM · last mile",
-          "Pieces",
-          "Shipments",
-          "Efficiency · pcs / shipment",
-        ]}
-        takeaway="One market. One metric."
-      />
-    ),
-  },
-  {
-    target: '[data-tour="v2-bar"]',
-    title: "Current vs prior",
-    body: (
-      <TourConcepts
-        concepts={["Solid · current YTD", "Ghost · prior YTD", "Shared scale"]}
-        takeaway="Length = size. Gap = direction."
-      />
-    ),
-  },
-  {
-    target: '[data-tour="v2-yoy"]',
-    title: "Explain the change",
-    body: (
-      <TourConcepts
-        concepts={["Click YoY", "One-line cause", "Monthly trend", "Area drivers"]}
-      />
-    ),
-  },
-  {
-    target: '[data-tour="v2-trend"]',
-    title: "Monthly pattern",
-    body: (
-      <TourConcepts
-        concepts={[
-          "Solid · current year",
-          "Ghost · prior year",
-          "Seasonality",
-          "Divergence",
-        ]}
-        takeaway="Hover to compare each month."
-      />
-    ),
-  },
-  {
-    target: '[data-tour="v2-drill"]',
-    title: "Export Labs detail",
-    body: (
-      <TourConcepts concepts={["Export Labs", "Expand row", "Sites behind total"]} />
-    ),
-  },
-  {
-    target: '[data-tour="content-acct"]',
-    title: "Perimeter",
-    body: (
-      <TourConcepts
-        concepts={["Geographical", "International", "Amber · accounting view"]}
-        takeaway="The area filter does not apply in International."
-      />
-    ),
-  },
-];
+/** The Content walkthrough. Built from the trend years so every step names the
+ *  actual years on screen instead of "current" and "prior". */
+function buildTourSteps(cy: number, py: number): TourStep[] {
+  return [
+    {
+      title: "How to read Content",
+      body: (
+        <>
+          Every row compares <strong>{cy} year to date</strong> against the exact
+          same months of <strong>{py}</strong> — so a change you see is a real
+          change, not a longer window.
+        </>
+      ),
+      action: <>A short walkthrough — leave at any point.</>,
+    },
+    {
+      target: '[data-tour="area-tabs"]',
+      title: "Choose the area",
+      body: (
+        <>
+          Pick a <strong>Geographical Area</strong> here. Every number, bar and
+          trend below re-scopes to it, and the choice follows you into Coverage
+          and Database.
+        </>
+      ),
+    },
+    {
+      target: '[data-tour="v2-toggle"]',
+      title: "Choose market and metric",
+      body: (
+        <>
+          <strong>REP</strong> (bulk into the distribution centres) and{" "}
+          <strong>LM</strong> (last mile, to the ECP or customer) count different
+          things, so you read one market at a time.
+        </>
+      ),
+      action: (
+        <>
+          Set <strong>Metric</strong> to <strong>Efficiency</strong> to read
+          pieces per shipment — how full each shipment is.
+        </>
+      ),
+    },
+    {
+      target: '[data-tour="v2-bar"]',
+      title: "This year against last",
+      body: (
+        <>
+          Each row draws both years as one paired bar on a shared scale, so size
+          and direction read together.
+          <TourKey
+            items={[
+              { swatch: "cur", term: "Solid bar", def: `${cy} year to date` },
+              { swatch: "py", term: "Ghost bar", def: `${py}, same months` },
+            ]}
+          />
+        </>
+      ),
+      action: <>Bar length is the volume; the gap between them is the move.</>,
+    },
+    {
+      target: '[data-tour="v2-yoy"]',
+      title: "Why did it move?",
+      body: (
+        <>
+          The <strong>YoY chip</strong> is the percent change against those same
+          months last year — green up, red down.
+        </>
+      ),
+      action: (
+        <>
+          Click a chip: you get a one-line cause, the monthly trend and the areas
+          that drove the move.
+        </>
+      ),
+    },
+    {
+      target: '[data-tour="v2-trend"]',
+      title: "The monthly shape",
+      body: (
+        <>
+          The sparkline puts this year over last year&rsquo;s full shape, so
+          seasonality and the month the two years split apart are both visible.
+          <TourKey
+            items={[
+              { swatch: "cur", term: "Solid line", def: `${cy}, month by month` },
+              { swatch: "py", term: "Ghost line", def: `${py}, full year` },
+            ]}
+          />
+        </>
+      ),
+      action: <>Hover any month to compare the two years at that point.</>,
+    },
+    {
+      target: '[data-tour="v2-drill"]',
+      title: "Open the detail",
+      body: (
+        <>
+          A row with a <strong>▸</strong> expands. <strong>Export Labs</strong>{" "}
+          opens into the individual sites that add up to the total.
+        </>
+      ),
+      action: <>Click the row to expand it.</>,
+    },
+    {
+      target: '[data-tour="content-acct"]',
+      title: "Which perimeter am I reading?",
+      body: (
+        <>
+          The same table can be read two ways.
+          <TourKey
+            items={[
+              { term: "Geographical", def: "the areas selected in the tabs above" },
+              {
+                swatch: "acct",
+                term: "International",
+                def: "the accounting perimeter — the table turns amber",
+              },
+            ]}
+          />
+        </>
+      ),
+      action: (
+        <>
+          In <strong>International</strong> the area tabs no longer apply — the
+          amber banner tells you when you are there.
+        </>
+      ),
+    },
+  ];
+}
 
 /** Validate a raw ?metric value. */
 function toMetric(raw: string | null): Metric {
@@ -172,6 +228,10 @@ export function ContentViewV2({
   const acct = params.get("acct") === "1";
 
   const [tourOpen, setTourOpen] = useState(false);
+  const tourSteps = useMemo(
+    () => buildTourSteps(trends.current_year, trends.prior_year),
+    [trends.current_year, trends.prior_year],
+  );
   const [periods, setPeriods] = useState<Record<string, PeriodSnapshot>>(view.periods);
   const [periodsFull, setPeriodsFull] = useState(!periodsLazy);
 
@@ -374,7 +434,7 @@ export function ContentViewV2({
       ) : null}
 
       {tourOpen ? (
-        <Tour steps={TOUR_STEPS} open onClose={() => setTourOpen(false)} label="Content tutorial" />
+        <Tour steps={tourSteps} open onClose={() => setTourOpen(false)} label="Content tutorial" />
       ) : null}
     </>
   );
