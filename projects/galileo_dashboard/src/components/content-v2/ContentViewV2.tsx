@@ -94,11 +94,17 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
       title: "Choose market and metric",
       body: (
         <>
-          <strong>REP</strong> (bulk into the distribution centres) and{" "}
-          <strong>LM</strong> (last mile, to the ECP or customer) count different
-          things, so you read one market at a time. <strong>Metric</strong>{" "}
-          switches between Pieces, Shipments and Efficiency — pieces per
-          shipment, or how full each shipment is.
+          One market and one metric at a time.
+          <TourKey
+            items={[
+              { term: "REP", def: "bulk into the distribution centres" },
+              { term: "LM", def: "last mile, to the ECP or customer" },
+              {
+                term: "Metric",
+                def: "Pieces, Shipments, or Efficiency — pieces per shipment",
+              },
+            ]}
+          />
         </>
       ),
     },
