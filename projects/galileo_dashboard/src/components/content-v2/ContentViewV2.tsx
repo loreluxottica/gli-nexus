@@ -97,7 +97,7 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
           One market and one metric at a time.
           <TourKey
             items={[
-              { term: "REP", def: "bulk into the distribution centres" },
+              { term: "REP", def: "Intra-Network flows" },
               { term: "LM", def: "last mile, to the ECP or customer" },
               {
                 term: "Metric",
@@ -358,10 +358,10 @@ export function ContentViewV2({
           </span>
           <span className={styles.legSep}>·</span>
           <span className={styles.legItem}>
-            <abbr className={styles.term} title="Replenishment — bulk flow to distribution centres">
+            <abbr className={styles.term} title="Replenishment — Intra-Network flows">
               REP
             </abbr>{" "}
-            bulk
+            Intra-Network
           </span>
           <span className={styles.legItem}>
             <abbr

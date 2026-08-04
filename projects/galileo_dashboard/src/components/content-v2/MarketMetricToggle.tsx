@@ -6,7 +6,7 @@ export type { Metric };
 
 /**
  * Two segmented controls: Market (REP / LM) and Metric (Pieces / Shipments).
- * REP (Replenishment, bulk to DCs) and LM (Last Mile, to the ECP/customer) are
+ * REP (Replenishment, Intra-Network flows) and LM (Last Mile, to the ECP/customer) are
  * different units — a REP shipment carries ~380× more pieces than an LM one —
  * so the table shows ONE market at a time on its own scale rather than blending
  * them. Implemented as radiogroups for keyboard/AT support.
@@ -74,7 +74,7 @@ export function MarketMetricToggle({
         value={market}
         onChange={onMarket}
         options={[
-          { value: "REP", label: "REP", hint: "Replenishment — bulk flow to DCs/warehouses" },
+          { value: "REP", label: "REP", hint: "Replenishment — Intra-Network flows" },
           { value: "LM", label: "LM", hint: "Last Mile — delivery to the ECP / end customer" },
         ]}
       />

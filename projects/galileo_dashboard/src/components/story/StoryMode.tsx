@@ -38,7 +38,7 @@ function networkStats() {
     priorYear: contentTrends.prior_year,
     total: repCur + lmCur,
     tiles: [
-      { label: "REP pieces", note: "bulk to DCs", cur: repCur, yoy: yoy(repCur, repPy) },
+      { label: "REP pieces", note: "Intra-Network", cur: repCur, yoy: yoy(repCur, repPy) },
       { label: "LM pieces", note: "last mile to ECP", cur: lmCur, yoy: yoy(lmCur, lmPy) },
       { label: "Shipments", note: "REP + LM", cur: shipCur, yoy: yoy(shipCur, shipPy) },
     ],
