@@ -156,30 +156,6 @@
   font-weight: 600;
 }
 
-/* The one thing to do on this step. Kept visually apart from the explanation
-   so a visitor always knows what the next move is. */
-.action {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding: 9px 11px;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
-  border-radius: var(--radius);
-  background: var(--accent-tint);
-  color: var(--accent-deep);
-  font-size: 12.5px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-.action strong {
-  font-weight: 700;
-}
-.actionGlyph {
-  flex: none;
-  line-height: 1.45;
-}
-
 .keys {
   margin: 10px 0 0;
   font-family: var(--mono), monospace;

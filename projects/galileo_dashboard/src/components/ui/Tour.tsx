@@ -28,8 +28,6 @@ export interface TourStep {
   regions?: TourRegion[];
   title: string;
   body: ReactNode;
-  /** Concrete "do this now" line, rendered as the step's call to action. */
-  action?: ReactNode;
 }
 
 interface TourProps {
@@ -418,15 +416,6 @@ export function Tour({ steps, open, onClose, label }: TourProps) {
 
         <h3 className={styles.tipTitle}>{step.title}</h3>
         <div className={styles.tipBody}>{step.body}</div>
-
-        {step.action ? (
-          <p className={styles.action}>
-            <span className={styles.actionGlyph} aria-hidden="true">
-              ▸
-            </span>
-            <span>{step.action}</span>
-          </p>
-        ) : null}
 
         {isFirst ? (
           <p className={styles.keys}>

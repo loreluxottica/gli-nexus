@@ -77,7 +77,6 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
           change, not a longer window.
         </>
       ),
-      action: <>A short walkthrough — leave at any point.</>,
     },
     {
       target: '[data-tour="area-tabs"]',
@@ -97,13 +96,9 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
         <>
           <strong>REP</strong> (bulk into the distribution centres) and{" "}
           <strong>LM</strong> (last mile, to the ECP or customer) count different
-          things, so you read one market at a time.
-        </>
-      ),
-      action: (
-        <>
-          Set <strong>Metric</strong> to <strong>Efficiency</strong> to read
-          pieces per shipment — how full each shipment is.
+          things, so you read one market at a time. <strong>Metric</strong>{" "}
+          switches between Pieces, Shipments and Efficiency — pieces per
+          shipment, or how full each shipment is.
         </>
       ),
     },
@@ -122,7 +117,6 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
           />
         </>
       ),
-      action: <>Bar length is the volume; the gap between them is the move.</>,
     },
     {
       target: '[data-tour="v2-yoy"]',
@@ -130,13 +124,8 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
       body: (
         <>
           The <strong>YoY chip</strong> is the percent change against those same
-          months last year — green up, red down.
-        </>
-      ),
-      action: (
-        <>
-          Click a chip: you get a one-line cause, the monthly trend and the areas
-          that drove the move.
+          months last year — green up, red down. Click one for a one-line cause,
+          the monthly trend and the areas that drove the move.
         </>
       ),
     },
@@ -147,6 +136,7 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
         <>
           The sparkline puts this year over last year&rsquo;s full shape, so
           seasonality and the month the two years split apart are both visible.
+          Hover any month to compare the two years at that point.
           <TourKey
             items={[
               { swatch: "cur", term: "Solid line", def: `${cy}, month by month` },
@@ -155,18 +145,17 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
           />
         </>
       ),
-      action: <>Hover any month to compare the two years at that point.</>,
     },
     {
       target: '[data-tour="v2-drill"]',
       title: "Open the detail",
       body: (
         <>
-          A row with a <strong>▸</strong> expands. <strong>Export Labs</strong>{" "}
-          opens into the individual sites that add up to the total.
+          A row with a <strong>▸</strong> expands. Click{" "}
+          <strong>Export Labs</strong> to see the individual sites that add up to
+          the total.
         </>
       ),
-      action: <>Click the row to expand it.</>,
     },
     {
       target: '[data-tour="content-acct"]',
@@ -180,16 +169,10 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
               {
                 swatch: "acct",
                 term: "International",
-                def: "the accounting perimeter — the table turns amber",
+                def: "the accounting perimeter — the table turns amber and the area tabs stop applying",
               },
             ]}
           />
-        </>
-      ),
-      action: (
-        <>
-          In <strong>International</strong> the area tabs no longer apply — the
-          amber banner tells you when you are there.
         </>
       ),
     },
