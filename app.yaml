@@ -14,8 +14,6 @@ command:
   - "120"
 
 env:
-  - name: KELLY_DATA_SOURCE
-    value: "delta"
   - name: KELLY_UC_SCHEMA
     value: "sbx-logistics.kelly"     # per-warehouse tables mapped in warehouses.py
   - name: DATABRICKS_WAREHOUSE_ID

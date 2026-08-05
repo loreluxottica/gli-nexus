@@ -236,11 +236,8 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
     ], className="sidebar")
 
 
-def _last_update(warehouse_id: str) -> str | None:
+def _last_update(df: pd.DataFrame) -> str | None:
     """Most recent day carrying real Actual data (closures excluded)."""
-    df = data_loader.load_data(warehouse_id)
-    if df is None or df.empty:
-        return None
     d = _hist_actual(df)["Date"].max()
     return None if pd.isna(d) else d.strftime("%d %b %Y")
 
@@ -248,12 +245,18 @@ def _last_update(warehouse_id: str) -> str | None:
 def _page_header(warehouse_id: str, subtitle: str) -> html.Div:
     wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id),
                     warehouse_id.title())
-    last = _last_update(warehouse_id)
+    df = data_loader.load_data(warehouse_id)
+    if df is None or df.empty:
+        # No silent placeholder data: say so instead of showing an empty plant.
+        badge = html.Div("⚠ DATA UNAVAILABLE", className="page-dataerror")
+    else:
+        last = _last_update(df)
+        badge = (html.Div([html.Span("LAST UPDATE", className="page-lastupdate-label"), last],
+                          className="page-lastupdate") if last else None)
     return html.Div([
         html.Div([
             html.Div(wh_label.upper(), className="page-title"),
-            (html.Div([html.Span("LAST UPDATE", className="page-lastupdate-label"), last],
-                      className="page-lastupdate") if last else None),
+            badge,
         ], className="page-title-group"),
         html.Div(subtitle, className="page-subtitle"),
     ], className="page-header")

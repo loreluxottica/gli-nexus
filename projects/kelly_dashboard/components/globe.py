@@ -10,8 +10,7 @@ def build_globe_figure(selected_id: str | None = None, full_page: bool = False) 
     # Base markers
     for w in WAREHOUSES:
         is_selected = w["id"] == selected_id
-        has_data = w["file"] is not None
-        color = theme.ACCENT if (has_data or True) else theme.TEXT_DIM  # all active (mock data fills rest)
+        color = theme.ACCENT
         size = 18 if is_selected else 13
         opacity = 1.0
 

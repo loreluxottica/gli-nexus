@@ -90,6 +90,19 @@ python app.py
 In standalone Project Kelly usa il prefix di default `/` (comportamento
 identico a prima della ristrutturazione).
 
+### Dati reali in locale
+
+Project Kelly legge sempre le tabelle Unity Catalog. Per vederle da locale
+servono un profilo CLI autenticato e l'ID del SQL warehouse:
+
+```bash
+export DATABRICKS_CONFIG_PROFILE=luxottica
+export DATABRICKS_WAREHOUSE_ID=2663c9a13af5c078
+python app.py
+```
+
+Senza queste variabili le pagine dei plant mostrano `⚠ DATA UNAVAILABLE`.
+
 ---
 
 ## Deploy Databricks Apps
@@ -107,8 +120,9 @@ traffico verso di esso.
    folder. Per i redeploy dopo un push: UI (pull Git folder + Deploy) oppure
    CLI `databricks apps deploy gli-nexus --profile luxottica` (risolve
    l'ultimo commit di `main`).
-3. **Risorse app** (opzionali finché si usa il mock):
-   - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*);
+3. **Risorse app**:
+   - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*) —
+     **obbligatorio**: senza, Project Kelly non ha dati;
    - secret con resource key `secret` → `kelly/mapbox_token` (token Mapbox).
    Poi decommenta le voci `valueFrom` corrispondenti in `app.yaml`.
 4. **Dati reali**: concedi al service principal dell'app `USE CATALOG` su
@@ -120,7 +134,6 @@ traffico verso di esso.
 
 | Variabile | Default | Descrizione |
 |---|---|---|
-| `KELLY_DATA_SOURCE` | `excel` in locale, `delta` su Databricks (auto) | Sorgente dati: `excel` (xlsx locale, fallback mock) o `delta` (tabelle UC) |
 | `KELLY_UC_SCHEMA` | `sbx-logistics.kelly` | Catalog.schema delle tabelle per-plant (nomi tabella in `warehouses.py`) |
 | `DATABRICKS_WAREHOUSE_ID` | — | ID SQL warehouse (via resource `valueFrom`) |
 | `KELLY_SQL_HTTP_PATH` | — | Alternativa esplicita all'ID warehouse (http path completo) |
@@ -131,8 +144,9 @@ traffico verso di esso.
 
 Schema atteso delle tabelle: `ds` (timestamp), `ID` (area/turno), `Actual`,
 `Forecast`, `Forecast_Vintage` (`ds` viene alias-ata a `Date` nella query).
-Se il warehouse SQL non è configurato o la query fallisce, l'app degrada a
-dati mock generati (nessun crash).
+Le tabelle UC sono l'**unica** sorgente dati: se il warehouse SQL non è
+configurato o la query fallisce, la pagina del plant resta vuota e l'header
+mostra `⚠ DATA UNAVAILABLE` (nessun crash, nessun dato inventato).
 
 ### Autorizzazioni utente (user scopes)
 
