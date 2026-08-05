@@ -236,10 +236,35 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
     ], className="sidebar")
 
 
+def _last_update(df: pd.DataFrame) -> str | None:
+    """Most recent day carrying real Actual data (closures excluded)."""
+    d = _hist_actual(df)["Date"].max()
+    return None if pd.isna(d) else d.strftime("%d %b %Y")
+
+
+def _page_header(warehouse_id: str, subtitle: str) -> html.Div:
+    wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id),
+                    warehouse_id.title())
+    df = data_loader.load_data(warehouse_id)
+    if df is None or df.empty:
+        # No silent placeholder data: say so instead of showing an empty plant.
+        badge = html.Div("⚠ DATA UNAVAILABLE", className="page-dataerror")
+    else:
+        last = _last_update(df)
+        badge = (html.Div([html.Span("LAST UPDATE", className="page-lastupdate-label"), last],
+                          className="page-lastupdate") if last else None)
+    return html.Div([
+        html.Div([
+            html.Div(wh_label.upper(), className="page-title"),
+            badge,
+        ], className="page-title-group"),
+        html.Div(subtitle, className="page-subtitle"),
+    ], className="page-header")
+
+
 # ── Layout ────────────────────────────────────────────────────────────────────
 
 def layout(warehouse_id: str = "columbus") -> html.Div:
-    wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id), warehouse_id.title())
     # Sedico defaults to the "General" area (no "All areas" aggregate).
     default_area = "General" if warehouse_id == "sedico" else "__all__"
 
@@ -248,10 +273,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
 
         html.Div([
             # Page header
-            html.Div([
-                html.Div(f"{wh_label.upper()}", className="page-title"),
-                html.Div("ABSENTEEISM FORECAST INTELLIGENCE", className="page-subtitle"),
-            ], className="page-header"),
+            _page_header(warehouse_id, "ABSENTEEISM FORECAST INTELLIGENCE"),
 
             # KPI row
             html.Div(id="fct-kpi-row"),
@@ -368,7 +390,7 @@ def register_callbacks(app):
     def update_weather(warehouse_id):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             return build_weather_strip(None)
-        df = weather_loader.fetch_and_store(warehouse_id)
+        df = weather_loader.get_forecast(warehouse_id)
         return build_weather_strip(df, warehouse_id)
 
     @app.callback(

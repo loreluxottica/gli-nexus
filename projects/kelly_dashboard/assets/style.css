@@ -247,6 +247,36 @@ body {
     letter-spacing: -0.3px;
 }
 
+.page-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    min-width: 0;
+}
+
+.page-lastupdate {
+    font-size: 11px;
+    color: var(--el-gold);
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.page-lastupdate-label {
+    color: var(--el-silver);
+    font-weight: 400;
+    margin-right: 6px;
+}
+
+/* Shown in place of the last-update badge when the source can't be read. */
+.page-dataerror {
+    font-size: 11px;
+    color: var(--el-accent);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
 .page-subtitle {
     font-size: 12px;
     color: var(--el-silver);

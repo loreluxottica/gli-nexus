@@ -7,7 +7,7 @@ import kelly_dashboard.theme as theme
 import kelly_dashboard.data_loader as data_loader
 from kelly_dashboard.warehouses import WAREHOUSES
 from kelly_dashboard.components.charts import build_drift_chart, _empty_figure
-from kelly_dashboard.pages.forecast import _sidebar
+from kelly_dashboard.pages.forecast import _sidebar, _page_header
 
 
 def _id_options(df: pd.DataFrame, warehouse_id: str | None = None) -> list[dict]:
@@ -43,7 +43,6 @@ def _week_options(df: pd.DataFrame) -> list[dict]:
 
 
 def layout(warehouse_id: str = "columbus") -> html.Div:
-    wh_label = next((w["label"] for w in WAREHOUSES if w["id"] == warehouse_id), warehouse_id.title())
     # Sedico defaults to the "General" area (no "All areas" aggregate).
     default_area = "General" if warehouse_id == "sedico" else "__all__"
 
@@ -51,10 +50,7 @@ def layout(warehouse_id: str = "columbus") -> html.Div:
         _sidebar(warehouse_id, "performance"),
 
         html.Div([
-            html.Div([
-                html.Div(f"{wh_label.upper()}", className="page-title"),
-                html.Div("LAST MONTH PERFORMANCE · AI DRIFT ANALYSIS", className="page-subtitle"),
-            ], className="page-header"),
+            _page_header(warehouse_id, "LAST MONTH PERFORMANCE · AI DRIFT ANALYSIS"),
 
             # KPI stats (no boxes)
             html.Div([
