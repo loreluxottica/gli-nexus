@@ -390,7 +390,7 @@ def register_callbacks(app):
     def update_weather(warehouse_id):
         if not warehouse_id or not auth.is_authorized(warehouse_id):
             return build_weather_strip(None)
-        df = weather_loader.fetch_and_store(warehouse_id)
+        df = weather_loader.get_forecast(warehouse_id)
         return build_weather_strip(df, warehouse_id)
 
     @app.callback(

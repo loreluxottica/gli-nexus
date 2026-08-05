@@ -44,7 +44,8 @@ gli-nexus/
 ## Prerequisiti
 
 - **Python 3.11** (consigliato) o 3.10+
-- Connessione internet al primo avvio (dati meteo di Project Kelly)
+- Connessione internet (dati meteo di Project Kelly: una chiamata Open-Meteo
+  per plant al giorno, tenuta in memoria — niente cache su disco)
 
 ---
 
@@ -140,7 +141,6 @@ traffico verso di esso.
 | `DATABRICKS_CONFIG_PROFILE` | — | Solo sviluppo locale: profilo CLI per auth OAuth/PAT |
 | `MAPBOX_TOKEN`, `MAPBOX_STYLE` | `""` | Token pubblico Mapbox per il globo (vedi `.env.example`) |
 | `KELLY_URL_PREFIX` | `/kelly/` | Prefix di mount di Project Kelly (impostato da `app.py`) |
-| `WEATHER_CACHE_DIR` | `projects/kelly_dashboard/weather_data` | Dir cache meteo; se non scrivibile si usa la temp dir |
 
 Schema atteso delle tabelle: `ds` (timestamp), `ID` (area/turno), `Actual`,
 `Forecast`, `Forecast_Vintage` (`ds` viene alias-ata a `Date` nella query).

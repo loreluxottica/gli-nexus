@@ -20,9 +20,10 @@ from kelly_dashboard.pages import performance
 
 
 def _prefetch_weather():
+    """Warm the in-memory weather cache so the first visitor doesn't wait on the API."""
     for w in WAREHOUSES:
         try:
-            weather_loader.fetch_and_store(w["id"])
+            weather_loader.get_forecast(w["id"])
         except Exception:
             pass
 
