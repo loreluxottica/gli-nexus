@@ -233,7 +233,7 @@ export interface TopSite {
   share_pct: number | null; // 0..1
 }
 
-/** One product family's not-yet-covered sites from the Coverage census. */
+/** One product family's explicitly UNMAPPED sites from the Coverage census. */
 export interface UnderReviewSite {
   site: string;
   area: Exclude<GeoArea, "ALL">;

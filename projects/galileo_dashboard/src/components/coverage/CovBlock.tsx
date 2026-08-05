@@ -4,8 +4,10 @@ import dynamic from "next/dynamic";
 import { useState, type ReactNode } from "react";
 import type { TagTone } from "@/components/ui/Tag";
 import { Tag } from "@/components/ui/Tag";
-import { CoverageBar } from "@/components/ui/CoverageBar";
-import { AutomationBar } from "@/components/ui/AutomationBar";
+import {
+  AutomationBar,
+  getAutomationLevel,
+} from "@/components/ui/AutomationBar";
 import { fmtInt, fmtPct } from "@/lib/format";
 import type { CoverageExplainTarget } from "./CoverageExplain";
 import styles from "./Coverage.module.css";
@@ -146,13 +148,16 @@ export function CovBlock({
                 <td className={styles.centerNum}>{fmtInt(r.estimated_volume)}</td>
                 <td className={styles.covCell}>
                   {r.coverage_pct == null ? (
-                    <span className={styles.covUnit}>
-                      <CoverageBar value={r.coverage_pct} />
+                    <span className={styles.metricUnit}>
+                      <span className={styles.metricValue}>—</span>
+                      <span className={styles.hintPlaceholder} aria-hidden="true">
+                        ?
+                      </span>
                     </span>
                   ) : (
                     <button
                       type="button"
-                      className={`${styles.covHit} ${styles.covUnit}`}
+                      className={`${styles.covHit} ${styles.metricUnit}`}
                       onClick={() =>
                         setExplain({
                           kind: "row",
@@ -164,7 +169,7 @@ export function CovBlock({
                       }
                       aria-label={`Coverage ${Math.round(r.coverage_pct * 100)}%. How this number works`}
                     >
-                      <CoverageBar value={r.coverage_pct} />
+                      <span className={styles.metricValue}>{fmtPct(r.coverage_pct, 0)}</span>
                       <span className={styles.covHint} aria-hidden="true">
                         ?
                       </span>
@@ -172,7 +177,39 @@ export function CovBlock({
                   )}
                 </td>
                 <td className={styles.autoCell}>
-                  <AutomationBar low={r.low} mid={r.mid} high={r.high} />
+                  {getAutomationLevel(r.low, r.mid, r.high) ? (
+                    <button
+                      type="button"
+                      className={`${styles.covHit} ${styles.metricUnit}`}
+                      onClick={() =>
+                        setExplain({
+                          kind: "automation",
+                          scope: `${scopeLabel} · ${r.chipLabel}`,
+                          level: getAutomationLevel(r.low, r.mid, r.high)!,
+                          low: r.low,
+                          mid: r.mid,
+                          high: r.high,
+                        })
+                      }
+                      aria-label={`Automation level ${getAutomationLevel(r.low, r.mid, r.high)}. How this level works`}
+                    >
+                      <span className={styles.automationValue}>
+                        <AutomationBar low={r.low} mid={r.mid} high={r.high} />
+                      </span>
+                      <span className={styles.covHint} aria-hidden="true">
+                        ?
+                      </span>
+                    </button>
+                  ) : (
+                    <span className={styles.metricUnit}>
+                      <span className={styles.automationValue}>
+                        <AutomationBar low={r.low} mid={r.mid} high={r.high} />
+                      </span>
+                      <span className={styles.hintPlaceholder} aria-hidden="true">
+                        ?
+                      </span>
+                    </span>
+                  )}
                 </td>
                 <TierCell value={r.low} tier="low" />
                 <TierCell value={r.mid} tier="mid" />

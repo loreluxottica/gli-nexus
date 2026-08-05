@@ -310,24 +310,42 @@ button.blockCov.covHit {
   vertical-align: middle;
 }
 
-/* Coverage % vol: unit (bar + % + ?) centered under the header. */
+/* Coverage and automation values: fixed value/? columns keep every row aligned. */
 .table th.covHead {
   text-align: center;
   white-space: nowrap;
 }
 .table td.covCell {
   white-space: nowrap;
-  min-width: 138px;
+  min-width: 108px;
   text-align: center;
   vertical-align: middle;
 }
-.covUnit {
-  display: inline-flex;
+.metricUnit {
+  display: inline-grid;
+  grid-template-columns: 5ch 16px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   white-space: nowrap;
   margin-inline: auto;
+  padding: 2px 4px;
+}
+.metricValue {
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.automationValue {
+  display: inline-block;
+  text-align: center;
+}
+.hintPlaceholder {
+  width: 16px;
+  height: 16px;
+  visibility: hidden;
 }
 .chipArea {
   min-width: 92px;
@@ -346,7 +364,7 @@ button.blockCov.covHit {
   font-size: 10.5px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  min-width: 88px;
+  min-width: 118px;
   text-align: center;
 }
 .table td.autoCell {

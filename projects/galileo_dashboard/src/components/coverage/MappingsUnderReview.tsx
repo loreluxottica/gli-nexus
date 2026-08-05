@@ -9,10 +9,10 @@ import { fmtCompact, fmtPct } from "@/lib/format";
 import styles from "./Coverage.module.css";
 
 /**
- * Sites not mapped — census sites that do not feed Galileo yet, grouped by
- * product. Expanding a product shows each site with its estimated volume and
- * the weight that volume has on current coverage (share of product×area total).
- * Sites with no estimated volume are marked "under review".
+ * Sites explicitly marked UNMAPPED in the Coverage source, grouped by product
+ * family. Expanding a product shows each site with its estimated volume and the
+ * weight that volume has on current coverage (share of product-family × area
+ * total). Sites with no estimated volume are marked "under review".
  */
 
 function groupByArea(sites: UnderReviewSite[]) {

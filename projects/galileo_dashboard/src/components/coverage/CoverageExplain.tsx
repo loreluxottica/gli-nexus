@@ -1,7 +1,8 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
-import { fmtCompact, fmtInt } from "@/lib/format";
+import type { AutomationLevel } from "@/components/ui/AutomationBar";
+import { fmtCompact, fmtInt, fmtPct } from "@/lib/format";
 import styles from "./CoverageExplain.module.css";
 
 export type CoverageExplainRow = {
@@ -23,13 +24,18 @@ export type CoverageExplainTarget =
       scope: string;
       value: number | null;
       rows: CoverageExplainRow[];
+    }
+  | {
+      kind: "automation";
+      scope: string;
+      level: AutomationLevel;
+      low: number | null;
+      mid: number | null;
+      high: number | null;
     };
 
 /**
- * Kid-simple coverage explainer. Logic only — no source-system jargon.
- *
- * Coverage = estimated volume of sites that feed Galileo
- *            ÷ all estimated volume in the group.
+ * Explains source Product x Area coverage and estimated-volume-weighted totals.
  */
 export function CoverageExplain({
   target,
@@ -59,14 +65,29 @@ export function CoverageExplain({
 
           <div className={styles.result}>
             <span className={styles.resultValue}>
-              {target.value == null ? "—" : `${Math.round(target.value * 100)}%`}
+              {target.kind === "automation"
+                ? target.level
+                : target.value == null
+                  ? "—"
+                  : `${Math.round(target.value * 100)}%`}
             </span>
             <span className={styles.resultLabel}>
-              {target.kind === "total" ? "total coverage" : "coverage · by volume"}
+              {target.kind === "automation"
+                ? "automation level"
+                : target.kind === "total"
+                  ? "total coverage"
+                  : "coverage · by volume"}
             </span>
           </div>
 
-          {target.kind === "row" ? (
+          {target.kind === "automation" ? (
+            <AutomationExplain
+              level={target.level}
+              low={target.low}
+              mid={target.mid}
+              high={target.high}
+            />
+          ) : target.kind === "row" ? (
             <RowExplain
               value={target.value}
               totSites={target.tot_sites}
@@ -81,6 +102,61 @@ export function CoverageExplain({
   );
 }
 
+function AutomationExplain({
+  level,
+  low,
+  mid,
+  high,
+}: {
+  level: AutomationLevel;
+  low: number | null;
+  mid: number | null;
+  high: number | null;
+}) {
+  const tiers = [
+    ["Low", low],
+    ["Mid", mid],
+    ["High", high],
+  ] as const;
+
+  return (
+    <ol className={styles.steps}>
+      <li className={styles.step}>
+        <span className={styles.stepNum} aria-hidden="true">
+          1
+        </span>
+        <div className={styles.stepBody}>
+          <p className={styles.stepTitle}>Compare the three site shares</p>
+          <p className={styles.stepText}>
+            Each percentage is the share of distinct sites classified as Low,
+            Mid, or High automation.
+          </p>
+          <ul className={styles.mixList}>
+            {tiers.map(([label, value]) => (
+              <li key={label} className={styles.mixRow}>
+                <span className={styles.mixLabel}>{label}</span>
+                <span className={styles.mixDetail}>{fmtPct(value, 0)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </li>
+      <li className={styles.step}>
+        <span className={styles.stepNum} aria-hidden="true">
+          2
+        </span>
+        <div className={styles.stepBody}>
+          <p className={styles.stepTitle}>Use the largest share</p>
+          <p className={styles.stepText}>
+            The automation level is <b>{level}</b> because that tier has the
+            largest share in this row.
+          </p>
+        </div>
+      </li>
+    </ol>
+  );
+}
+
 function RowExplain({
   value,
   totSites,
@@ -92,10 +168,6 @@ function RowExplain({
 }) {
   const tot = totSites != null && totSites > 0 ? totSites : null;
   const vol = volume != null && volume > 0 ? volume : null;
-  const coveredVol =
-    vol != null && value != null ? Math.round(value * vol) : null;
-  const units = 10;
-  const filled = value != null ? Math.round(Math.max(0, Math.min(1, value)) * units) : 0;
 
   return (
     <ol className={styles.steps}>
@@ -104,23 +176,18 @@ function RowExplain({
           1
         </span>
         <div className={styles.stepBody}>
-          <p className={styles.stepTitle}>Think in piles, not just sites</p>
+          <p className={styles.stepTitle}>Read the source percentage</p>
           <p className={styles.stepText}>
-            Each site has a pile of pieces — its <b>estimated volume</b>.
-            A huge plant counts for more than a tiny lab.
+            This value comes directly from the <b>Coverage</b> column in
+            Coverage Galileo.csv for this product and area.
           </p>
-          {tot != null && (
-            <p className={styles.note}>
-              Here: <b>{fmtInt(tot)}</b> sites
-              {vol != null ? (
-                <>
-                  {" "}
-                  · about <b>{fmtCompact(vol)}</b> estimated volume in total
-                </>
-              ) : null}
-              .
-            </p>
-          )}
+          <div className={styles.formula}>
+            <span className={styles.formulaPart}>source Coverage</span>
+            <span className={styles.formulaOp}>=</span>
+            <span className={styles.formulaResult}>
+              {value == null ? "—" : `${Math.round(value * 100)}%`}
+            </span>
+          </div>
         </div>
       </li>
 
@@ -129,29 +196,12 @@ function RowExplain({
           2
         </span>
         <div className={styles.stepBody}>
-          <p className={styles.stepTitle}>Is the site already in Galileo?</p>
+          <p className={styles.stepTitle}>Do not promote partial volume to 100%</p>
           <p className={styles.stepText}>
-            If a site is already sending data, we count its{" "}
-            <b className={styles.yes}>whole pile</b> as covered.
-            If it is not yet in Galileo, that pile counts as{" "}
-            <b className={styles.no}>zero</b>.
+            A positive Galileo Volume no longer makes a row fully covered. The
+            dashboard preserves the percentage supplied by the source instead
+            of deriving a second value from a yes/no rule.
           </p>
-          <div className={styles.dotRow} aria-hidden="true">
-            {Array.from({ length: units }, (_, i) => (
-              <span
-                key={i}
-                className={i < filled ? styles.dotYes : styles.dotNo}
-              />
-            ))}
-          </div>
-          <div className={styles.legend}>
-            <span>
-              <i className={styles.dotYes} /> volume we already see
-            </span>
-            <span>
-              <i className={styles.dotNo} /> volume still outside
-            </span>
-          </div>
         </div>
       </li>
 
@@ -160,34 +210,18 @@ function RowExplain({
           3
         </span>
         <div className={styles.stepBody}>
-          <p className={styles.stepTitle}>Divide the piles</p>
+          <p className={styles.stepTitle}>Keep the volume as context</p>
           <p className={styles.stepText}>
-            Coverage is simply: volume we see ÷ all estimated volume.
+            Estimated volume still describes the size of this group and is used
+            to weight totals that combine several rows.
           </p>
-          {coveredVol != null && vol != null && value != null ? (
-            <div className={styles.formula}>
-              <span className={styles.formulaPart}>{fmtCompact(coveredVol)}</span>
-              <span className={styles.formulaOp}>÷</span>
-              <span className={styles.formulaPart}>{fmtCompact(vol)}</span>
-              <span className={styles.formulaOp}>=</span>
-              <span className={styles.formulaResult}>
-                {Math.round(value * 100)}%
-              </span>
-            </div>
-          ) : (
-            <div className={styles.formula}>
-              <span className={styles.formulaPart}>volume we see</span>
-              <span className={styles.formulaOp}>÷</span>
-              <span className={styles.formulaPart}>all estimated volume</span>
-              <span className={styles.formulaOp}>=</span>
-              <span className={styles.formulaResult}>
-                {value == null ? "—" : `${Math.round(value * 100)}%`}
-              </span>
-            </div>
+          {(tot != null || vol != null) && (
+            <p className={styles.note}>
+              Here: {tot != null ? <><b>{fmtInt(tot)}</b> sites</> : null}
+              {tot != null && vol != null ? " · " : null}
+              {vol != null ? <><b>{fmtCompact(vol)}</b> estimated volume</> : null}.
+            </p>
           )}
-          <p className={styles.note}>
-            So a few large sites can move the % more than many small ones.
-          </p>
         </div>
       </li>
     </ol>
@@ -217,8 +251,8 @@ function TotalExplain({
         <div className={styles.stepBody}>
           <p className={styles.stepTitle}>Each row has its own coverage</p>
           <p className={styles.stepText}>
-            For every line in the table we already know: of that group&apos;s
-            estimated volume, how much comes from sites already in Galileo.
+            Every line starts from the source Coverage percentage for that
+            product and area, together with its estimated-volume weight.
           </p>
         </div>
       </li>

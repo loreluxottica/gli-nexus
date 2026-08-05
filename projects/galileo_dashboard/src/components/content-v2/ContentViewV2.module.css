@@ -47,6 +47,48 @@
   font-weight: 600;
 }
 
+/* Content tutorial: a decoder under the explanation — the mark on screen on the
+   left, what it means on the right. Only for steps that encode something. */
+.tourKey {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.tourKeyRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.tourKeyRow + .tourKeyRow {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.tourKeyTerm {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 92px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.tourKeyDef {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.tourSwatch {
+  flex: none;
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
 /* Legend for the bar/sparkline encodings + an inline REP/LM/ECP glossary. */
 .legend {
   display: flex;
@@ -109,6 +151,7 @@
 }
 .swCur { background: var(--accent); }
 .swPy { background: var(--line-strong); }
+.swAcct { background: var(--cat-amber-ink); }
 .legSep { color: var(--ink-faint); }
 
 .modalHead {
