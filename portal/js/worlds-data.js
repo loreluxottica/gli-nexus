@@ -103,7 +103,7 @@ const NEXUS_WORLDS = [
     cta: "Open LMS",
     accent: "#E0555F",
     accent2: "#FF9AA2",
-    backgroundType: "database",
+    backgroundType: "shift",
     link: "http://10.200.112.48:5058/",
     project: "LMS"
   },
@@ -115,7 +115,7 @@ const NEXUS_WORLDS = [
     cta: "Open Doppler",
     accent: "#3FA66B",
     accent2: "#7FD9A0",
-    backgroundType: "docs",
+    backgroundType: "radar",
     link: "http://10.200.112.48:5001/",
     project: "DOPPLER"
   },
@@ -127,7 +127,7 @@ const NEXUS_WORLDS = [
     cta: "Open Synchro",
     accent: "#D65DB1",
     accent2: "#F49AC2",
-    backgroundType: "cosmic",
+    backgroundType: "sync",
     link: "http://10.200.112.48:5056/",
     project: "SYNCHRO"
   }

@@ -84,8 +84,24 @@ class PortalContractTests(unittest.TestCase):
             'project: "DOPPLER"',
             'link: "http://10.200.112.48:5056/"',
             'project: "SYNCHRO"',
+            'backgroundType: "shift"',
+            'backgroundType: "radar"',
+            'backgroundType: "sync"',
         ):
             self.assertIn(expected, data)
+
+    def test_gabri_worlds_have_dedicated_backgrounds(self) -> None:
+        """LMS / Doppler / Synchro must not reuse another product's canvas world."""
+        worlds = (PORTAL / "js" / "worlds-data.js").read_text(encoding="utf-8")
+        bg = (PORTAL / "js" / "worlds-bg.js").read_text(encoding="utf-8")
+        for type_name, drawer in (
+            ("shift", "drawShift"),
+            ("radar", "drawRadar"),
+            ("sync", "drawSync"),
+        ):
+            self.assertIn(f'backgroundType: "{type_name}"', worlds)
+            self.assertIn(f"function {drawer}(t)", bg)
+            self.assertIn(f'world.type === "{type_name}"', bg)
 
 
 class PortalRouteTests(unittest.TestCase):
