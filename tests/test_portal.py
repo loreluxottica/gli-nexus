@@ -103,6 +103,13 @@ class PortalContractTests(unittest.TestCase):
             self.assertIn(f"function {drawer}(t)", bg)
             self.assertIn(f'world.type === "{type_name}"', bg)
 
+    def test_world_logos_exist(self) -> None:
+        worlds = (PORTAL / "js" / "worlds-data.js").read_text(encoding="utf-8")
+        logos = re.findall(r'^\s+logo:\s*"([^"]+)"\s*,?\s*$', worlds, re.MULTILINE)
+        self.assertGreaterEqual(len(logos), 9)
+        missing = [logo for logo in logos if not (PORTAL / logo).is_file()]
+        self.assertEqual(missing, [])
+
 
 class PortalRouteTests(unittest.TestCase):
     def setUp(self) -> None:

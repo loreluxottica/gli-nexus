@@ -104,6 +104,7 @@ const NEXUS_WORLDS = [
     accent: "#E0555F",
     accent2: "#FF9AA2",
     backgroundType: "shift",
+    logo: "assets/gli-lms.png",
     link: "http://10.200.112.48:5058/",
     project: "LMS"
   },
@@ -116,6 +117,7 @@ const NEXUS_WORLDS = [
     accent: "#3FA66B",
     accent2: "#7FD9A0",
     backgroundType: "radar",
+    logo: "assets/gli-doppler.png",
     link: "http://10.200.112.48:5001/",
     project: "DOPPLER"
   },
@@ -128,6 +130,7 @@ const NEXUS_WORLDS = [
     accent: "#D65DB1",
     accent2: "#F49AC2",
     backgroundType: "sync",
+    logo: "assets/gli-synchro.png",
     link: "http://10.200.112.48:5056/",
     project: "SYNCHRO"
   }
