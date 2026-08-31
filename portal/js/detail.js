@@ -305,10 +305,13 @@
     rebuildStory();
 
     /* Products without a demo yet hide the toggle instead of flipping
-       into an empty screen. style.display, not hidden: .dmode { display:
-       flex } in detail.css would otherwise beat the UA [hidden] rule. */
+       into an empty screen. visibility, not display: .dbody's grid-
+       template-rows is "auto minmax(0,1fr) auto" (mode/stage/rail) —
+       display:none drops .dmode from grid placement entirely, which
+       shifts .dstageset into the auto row and .drailset into the 1fr
+       row, stretching the rail and starving the story stage. */
     const modeWrap = els.modeToggle.closest(".dmode");
-    if (modeWrap) modeWrap.style.display = hasDemo ? "" : "none";
+    if (modeWrap) modeWrap.style.visibility = hasDemo ? "" : "hidden";
   }
 
   /* ---------------------------------------------------------

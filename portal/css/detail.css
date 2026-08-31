@@ -1116,8 +1116,12 @@ body.detail-open .single-stage {
    silhouette placeholder), then name, then position. */
 .dteam {
   list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  /* flex, not a 1fr grid: an auto-fill/1fr track list stretches to the
+     full row width even with a single item, leaving empty phantom
+     columns beside it. flex-wrap sizes each card to its own basis and
+     only takes the width the team actually needs. */
+  display: flex;
+  flex-wrap: wrap;
   align-content: start;
   justify-content: center;
   gap: 0.9rem 0.85rem;
@@ -1132,6 +1136,7 @@ body.detail-open .single-stage {
   align-items: center;
   text-align: center;
   gap: 0.7rem;
+  flex: 0 1 9.5rem;
   min-width: 0;
   padding: 0.85rem 0.65rem 0.95rem;
   border-radius: 1rem;
@@ -1568,10 +1573,10 @@ body.detail-open .single-stage {
 /* Wide stage: keep cards readable without stretching a single row */
 @media (min-width: 1100px) {
   .dteam {
-    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
     max-width: 48rem;
     margin-inline: auto;
   }
+  .dperson { flex-basis: 10.5rem; }
 }
 
 @media (max-height: 620px) {
