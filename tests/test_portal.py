@@ -78,6 +78,12 @@ class PortalContractTests(unittest.TestCase):
             'project: "LAPLACEMULTIDOC"',
             'project: "FLAGS"',
             'project: "VOLUMESDATAENTRY"',
+            'link: "http://10.200.112.48:5058/"',
+            'project: "LMS"',
+            'link: "http://10.200.112.48:5001/"',
+            'project: "DOPPLER"',
+            'link: "http://10.200.112.48:5056/"',
+            'project: "SYNCHRO"',
         ):
             self.assertIn(expected, data)
 

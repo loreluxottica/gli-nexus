@@ -89,6 +89,7 @@
   let startStep = 0;     // passo scenario, impostabile da ?s=<n>
   let startInDemo = false;
   let trackEl = null;
+  let hasDemo = false;
 
   /* Storytelling: indici dei pannelli attivi (salta link se vuoto) */
   let storyActive = [];
@@ -302,6 +303,12 @@
 
     buildPreview(d.preview || {});
     rebuildStory();
+
+    /* Products without a demo yet hide the toggle instead of flipping
+       into an empty screen. style.display, not hidden: .dmode { display:
+       flex } in detail.css would otherwise beat the UA [hidden] rule. */
+    const modeWrap = els.modeToggle.closest(".dmode");
+    if (modeWrap) modeWrap.style.display = hasDemo ? "" : "none";
   }
 
   /* ---------------------------------------------------------
@@ -446,6 +453,7 @@
 
   function buildPreview(pv) {
     steps = pv.steps || [];
+    hasDemo = (pv.kind === "video" && !!pv.video) || steps.length > 0;
     trackEl = null;
     /* Solo lo schermo: la fascia con titolo e didascalia vive nello
        stage e non va ricostruita a ogni prodotto. */
@@ -532,6 +540,7 @@
      Cambio modo — storia ⇄ demo, tutto il corpo della card
      --------------------------------------------------------- */
   function setMode(next, opts) {
+    if (next === "demo" && !hasDemo) return;
     const options = opts || {};
     if (next === mode) return;
     mode = next;

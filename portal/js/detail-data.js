@@ -380,5 +380,91 @@ const NEXUS_DETAILS = {
         }
       ]
     }
+  },
+
+  /* ========================================================== */
+  lms: {
+    kicker: "Workforce Control Room",
+    tagline: "Every warehouse KPI, live and auditable.",
+
+    problem: "Power BI is <b>slow</b> and <b>license-limited</b>, capped at <b>one year of data</b> — warehouse labour performance is hard to see and slower to trust.",
+    answer: "LMS replaces it with a live web control room: <b>70% faster</b> updates, more views and processes, and data management that makes every number more reliable.",
+
+    shift: {
+      before: { label: "Before", metric: "2 Power BI files + Excel", text: "long refresh, ranking by pieces, no floor TV, hard to audit a number" },
+      after:  { label: "With LMS", metric: "1 live control room", text: "near real-time update, ranking vs task target, TV wallboard, every KPI drills to the source row" }
+    },
+
+    io: {
+      in:  ["SAP operational data", "HR data", "Roster", "Task targets"],
+      out: ["Complete operational view", "Time clock analysis", "Workforce scheduling", "Feedback tool"]
+    },
+    connects: [],
+    fitFor: "you manage <b>warehouse labour</b> and need to analyze performance, with <b>fair ranking across tasks</b> and numbers you can <b>audit back to the source</b>.",
+
+    meta: [
+      { label: "Status", value: "Coming soon" }
+    ],
+    team: [
+      { name: "Gabriel Aquino" }
+    ]
+  },
+
+  /* ========================================================== */
+  doppler: {
+    kicker: "Lens Warehouse WMS",
+    tagline: "FIFO, barcodes and one live stock — no more paper.",
+
+    problem: "Paper lists and Excel stock mean <b>picking errors</b>, <b>no FIFO</b>, no HU barcode and no live inventory — and the file gets overwritten whenever two people open it at once.",
+    answer: "Doppler is a web WMS for optical-lens handling units: <b>barcode labels</b>, <b>FIFO picking</b>, two-mantissa putaway/pick, and one live stock and warehouse map across the CN/BR plants.",
+
+    shift: {
+      before: { label: "Before", metric: "Paper + shared Excel", text: "handwritten inbound, putaway by memory, pick lists with no BIN, FIFO left to the operator, hard to audit a HU" },
+      after:  { label: "With Doppler", metric: "Live web WMS", text: "BIN + HU putaway lists, FIFO pick list with EasyTouch scan, one live stock, SW Output straight back to operations" }
+    },
+
+    io: {
+      in:  ["Inbound & outbound Excel (packing / picking lists)", "Dropsy master", "Warehouse map", "Operator badges"],
+      out: ["HU labels", "Putaway & picking lists with BIN route", "Jacken inventory export", "SW Output", "EasyTouch floor tasks"]
+    },
+    connects: [],
+    fitFor: "you run a <b>lens warehouse</b> (SF / FSV / progressive) on paper lists and Excel, and need <b>FIFO</b>, <b>HU traceability</b> and floor documents without waiting for a full SAP WMS / InfoBIN rollout.",
+
+    meta: [
+      { label: "Status", value: "Coming soon" }
+    ],
+    team: [
+      { name: "Gabriel Aquino" },
+      { name: "Hu Jacken" },
+      { name: "Nathanael Silva" }
+    ]
+  },
+
+  /* ========================================================== */
+  synchro: {
+    kicker: "OT Shipment Desk",
+    tagline: "Correct or exclude a shipment without touching SQL.",
+
+    problem: "Lenses on-time transit is tracked in <b>Power BI + Excel</b>: you can't correct a shipment, every browse hits SQL, BUs mix together with duplicate HAWBs, and there's no audit trail.",
+    answer: "Synchro is a local web desk on the datalake: a <b>Lenses-to-Lenses snapshot</b> you can drill from an OT box down to the HAWB, with audited edit/exclude and SQL kept read-only, on demand.",
+
+    shift: {
+      before: { label: "Before", metric: "PBIX + TGT Excel", text: "long refresh, KPIs without the underlying list, exceptions lost on the next extract, no safe way to write back to SQL" },
+      after:  { label: "With Synchro", metric: "1 live desk", text: "local Parquet, click a box straight to its shipments, Target/Edit/Exclude with a reason, the overlay survives refresh, export to xlsx" }
+    },
+
+    io: {
+      in:  ["SQL ETR000 (delivered, read-only)", "TGT / holiday / exception Excel", "Operator review overlay"],
+      out: ["Premium/Standard OT dashboard", "Shipment workspace", "Audited changes", "Excel of the visible set"]
+    },
+    connects: [],
+    fitFor: "you run <b>Lenses international transit OT</b> and need to review, correct or exclude the shipments behind <b>LW/QTW/YTW</b> without writing to SQL.",
+
+    meta: [
+      { label: "Status", value: "Coming soon" }
+    ],
+    team: [
+      { name: "Gabriel Aquino" }
+    ]
   }
 };

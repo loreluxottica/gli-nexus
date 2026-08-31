@@ -94,6 +94,42 @@ const NEXUS_WORLDS = [
     backgroundType: "spectrum",
     logo: "assets/gli-prism.png",
     link: "#"
+  },
+  {
+    id: "lms",
+    name: "LMS",
+    category: "operationtools",
+    titleHtml: "L<span>MS</span>",
+    cta: "Open LMS",
+    accent: "#E0555F",
+    accent2: "#FF9AA2",
+    backgroundType: "database",
+    link: "http://10.200.112.48:5058/",
+    project: "LMS"
+  },
+  {
+    id: "doppler",
+    name: "Doppler",
+    category: "operationtools",
+    titleHtml: "Dop<span>pler</span>",
+    cta: "Open Doppler",
+    accent: "#3FA66B",
+    accent2: "#7FD9A0",
+    backgroundType: "docs",
+    link: "http://10.200.112.48:5001/",
+    project: "DOPPLER"
+  },
+  {
+    id: "synchro",
+    name: "Synchro",
+    category: "reporting",
+    titleHtml: "Syn<span>chro</span>",
+    cta: "Open Synchro",
+    accent: "#D65DB1",
+    accent2: "#F49AC2",
+    backgroundType: "cosmic",
+    link: "http://10.200.112.48:5056/",
+    project: "SYNCHRO"
   }
 ];
 
