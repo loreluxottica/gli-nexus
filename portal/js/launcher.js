@@ -25,9 +25,10 @@
   const GROUP_LABELS = {
     ai: "AI",
     analytics: "Analytics",
-    reporting: "Reporting"
+    reporting: "Reporting",
+    operationtools: "Operation Tools"
   };
-  const GROUP_ORDER = ["ai", "analytics", "reporting"];
+  const GROUP_ORDER = ["ai", "analytics", "reporting", "operationtools"];
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = window.matchMedia("(pointer: fine)").matches;

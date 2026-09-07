@@ -176,7 +176,8 @@ Le modifiche si propagano senza redeploy (cache TTL ~3 min, env
 `KELLY_DEV_USER_EMAIL` (solo sviluppo locale, ignorata quando deployata).
 
 Chiavi progetto canoniche (colonna `project`): `KELLY`, `VOLUMESDATAENTRY`,
-`CORTANA`, `GALILEO`, `LAPLACEPIPELINE`, `LAPLACEMULTIDOC`, `FLAGS`, `*`.
+`CORTANA`, `GALILEO`, `LAPLACEPIPELINE`, `LAPLACEMULTIDOC`, `FLAGS`, `LMS`,
+`DOPPLER`, `SYNCHRO`, `*`.
 
 **Portale**: `/api/my-access` restituisce i grant dell'utente. Il launcher e le
 schede prodotto restano consultabili, ma ogni destinazione parte chiusa finché
@@ -184,6 +185,10 @@ l'API non risponde. Le CTA senza grant mostrano "Access restricted"; Prism, che
 non ha ancora una route, mostra "Coming soon". Laplace espone Pipeline Monitor,
 Multidocument CT e Flags Download come destinazioni autorizzate separatamente.
 Per le app esterne resta necessario anche il permesso Databricks *Can use*.
+LMS, Doppler e Synchro puntano a un host interno (`10.200.112.48`, non
+Databricks Apps): raggiungibili solo da chi è sulla rete/VPN aziendale: hanno
+già `link`/`project`, ma nessuna demo (`preview` assente in
+`detail-data.js`) — la scheda dettaglio mostra solo la storyline.
 I deep link supportati sono `?w=<id>`, `?w=<id>&d=1&s=<step>` e `?all=1`.
 Le schede Galileo, Kelly, Cortana e Intake incorporano gli intake e gli
 screenshot ricevuti in `Project Details/` (checklist di approvazione ancora

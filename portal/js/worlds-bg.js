@@ -7,7 +7,8 @@
      NexusBG.setWorld({ type, accent, accent2 })
      NexusBG.setWarp(0..1)
    Mondi: "ai" (cortana), "cosmic" (galileo), "forecast" (kelly),
-   "docs" (laplace), "database" (intake).
+   "docs" (laplace), "database" (intake), "spectrum" (prism),
+   "shift" (lms), "radar" (doppler), "sync" (synchro).
    ============================================================ */
 
 const NexusBG = (function () {
@@ -422,6 +423,224 @@ const NexusBG = (function () {
     ctx.beginPath(); ctx.arc(P.x, P.y, 3 + pulse, 0, 6.2832); ctx.fill();
   }
 
+  /* ============================================================
+     Mondo 7 · LMS — SHIFT (workforce control room)
+     Corsie di task a tutta larghezza: fill vs target, operatori
+     che scorrono, sweep verticale da orologio da muro (TV
+     wallboard). Rosso. Blending normale su base scura.
+     ============================================================ */
+  function drawShift(t) {
+    const ac = world.accent;
+    const lanes = 7;
+    const top = H * 0.18, bot = H * 0.82;
+    const laneH = (bot - top) / lanes;
+    const left = W * 0.10, right = W * 0.90;
+    const span = right - left;
+
+    const sweep = (t * 0.16) % 1;
+    const sx = left + sweep * span;
+    glowDot(sx, H * 0.5, Math.min(W, H) * 0.22, ac, 0.07);
+    ctx.strokeStyle = rgba(ac, 0.18);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(sx, top - 8); ctx.lineTo(sx, bot + 8); ctx.stroke();
+
+    for (let i = 0; i < lanes; i++) {
+      const y = top + (i + 0.5) * laneH;
+      const target = 0.58 + 0.22 * Math.sin(i * 1.7 + 0.4);
+      const fill = target * (0.72 + 0.28 * Math.sin(t * 0.55 + i * 0.9));
+
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+
+      ctx.strokeStyle = rgba(ac, 0.52);
+      ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(left + fill * span, y); ctx.stroke();
+
+      const tx = left + target * span;
+      ctx.strokeStyle = rgba(ac, 0.45);
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(tx, y - 8); ctx.lineTo(tx, y + 8); ctx.stroke();
+
+      const nOps = 3 + (i % 3);
+      for (let k = 0; k < nOps; k++) {
+        const u = (t * (0.06 + i * 0.008) + k / nOps + i * 0.13) % 1;
+        const ox = left + u * span;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2 + i + k);
+        glowDot(ox, y, 10, ac, 0.22 + pulse * 0.12);
+        ctx.fillStyle = rgba(ac, 0.85);
+        ctx.beginPath(); ctx.arc(ox, y, 2.2, 0, 6.2832); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.beginPath(); ctx.arc(ox, y, 0.9, 0, 6.2832); ctx.fill();
+      }
+    }
+  }
+
+  /* ============================================================
+     Mondo 8 · Doppler — RADAR (WMS lenti)
+     Mappa magazzino come radar Doppler: anelli, fascio rotante,
+     HU quadrate che restano accese sulla scia. Verde.
+     Blending normale su base scura.
+     ============================================================ */
+  const RADAR = (function () {
+    const rng = makeRng(4044);
+    const units = [];
+    for (let ring = 1; ring <= 4; ring++) {
+      const n = 6 + ring * 4;
+      for (let i = 0; i < n; i++) {
+        units.push({
+          a: (i / n) * 6.2832 + (rng() - 0.5) * 0.14,
+          r: 0.20 + ring * 0.18 + (rng() - 0.5) * 0.03
+        });
+      }
+    }
+    return { units };
+  })();
+
+  function drawRadar(t) {
+    const ac = world.accent;
+    const cx = W * 0.5, cy = H * 0.5;
+    const base = Math.min(W, H);
+    const R = base * 0.48;
+    const sweep = t * 0.55;
+    const beam = 0.55;
+    const TWO_PI = 6.2832;
+
+    glowDot(cx, cy, R * 0.95, ac, 0.06);
+
+    ctx.strokeStyle = rgba(ac, 0.14);
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 4; i++) {
+      ctx.beginPath(); ctx.arc(cx, cy, R * (i / 4), 0, TWO_PI); ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, sweep - beam, sweep);
+    ctx.closePath();
+    const wg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    wg.addColorStop(0, rgba(ac, 0.18));
+    wg.addColorStop(1, rgba(ac, 0));
+    ctx.fillStyle = wg;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = rgba(ac, 0.55);
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(sweep) * R, cy + Math.sin(sweep) * R);
+    ctx.stroke();
+
+    RADAR.units.forEach(u => {
+      const x = cx + Math.cos(u.a) * u.r * R;
+      const y = cy + Math.sin(u.a) * u.r * R;
+      let d = (sweep - u.a) % TWO_PI;
+      if (d < 0) d += TWO_PI;
+      const lit = d < 1.15;
+      const fade = lit ? 1 - d / 1.15 : 0;
+      const s = 5 + fade * 2.2;
+      if (lit) glowDot(x, y, 14, ac, 0.34 * fade);
+      ctx.fillStyle = rgba(ac, 0.16 + 0.7 * fade);
+      ctx.fillRect(x - s / 2, y - s / 2, s, s);
+    });
+
+    const pulse = 0.7 + 0.3 * Math.sin(t * 2.2);
+    glowDot(cx, cy, base * 0.045 * (1 + pulse * 0.2), ac, 0.4);
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.arc(cx, cy, 2.6 + pulse, 0, TWO_PI); ctx.fill();
+  }
+
+  /* ============================================================
+     Mondo 9 · Synchro — SYNC (OT shipment desk)
+     Due anelli fuori fase che si agganciano a impulsi, coppie
+     overlay (snapshot ↔ live) che si allineano, box nidificati
+     OT → HAWB con pacchetto in drill-down. Magenta.
+     Blending normale su base scura.
+     ============================================================ */
+  const SYNC_PAIRS = [
+    [[0.14, 0.30], [0.14, 0.70]],
+    [[0.86, 0.30], [0.86, 0.70]],
+    [[0.26, 0.16], [0.74, 0.16]],
+    [[0.26, 0.84], [0.74, 0.84]]
+  ];
+
+  function drawSync(t) {
+    const ac = world.accent, ac2 = world.accent2;
+    const cx = W * 0.5, cy = H * 0.5;
+    const base = Math.min(W, H);
+    const TWO_PI = 6.2832;
+    const lock = Math.pow(0.5 + 0.5 * Math.sin(t * 0.65), 12);
+    const drift = 1 - lock;
+
+    glowDot(cx, cy, base * 0.42, ac, 0.06 + lock * 0.06);
+
+    const r1 = base * 0.20, r2 = base * 0.32;
+    const a1 = t * 0.16, a2 = -t * 0.12;
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = rgba(ac, 0.16 + lock * 0.22);
+    ctx.beginPath(); ctx.arc(cx, cy, r1, 0, TWO_PI); ctx.stroke();
+    ctx.strokeStyle = rgba(ac2, 0.14 + lock * 0.22);
+    ctx.beginPath(); ctx.arc(cx, cy, r2, 0, TWO_PI); ctx.stroke();
+
+    const ticks = 16;
+    for (let i = 0; i < ticks; i++) {
+      const th = i / ticks * TWO_PI;
+      const ia = th + a1;
+      ctx.strokeStyle = rgba(ac, lock > 0.45 ? 0.7 : 0.22);
+      ctx.lineWidth = lock > 0.45 ? 1.8 : 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ia) * (r1 - 7), cy + Math.sin(ia) * (r1 - 7));
+      ctx.lineTo(cx + Math.cos(ia) * (r1 + 7), cy + Math.sin(ia) * (r1 + 7));
+      ctx.stroke();
+      const oa = th + a2;
+      ctx.strokeStyle = rgba(ac2, lock > 0.45 ? 0.55 : 0.18);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(oa) * (r2 - 7), cy + Math.sin(oa) * (r2 - 7));
+      ctx.lineTo(cx + Math.cos(oa) * (r2 + 7), cy + Math.sin(oa) * (r2 + 7));
+      ctx.stroke();
+    }
+
+    SYNC_PAIRS.forEach((pair, i) => {
+      const off = Math.sin(t * 0.9 + i) * 16 * drift;
+      const ax = pair[0][0] * W, ay = pair[0][1] * H - off;
+      const bx = pair[1][0] * W, by = pair[1][1] * H + off;
+      ctx.strokeStyle = rgba(ac, 0.20 + lock * 0.5);
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash(lock > 0.55 ? [] : [4, 5]);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.setLineDash([]);
+      const w = 16, h = 11;
+      [ [ax, ay], [bx, by] ].forEach(([x, y]) => {
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        ctx.fillRect(x - w / 2, y - h / 2, w, h);
+        ctx.strokeStyle = rgba(ac, 0.38 + lock * 0.45);
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(x - w / 2, y - h / 2, w, h);
+      });
+    });
+
+    const bw = base * 0.11, bh = bw * 0.72;
+    for (let k = 0; k < 3; k++) {
+      const s = 1 - k * 0.28;
+      const w = bw * s, h = bh * s;
+      ctx.strokeStyle = rgba(ac, 0.22 + k * 0.12 + lock * 0.2);
+      ctx.lineWidth = 1.3;
+      ctx.strokeRect(cx - w / 2, cy - h / 2, w, h);
+    }
+
+    const f = (t * 0.22) % 1;
+    const e = f * f * (3 - 2 * f);
+    const y = cy - bh * 0.55 + e * bh * 1.1;
+    glowDot(cx, y, 8, ac2, 0.5 * (1 - Math.abs(f - 0.5) * 1.2));
+    ctx.fillStyle = rgba("#FFFFFF", 0.9);
+    ctx.beginPath(); ctx.arc(cx, y, 1.8, 0, TWO_PI); ctx.fill();
+  }
+
   /* --- Loop --- */
   function frame(now) {
     if (!running) return;
@@ -438,10 +657,9 @@ const NexusBG = (function () {
       ctx.scale(1 + warp * 0.24, 1 + warp * 0.24);
       ctx.translate(-W / 2, -H / 2);
     }
-    // I mondi ai/database/forecast/docs sono calibrati per il blending
-    // normale su una base scura; gli altri
-    // (cosmic/spectrum) usano il blending additivo storico.
-    const nexusStyle = world.type === "ai" || world.type === "database" || world.type === "forecast" || world.type === "docs";
+    // I mondi operativi sono calibrati per blending normale su base
+    // scura; cosmic/spectrum restano sull'additivo storico.
+    const nexusStyle = world.type === "ai" || world.type === "database" || world.type === "forecast" || world.type === "docs" || world.type === "shift" || world.type === "radar" || world.type === "sync";
     if (nexusStyle) {
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = "rgba(2,8,20,0.65)";
@@ -454,6 +672,9 @@ const NexusBG = (function () {
     else if (world.type === "forecast") drawForecast(t);
     else if (world.type === "docs") drawDocs(t);
     else if (world.type === "spectrum") drawSpectrum(t);
+    else if (world.type === "shift") drawShift(t);
+    else if (world.type === "radar") drawRadar(t);
+    else if (world.type === "sync") drawSync(t);
     else drawCyber(t);
     if (warp > 0) { ctx.globalCompositeOperation = "lighter"; drawStreaks(t); }
     ctx.restore();

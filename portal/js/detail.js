@@ -89,6 +89,7 @@
   let startStep = 0;     // passo scenario, impostabile da ?s=<n>
   let startInDemo = false;
   let trackEl = null;
+  let hasDemo = false;
 
   /* Storytelling: indici dei pannelli attivi (salta link se vuoto) */
   let storyActive = [];
@@ -302,6 +303,15 @@
 
     buildPreview(d.preview || {});
     rebuildStory();
+
+    /* Products without a demo yet hide the toggle instead of flipping
+       into an empty screen. visibility, not display: .dbody's grid-
+       template-rows is "auto minmax(0,1fr) auto" (mode/stage/rail) —
+       display:none drops .dmode from grid placement entirely, which
+       shifts .dstageset into the auto row and .drailset into the 1fr
+       row, stretching the rail and starving the story stage. */
+    const modeWrap = els.modeToggle.closest(".dmode");
+    if (modeWrap) modeWrap.style.visibility = hasDemo ? "" : "hidden";
   }
 
   /* ---------------------------------------------------------
@@ -446,6 +456,7 @@
 
   function buildPreview(pv) {
     steps = pv.steps || [];
+    hasDemo = (pv.kind === "video" && !!pv.video) || steps.length > 0;
     trackEl = null;
     /* Solo lo schermo: la fascia con titolo e didascalia vive nello
        stage e non va ricostruita a ogni prodotto. */
@@ -532,6 +543,7 @@
      Cambio modo — storia ⇄ demo, tutto il corpo della card
      --------------------------------------------------------- */
   function setMode(next, opts) {
+    if (next === "demo" && !hasDemo) return;
     const options = opts || {};
     if (next === mode) return;
     mode = next;
