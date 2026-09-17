@@ -237,8 +237,13 @@ def _sidebar(warehouse_id: str, active_page: str) -> html.Div:
 
 
 def _last_update(df: pd.DataFrame) -> str | None:
-    """Most recent day carrying real Actual data (closures excluded)."""
-    d = _hist_actual(df)["Date"].max()
+    """Most recent day the source carries an Actual value.
+
+    Deliberately unfiltered: this reports data freshness, so a closed or
+    non-working day still counts as loaded data. Applying the working/closure
+    filters here made the badge lag the real last load.
+    """
+    d = df.loc[df["Actual"].notna(), "Date"].max()
     return None if pd.isna(d) else d.strftime("%d %b %Y")
 
 
