@@ -105,6 +105,10 @@
   }
 
   const access = () => window.NexusAccess;
+  const closedCtaLabel = openLabel =>
+    (access() && access().closedLabel)
+      ? access().closedLabel(openLabel)
+      : (access() && access().ready ? "Access restricted" : openLabel);
   const canOpenTarget = (href, projectKey) => {
     if (window.NexusSingle) return window.NexusSingle.canOpenTarget(href, projectKey);
     if (!href || href === "#" || !projectKey) return false;
@@ -163,9 +167,9 @@
     if (hasMenu(value)) {
       buildCtaMenu(value);
       const anyOpenable = value.links.some(item => canOpenTarget(item.href, item.project));
-      els.ctaLabel.textContent = anyOpenable || !access().ready
+      els.ctaLabel.textContent = anyOpenable
         ? value.cta
-        : "Access restricted";
+        : closedCtaLabel(value.cta);
       els.cta.href = "#";
       els.cta.setAttribute("aria-haspopup", "menu");
       els.cta.classList.toggle("is-disabled", !anyOpenable);
@@ -196,7 +200,7 @@
       els.cta.setAttribute("aria-disabled", "true");
       els.ctaLabel.textContent = !hasRoute
         ? "Coming soon"
-        : access().ready ? "Access restricted" : value.cta;
+        : closedCtaLabel(value.cta);
     }
   }
 

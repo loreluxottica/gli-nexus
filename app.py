@@ -77,16 +77,20 @@ def healthz():
 def my_access():
     """Project grants of the current user, read from the central access
     table (see shared.auth). The portal uses this to enable or
-    restrict its cards. ["*"] = everything; [] = nothing / lookup failed."""
+    restrict its cards. ["*"] = everything; [] = nothing.
+    Lookup failure is `{projects: [], error: "lookup_failed"}` — not the
+    same as an empty grant list, which the UI would show as denied."""
     from shared import auth
 
     email = auth.get_current_email()
     if email is None:
         # No identity: dev run gets everything, deployed gets nothing.
         projects = ["*"] if not auth._in_databricks_app() else []
-    else:
-        projects = sorted(auth.get_user_projects(email) or [])
-    return {"projects": projects}
+        return {"projects": projects}
+    projects = auth.get_user_projects(email)
+    if projects is None:
+        return {"projects": [], "error": "lookup_failed"}
+    return {"projects": sorted(projects)}
 
 
 # ---- Mount sub-projects ----------------------------------------------------

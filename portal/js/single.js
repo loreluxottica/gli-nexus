@@ -97,6 +97,10 @@
 
   /* Product routes fail closed until /api/my-access resolves. */
   const access = () => window.NexusAccess;
+  const closedCtaLabel = openLabel =>
+    (access() && access().closedLabel)
+      ? access().closedLabel(openLabel)
+      : (access() && access().ready ? "Access restricted" : openLabel);
 
   function canOpenTarget(href, project) {
     if (!href || href === "#") return false;
@@ -163,9 +167,9 @@
     if (hasMenu(product)) {
       buildMenu(product);
       const anyOpenable = product.links.some(isItemOpenable);
-      ctaLabel.textContent = anyOpenable || !access().ready
+      ctaLabel.textContent = anyOpenable
         ? product.cta
-        : "Access restricted";
+        : closedCtaLabel(product.cta);
       ctaEl.href = "#";
       ctaEl.setAttribute("aria-haspopup", "menu");
       ctaEl.setAttribute("aria-expanded", "false");
@@ -197,7 +201,7 @@
       ctaEl.setAttribute("aria-disabled", "true");
       ctaLabel.textContent = !hasRoute
         ? "Coming soon"
-        : access().ready ? "Access restricted" : product.cta;
+        : closedCtaLabel(product.cta);
     }
   }
 

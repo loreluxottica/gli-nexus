@@ -154,6 +154,23 @@ class PortalRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"projects": []})
 
+    @patch("shared.auth.get_user_projects", return_value=None)
+    @patch("shared.auth.get_current_email", return_value="person@example.com")
+    def test_access_api_lookup_failure_is_not_empty_grants(self, _email, _projects) -> None:
+        response = self.client.get("/api/my-access")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json(),
+            {"projects": [], "error": "lookup_failed"},
+        )
+
+    @patch("shared.auth.get_user_projects", return_value=frozenset())
+    @patch("shared.auth.get_current_email", return_value="person@example.com")
+    def test_access_api_empty_grants_has_no_error(self, _email, _projects) -> None:
+        response = self.client.get("/api/my-access")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"projects": []})
+
 
 class PortalFrontendGuardTests(unittest.TestCase):
     def test_closed_layers_block_pointer_events(self) -> None:
@@ -177,10 +194,33 @@ class PortalFrontendGuardTests(unittest.TestCase):
         js = (PORTAL / "js" / "single.js").read_text(encoding="utf-8")
         self.assertIn("if (!project) return false", js)
 
+    def test_access_controller_retries_lookup_failure(self) -> None:
+        js = (PORTAL / "js" / "access.js").read_text(encoding="utf-8")
+        self.assertIn("lookup_failed", js)
+        self.assertIn("scheduleRetry", js)
+        self.assertIn("Access check failed", js)
+        self.assertIn("/api/my-access", js)
+        self.assertNotIn("r.ok ? r.json() : { projects: [] }", js)
+
+    def test_cta_uses_closed_label_helper(self) -> None:
+        for name in ("single.js", "detail.js"):
+            js = (PORTAL / "js" / name).read_text(encoding="utf-8")
+            with self.subTest(name=name):
+                self.assertIn("closedCtaLabel", js)
+
     def test_intake_alias_for_deep_link(self) -> None:
         js = (PORTAL / "js" / "single.js").read_text(encoding="utf-8")
         self.assertIn("intake", js)
         self.assertIn("data-entry", js)
+
+
+class AuthLookupTests(unittest.TestCase):
+    def test_grant_lookups_use_short_sql_timeout(self) -> None:
+        from shared import auth
+
+        self.assertLessEqual(auth._AUTH_SQL_TIMEOUT_S, 15)
+        self.assertLessEqual(auth._AUTH_SQL_RETRIES, 3)
+        self.assertLessEqual(auth._AUTH_SQL_RETRY_BUDGET_S, 30)
 
 
 class GalileoAuthTests(unittest.TestCase):
