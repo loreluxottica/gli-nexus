@@ -31,6 +31,9 @@ _DIR = os.path.dirname(os.path.abspath(__file__))
 _OUT = os.path.join(_DIR, "out")
 _OUT_NORM = os.path.normpath(_OUT)
 _PROJECT_KEY = "GALILEO"
+_ROADMAP_ENABLED = os.environ.get("GALILEO_ROADMAP_ENABLED", "").strip().lower() in {
+    "1", "true", "yes", "on",
+}
 
 
 def _denied_page() -> str:
@@ -92,6 +95,15 @@ def _serve(subpath: str):
         if _is_page(subpath):
             return _denied_page(), 403
         abort(403)
+
+    # The implementation stays in the static export for future reuse, but the
+    # presentation route remains unreachable until the feature is explicitly
+    # enabled and the frontend is rebuilt with the same environment flag.
+    normalized = subpath.strip("/")
+    if not _ROADMAP_ENABLED and (
+        normalized == "roadmap" or normalized.startswith("roadmap/")
+    ):
+        abort(404)
 
     is_page = _is_page(subpath)
     rel = os.path.join(subpath, "index.html") if is_page and subpath else (

@@ -155,8 +155,10 @@ Other Product + Site Type combinations do not feed the six Content metric rows.
 Canonical geographical attribution has one non-obvious business rule: an
 `Export Labs` row whose `Customer Country` is `EMEA` is counted in `EMEA`, even
 when its raw production geography says APAC. Everywhere else, canonical geo is
-the raw `Geographical Area`. All Content calculations, trends, site analysis,
-filters, and top-site logic must keep using the same canonical rule.
+the raw `Geographical Area`, except that the accepted source values `NA` and
+`North America` both map to the stable frontend code `NA`. All Content
+calculations, trends, site analysis, filters, Coverage rows, and top-site logic
+must keep using the same canonical rule.
 
 The reporting window is also semantic logic:
 

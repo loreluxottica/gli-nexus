@@ -2,9 +2,8 @@ import Link from "next/link";
 import styles from "./Roadmap.module.css";
 
 /**
- * The roadmap's single entry point, rendered next to the landing CTA.
- * Removing <RoadmapLink /> from src/app/page.tsx takes the feature out of
- * every user's reach without touching anything else.
+ * The roadmap's single entry point, rendered next to the landing CTA when the
+ * GALILEO_ROADMAP_ENABLED build flag is active.
  */
 export function RoadmapLink() {
   return (

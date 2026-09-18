@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Galaxy } from "@/components/landing/Galaxy";
 import { RoadmapView } from "@/components/roadmap/RoadmapView";
+import { ROADMAP_ENABLED } from "@/lib/features";
 import styles from "@/components/roadmap/Roadmap.module.css";
 
 export const metadata: Metadata = {
@@ -16,6 +18,8 @@ export const metadata: Metadata = {
  * surface only: no app data is read here.
  */
 export default function RoadmapPage() {
+  if (!ROADMAP_ENABLED) notFound();
+
   return (
     <div className={styles.page}>
       <Galaxy />

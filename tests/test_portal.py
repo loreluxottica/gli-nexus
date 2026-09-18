@@ -224,6 +224,37 @@ class AuthLookupTests(unittest.TestCase):
 
 
 class GalileoAuthTests(unittest.TestCase):
+    def test_roadmap_is_disabled_but_implementation_is_retained(self) -> None:
+        from projects.galileo_dashboard import server as galileo
+
+        project = ROOT / "projects" / "galileo_dashboard"
+        for path in (
+            project / "src" / "app" / "roadmap" / "page.tsx",
+            project / "src" / "components" / "roadmap" / "RoadmapView.tsx",
+            project / "src" / "data" / "roadmap.ts",
+        ):
+            self.assertTrue(path.is_file(), path)
+
+        client = app.root.test_client()
+        with (
+            patch.object(galileo.auth, "authorized", return_value=True),
+            patch.object(galileo, "_ROADMAP_ENABLED", False),
+        ):
+            landing = client.get("/galileo/")
+            try:
+                self.assertEqual(landing.status_code, 200)
+                self.assertNotIn(b"Development roadmap", landing.data)
+            finally:
+                landing.close()
+
+            for path in ("/galileo/roadmap/", "/galileo/roadmap/index.html"):
+                with self.subTest(path=path):
+                    response = client.get(path)
+                    try:
+                        self.assertEqual(response.status_code, 404)
+                    finally:
+                        response.close()
+
     def test_static_assets_require_grant(self) -> None:
         from projects.galileo_dashboard import server as galileo
 

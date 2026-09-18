@@ -166,6 +166,18 @@ GEOS       = ["EMEA", "NA", "APAC", "LATAM"]
 GEO_ALL    = "ALL"
 print(f"  window: CUR {CUR_YEAR}  PY {PY_YEAR}  YTD months {YTD_MONTHS}")
 
+
+def canonical_geo_value(value):
+    """Return the frontend geo code for an accepted source value.
+
+    Databricks now publishes North America as ``North America`` while the
+    payload and URL contract intentionally remain on the stable ``NA`` code.
+    Keep accepting the legacy source code so old and new extracts produce the
+    same canonical payload.
+    """
+    raw = (value or "").strip()
+    return "NA" if raw.casefold() == "north america" else raw
+
 # Accounting dimension (a second way to scope every table, independent from the
 # production Geographical Area). Values come straight from the DB column.
 ACCT_COL   = "Accounting Area"
@@ -179,9 +191,9 @@ def effective_geo(r):
     Business rule: Export Labs are all booked under APAC, but the ones shipping
     to an EMEA destination must be counted in EMEA instead. So Export Labs rows
     whose Customer Country is EMEA are reassigned APAC -> EMEA; everything else
-    keeps its raw Geographical Area.
+    keeps its source area after accepted aliases are canonicalized.
     """
-    geo = (r[DB_IDX["Geographical Area"]] or "").strip()
+    geo = canonical_geo_value(r[DB_IDX["Geographical Area"]])
     if ((r[DB_IDX["Site Type"]] or "").strip() == "Export Labs"
             and (r[DB_IDX["Customer Country"]] or "").strip() == "EMEA"):
         return "EMEA"
@@ -452,7 +464,7 @@ TIERS = ["Low", "Mid", "High"]
 # shares count distinct site names.
 
 def norm_area(s):
-    return (s or "").strip().upper()
+    return canonical_geo_value(s).upper()
 
 def norm_tier(s):
     t = (s or "").strip().capitalize()

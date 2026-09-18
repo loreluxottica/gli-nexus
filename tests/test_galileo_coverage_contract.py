@@ -1,6 +1,12 @@
 import ast
+import json
+import os
 import re
+import shutil
+import subprocess
+import sys
 import unittest
+import uuid
 from collections import defaultdict
 from pathlib import Path
 
@@ -17,8 +23,9 @@ def load_pipeline_helpers(path=BUILDER):
     """Load only pure Coverage helpers without running pipeline I/O."""
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     wanted = {
-        "to_float", "parse_coverage_volume", "norm_area", "norm_tier", "parse_pct",
-        "build_coverage_efficiency", "build_mappings_under_review",
+        "to_float", "parse_coverage_volume", "canonical_geo_value", "effective_geo",
+        "norm_area", "norm_tier", "parse_pct", "build_coverage_efficiency",
+        "build_mappings_under_review",
     }
     functions = [
         node for node in tree.body
@@ -38,6 +45,11 @@ def load_pipeline_helpers(path=BUILDER):
             "GV Frames": "Frames",
         },
         "FAMILY_ORDER": ["Frames", "RX", "Stock Lenses"],
+        "DB_IDX": {
+            "Geographical Area": 0,
+            "Site Type": 1,
+            "Customer Country": 2,
+        },
     }
     exec(compile(ast.Module(body=functions, type_ignores=[]), str(path), "exec"), namespace)
     return namespace
@@ -55,7 +67,117 @@ def load_coverage_volume_parser(path=BUILDER):
     return load_pipeline_helpers(path)["parse_coverage_volume"]
 
 
+def load_geo_helpers(path=BUILDER):
+    helpers = load_pipeline_helpers(path)
+    return helpers["canonical_geo_value"], helpers["effective_geo"]
+
+
 class GalileoCoverageContractTest(unittest.TestCase):
+    def test_north_america_source_value_keeps_the_na_payload_contract(self):
+        canonical_geo_value, effective_geo = load_geo_helpers()
+
+        for source_value in ("NA", "North America", " north america "):
+            with self.subTest(source_value=source_value):
+                self.assertEqual(canonical_geo_value(source_value), "NA")
+                self.assertEqual(
+                    effective_geo([source_value, "Local Labs to ECP", ""]),
+                    "NA",
+                )
+
+        # The existing Export Labs destination override still takes priority.
+        self.assertEqual(
+            effective_geo(["North America", "Export Labs", "EMEA"]),
+            "EMEA",
+        )
+
+    def test_coverage_accepts_north_america_as_na(self):
+        build_coverage_efficiency = load_coverage_builder()
+        rows = [
+            [
+                "Site", "Market", "Product", "Site Type", "Galileo Volume",
+                "Coverage", "Estimated Volume", "Covered 2025", "Area",
+                "Automation", "Mapping",
+            ],
+            [
+                "Toronto", "REP", "Stock Lenses", "Mass Production | DCs",
+                "10", "80%", "100", "", "North America", "High", "Mapped",
+            ],
+        ]
+
+        stock = next(
+            block for block in build_coverage_efficiency(rows)
+            if block["product"] == "Stock Lenses"
+        )
+        self.assertEqual(stock["rows"][0]["area"], "NA")
+        self.assertEqual(stock["rows"][0]["estimated_volume"], 100)
+
+    def test_builder_publishes_north_america_metrics_under_na(self):
+        header = [
+            "Month/Year", "Site", "Market", "Product", "Site Type",
+            "Pieces", "Shipments", "Geographical Area", "Accounting Area",
+            "Customer Country",
+        ]
+        fixture = {
+            "source_file": "geo-normalization-fixture.csv",
+            "sheets": [
+                {
+                    "name": "DB",
+                    "row_count": 2,
+                    "col_count": len(header),
+                    "rows": [
+                        header,
+                        [
+                            "2026-01", "Toronto", "REP", "Stock Lenses",
+                            "Mass Production | DCs", "100", "10",
+                            "North America", "NA", "Canada",
+                        ],
+                        [
+                            "2025-01", "Toronto", "REP", "Stock Lenses",
+                            "Mass Production | DCs", "80", "8",
+                            "NA", "NA", "Canada",
+                        ],
+                    ],
+                },
+            ],
+        }
+
+        tmp_path = ROOT / f".galileo-geo-test-{uuid.uuid4().hex}"
+        tmp_path.mkdir()
+        try:
+            raw_path = tmp_path / "raw.json"
+            output_path = tmp_path / "payloads"
+            output_path.mkdir()
+            raw_path.write_text(json.dumps(fixture), encoding="utf-8")
+            env = os.environ.copy()
+            env.update({
+                "GALILEO_RAW_JSON": str(raw_path),
+                "GALILEO_DATA_DIR": str(output_path),
+            })
+            subprocess.run(
+                [sys.executable, str(BUILDER)],
+                cwd=ROOT,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            content = json.loads((output_path / "content.json").read_text(encoding="utf-8"))
+            db_rows = json.loads((output_path / "db.json").read_text(encoding="utf-8"))
+        finally:
+            # Keep recursive cleanup constrained to the repository workspace.
+            tmp_path.resolve().relative_to(ROOT.resolve())
+            shutil.rmtree(tmp_path, ignore_errors=True)
+
+        stock = next(
+            row for row in content["current_view"]["rows"]
+            if row["sub_category"] == "Mass Production | DCs"
+        )
+        self.assertEqual(stock["geo_data"]["NA"]["pieces"]["rep"], 100)
+        self.assertEqual(stock["geo_data"]["NA"]["pieces"]["rep_py"], 80)
+        self.assertEqual(db_rows[0][7], "North America")
+        self.assertEqual(db_rows[0][10], "NA")
+
     def test_estimated_volume_parser_accepts_excel_number_formats(self):
         parse_volume = load_coverage_volume_parser()
         expected = 1_234_567.5

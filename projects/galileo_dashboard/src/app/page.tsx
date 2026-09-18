@@ -3,6 +3,7 @@ import { Galaxy } from "@/components/landing/Galaxy";
 import { EnterLink } from "@/components/landing/EnterLink";
 import { LandingStats } from "@/components/landing/LandingStats";
 import { RoadmapLink } from "@/components/roadmap/RoadmapLink";
+import { ROADMAP_ENABLED } from "@/lib/features";
 import styles from "./Landing.module.css";
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ export default function Landing() {
             <EnterLink className={styles.ctaPrimary}>
               Enter the Observatory <span aria-hidden="true">→</span>
             </EnterLink>
-            <RoadmapLink />
+            {ROADMAP_ENABLED ? <RoadmapLink /> : null}
           </div>
         </div>
       </section>
