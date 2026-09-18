@@ -28,6 +28,12 @@ _log = logging.getLogger(__name__)
 
 _TTL_S = int(os.environ.get("KELLY_AUTH_TTL_S", "180"))
 _FAIL_TTL_S = 30
+# Grant lookups are tiny. Cap the SQL connector so a stopped warehouse
+# cannot occupy a gunicorn worker until the 120s kill — the portal used
+# to paint that timeout as "Access restricted".
+_AUTH_SQL_TIMEOUT_S = float(os.environ.get("GLI_AUTH_SQL_TIMEOUT_S", "8"))
+_AUTH_SQL_RETRIES = int(os.environ.get("GLI_AUTH_SQL_RETRIES", "2"))
+_AUTH_SQL_RETRY_BUDGET_S = float(os.environ.get("GLI_AUTH_SQL_RETRY_BUDGET_S", "15"))
 
 # email -> (fetched_at, scopes). scopes None = lookup failed.
 _cache: dict[str, tuple[float, frozenset[str] | None]] = {}
@@ -75,6 +81,16 @@ def _access_table() -> str | None:
     return ".".join(f"`{p}`" for p in parts)
 
 
+def _auth_sql_kwargs() -> dict:
+    """SQL kwargs for grant lookups only — not for Kelly/Cortana data queries."""
+    kwargs = _sql_connect_kwargs()
+    kwargs["_socket_timeout"] = _AUTH_SQL_TIMEOUT_S
+    kwargs["_retry_stop_after_attempts_count"] = _AUTH_SQL_RETRIES
+    kwargs["_retry_stop_after_attempts_duration"] = _AUTH_SQL_RETRY_BUDGET_S
+    kwargs["_retry_delay_max"] = 2.0
+    return kwargs
+
+
 def _query_scopes(email: str) -> frozenset[str] | None:
     """Scopes for this user+project. None => lookup FAILED (vs empty = no rows)."""
     table = _access_table()
@@ -82,11 +98,12 @@ def _query_scopes(email: str) -> frozenset[str] | None:
     if not table or not http_path:
         return None
     project = os.environ.get("KELLY_PROJECT_KEY", "KELLY").strip().lower()
+    t0 = time.monotonic()
     try:
         from databricks import sql as dbsql
 
         with dbsql.connect(
-            http_path=http_path, **_sql_connect_kwargs()
+            http_path=http_path, **_auth_sql_kwargs()
         ) as conn, conn.cursor() as cur:
             cur.execute(
                 f"SELECT DISTINCT upper(trim(scope)) FROM {table} "
@@ -96,7 +113,9 @@ def _query_scopes(email: str) -> frozenset[str] | None:
             )
             return frozenset(r[0] for r in cur.fetchall() if r[0])
     except Exception:
-        _log.exception("Scope lookup failed for %s", email)
+        _log.exception(
+            "Scope lookup failed for %s after %.1fs", email, time.monotonic() - t0
+        )
         return None
 
 
@@ -106,11 +125,12 @@ def _query_projects(email: str) -> frozenset[str] | None:
     http_path = _sql_http_path()
     if not table or not http_path:
         return None
+    t0 = time.monotonic()
     try:
         from databricks import sql as dbsql
 
         with dbsql.connect(
-            http_path=http_path, **_sql_connect_kwargs()
+            http_path=http_path, **_auth_sql_kwargs()
         ) as conn, conn.cursor() as cur:
             cur.execute(
                 f"SELECT DISTINCT upper(trim(project)) FROM {table} "
@@ -119,7 +139,9 @@ def _query_projects(email: str) -> frozenset[str] | None:
             )
             return frozenset(r[0] for r in cur.fetchall() if r[0])
     except Exception:
-        _log.exception("Project lookup failed for %s", email)
+        _log.exception(
+            "Project lookup failed for %s after %.1fs", email, time.monotonic() - t0
+        )
         return None
 
 
