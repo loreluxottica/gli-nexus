@@ -4,9 +4,8 @@
    This file is the single source of truth for the roadmap content: edit the
    plan here, never in the components. Dates are ISO and read as UTC.
 
-   To remove the whole feature: delete this file, src/components/roadmap/,
-   src/app/roadmap/, and the <RoadmapLink /> line in src/app/page.tsx.
-   Nothing else in the app imports any of it.
+   The feature is intentionally retained for reuse. Its landing entry and route
+   are controlled by GALILEO_ROADMAP_ENABLED at build and runtime.
    ======================================================================== */
 
 /** done = shipped · active = running now · planned = ahead of us */

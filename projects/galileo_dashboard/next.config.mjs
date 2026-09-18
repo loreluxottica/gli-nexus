@@ -10,11 +10,20 @@ const basePath = process.env.GALILEO_BASE_PATH ?? "/galileo";
 // `next dev` serves :3000 while Flask serves the API on another port.
 const apiBase = process.env.NEXT_PUBLIC_GALILEO_API_BASE ?? `${basePath}/api`;
 
+// Optional presentation surface. Keep disabled unless a release explicitly
+// opts in; enabling it requires rebuilding the committed static export.
+const roadmapEnabled = /^(1|true|yes|on)$/i.test(
+  process.env.GALILEO_ROADMAP_ENABLED ?? "",
+);
+
 const nextConfig = {
   // Static export — the shell is static. The data is NOT baked in: it is fetched
   // at runtime from the Flask blueprint, which builds it from Databricks.
   output: "export",
-  env: { NEXT_PUBLIC_GALILEO_API_BASE: apiBase },
+  env: {
+    NEXT_PUBLIC_GALILEO_API_BASE: apiBase,
+    NEXT_PUBLIC_GALILEO_ROADMAP_ENABLED: String(roadmapEnabled),
+  },
   // Required for static export: no Image Optimization server.
   images: { unoptimized: true },
   // Emit /content/index.html etc. so the export works on plain file servers.

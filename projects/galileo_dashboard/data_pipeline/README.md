@@ -87,7 +87,8 @@ uses): a local CLI profile (`DATABRICKS_CONFIG_PROFILE`) or a service principal.
   total. Aggregation is scoped by product family, area, and site.
 - **Area order** (`GEOS` = EMEA → NA → APAC → LATAM) drives `geo_options` and
   `area_options`; it mirrors `GEO_AREAS` in `../src/data/geo.ts`. Keep the two
-  in sync or the UI tabs and the payload will disagree.
+  in sync or the UI tabs and the payload will disagree. Source values `NA` and
+  `North America` are both normalized to the stable frontend code `NA`.
 - **Determinism is a requirement, not a nicety.** Payload ETags are hashes of the
   serialised bytes, so output that varies at identical data makes every client
   re-download on every rebuild. Sort anything derived from a `set` before it
