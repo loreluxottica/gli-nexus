@@ -1,5 +1,6 @@
-/* Content V2 table — augmented, low-density: one market/metric at a time, with
-   a paired YoY bar + sparkline replacing the 12 raw number columns. */
+/* Content V2 table — one market at a time; Pieces, Shipments and pieces per
+   shipment side by side: the year-to-date figure over its YoY chip, and a
+   sparkline as the only graphic. */
 .wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -56,23 +57,52 @@
   top: 0;
   z-index: 1;
 }
-.thHint {
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--ink-faint);
-  font-weight: 400;
+.table thead th[rowspan] { vertical-align: bottom; }
+
+/* Group header row: metric name spanning its figure and trend columns. */
+.table thead .grpHead {
+  color: var(--ink);
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom-color: var(--line);
+}
+.grpAbbr {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }
 
-/* Row-columns | metrics separator (after Sub-category). */
-.table thead th:nth-child(2),
-.table tbody td:nth-child(2) { border-right: 1px solid var(--line); }
+/* Separator at the start of each group: row labels | Pieces | Shipments |
+   Pcs / ship. */
+.table .grpStart { border-left: 1px solid var(--line); }
 
-.barCol { width: 220px; min-width: 200px; }
-.yoyCol { width: 96px; }
-.trendCol { width: 168px; }
-.covCol { width: 96px; padding-left: 10px; padding-right: 8px; }
+.table .valCol,
+.table .trendCol { padding-left: 12px; padding-right: 12px; }
 
-.num { font-variant-numeric: tabular-nums; }
+.valCol { width: 112px; }
+.trendCol { width: 144px; }
+
+/* Year-to-date figure over its YoY chip. */
+.valStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.valNum {
+  font-family: var(--mono), monospace;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+  line-height: 1;
+  color: var(--ink);
+}
+.drillRow .valNum {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
 .cat { font-weight: 600; }
 .muted { color: var(--ink-faint); font-size: 12px; }
 
@@ -121,19 +151,6 @@
   background: var(--cat-amber-ink);
   color: #fff;
   border-color: var(--cat-amber-ink);
-}
-
-/* Efficiency mode: ratio bar stacked over the pieces · shipments caption. */
-.effCell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.effRaw {
-  font-family: var(--mono), monospace;
-  font-size: 10px;
-  color: var(--ink-faint);
-  white-space: nowrap;
 }
 
 /* YoY chip — coloured pill, glyph carries direction without colour. */

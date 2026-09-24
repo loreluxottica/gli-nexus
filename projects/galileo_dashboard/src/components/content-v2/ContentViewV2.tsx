@@ -15,7 +15,8 @@ import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
 import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
 import { FirstRunHint } from "@/components/ui/FirstRunHint";
-import { MarketMetricToggle, type Metric } from "./MarketMetricToggle";
+import type { DataMetric } from "@/lib/contentMetrics";
+import { MarketMetricToggle } from "./MarketMetricToggle";
 import { ContentTableV2 } from "./ContentTableV2";
 import { PeriodSelect } from "./PeriodSelect";
 import styles from "./ContentViewV2.module.css";
@@ -91,18 +92,14 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
     },
     {
       target: '[data-tour="v2-toggle"]',
-      title: "Choose market and metric",
+      title: "Choose the market",
       body: (
         <>
-          One market and one metric at a time.
+          One market at a time — their units differ, so they are never blended.
           <TourKey
             items={[
               { term: "REP", def: "Intra-Network flows" },
               { term: "LM", def: "last mile, to the ECP or customer" },
-              {
-                term: "Metric",
-                def: "Pieces, Shipments, or Efficiency — pieces per shipment",
-              },
             ]}
           />
         </>
@@ -110,17 +107,12 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
     },
     {
       target: '[data-tour="v2-bar"]',
-      title: "This year against last",
+      title: "Year to date",
       body: (
         <>
-          Each row draws both years as one paired bar on a shared scale, so size
-          and direction read together.
-          <TourKey
-            items={[
-              { swatch: "cur", term: "Solid bar", def: `${cy} year to date` },
-              { swatch: "py", term: "Ghost bar", def: `${py}, same months` },
-            ]}
-          />
+          Pieces and Shipments sit side by side. Each figure is the{" "}
+          <strong>{cy}</strong> total from January to the selected month; hover it
+          for the same months of {py}.
         </>
       ),
     },
@@ -149,6 +141,17 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
               { swatch: "py", term: "Ghost line", def: `${py}, full year` },
             ]}
           />
+        </>
+      ),
+    },
+    {
+      target: '[data-tour="v2-eff"]',
+      title: "Pieces per shipment",
+      body: (
+        <>
+          Pieces divided by shipments — the batch size. The chip compares it with{" "}
+          {py}: rising means each shipment carries more; falling means logistics
+          fragmented.
         </>
       ),
     },
@@ -185,9 +188,9 @@ function buildTourSteps(cy: number, py: number): TourStep[] {
   ];
 }
 
-/** Validate a raw ?metric value. */
-function toMetric(raw: string | null): Metric {
-  return raw === "shipments" || raw === "efficiency" ? raw : "pieces";
+/** Validate a raw ?metric value — the metric the explorer explains. */
+function toExplorerMetric(raw: string | null): DataMetric {
+  return raw === "shipments" ? raw : "pieces";
 }
 
 export function ContentViewV2({
@@ -211,8 +214,8 @@ export function ContentViewV2({
   const rawArea = params.get("area");
   const area = isGeoArea(rawArea) ? rawArea : GEO_DEFAULT;
   const market: Market = params.get("market") === "LM" ? "LM" : "REP";
-  const metric: Metric = toMetric(params.get("metric"));
   const explore = params.get("explore") || null;
+  const exploreMetric = toExplorerMetric(params.get("metric"));
   // Accounting perimeter view (International) filters the same table in place.
   const acct = params.get("acct") === "1";
 
@@ -311,14 +314,12 @@ export function ContentViewV2({
   };
 
   const setMarket = (m: Market) => commit({ market: m === "REP" ? null : m });
-  // Efficiency has no explorer, so entering it closes any open one; Pieces /
-  // Shipments keep the explorer open (it's metric-aware).
-  const setMetric = (m: Metric) =>
-    commit({ metric: m === "pieces" ? null : m, ...(m === "efficiency" ? { explore: null } : {}) });
-  const setExplore = (key: string | null) => commit({ explore: key });
+  const openExplore = (key: string, m: DataMetric) =>
+    commit({ explore: key, metric: m === "pieces" ? null : m });
+  const closeExplore = () => commit({ explore: null, metric: null });
   const setPeriod = (n: number) => commit({ period: n === latest ? null : String(n) });
   // Toggling the accounting perimeter also closes the (geo-only) explorer.
-  const setAcct = (on: boolean) => commit({ acct: on ? "1" : null, explore: null });
+  const setAcct = (on: boolean) => commit({ acct: on ? "1" : null, explore: null, metric: null });
 
   return (
     <>
@@ -340,14 +341,7 @@ export function ContentViewV2({
           </div>
         </div>
 
-        <MarketMetricToggle
-          market={market}
-          metric={metric}
-          acct={acct}
-          onMarket={setMarket}
-          onMetric={setMetric}
-          onAcct={setAcct}
-        />
+        <MarketMetricToggle market={market} acct={acct} onMarket={setMarket} onAcct={setAcct} />
 
         <div className={styles.legend}>
           <span className={styles.legItem}>
@@ -394,14 +388,13 @@ export function ContentViewV2({
           dim={acct ? "acct" : "geo"}
           area={acct ? ACCT_INTL : area}
           market={market}
-          metric={metric}
-          onExplore={acct ? undefined : setExplore}
+          onExplore={acct ? undefined : openExplore}
           noFallback={acct}
           accent={acct}
           caption={
             acct
-              ? `Content by Accounting Area — International, ${market} ${metric}, ${period}`
-              : `Content — ${areaLabel(area)}, ${market} ${metric}, ${period}`
+              ? `Content by Accounting Area — International, ${market} pieces, shipments and pieces per shipment, ${period}`
+              : `Content — ${areaLabel(area)}, ${market} pieces, shipments and pieces per shipment, ${period}`
           }
         />
 
@@ -411,12 +404,12 @@ export function ContentViewV2({
       {explore ? (
         <MetricExplorer
           open
-          onClose={() => setExplore(null)}
+          onClose={closeExplore}
           rowKey={explore}
           view={scopedView}
           trends={trends}
           market={market}
-          metric={metric}
+          metric={exploreMetric}
           area={area}
           period={periodNum}
         />

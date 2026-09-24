@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import type {
   AcctArea,
   ContentTrends,
@@ -11,17 +11,14 @@ import type {
   Market,
   MetricCell,
 } from "@/data/types";
-import { CoverageBar } from "@/components/ui/CoverageBar";
 import { fmtCompact, fmtPctSigned, fmtRatio, sign, trend } from "@/lib/format";
 import {
   cellTriple,
-  components,
   hasShipments,
   seriesFor,
-  type Metric,
+  type DataMetric,
 } from "@/lib/contentMetrics";
 import { toneForFlow } from "@/lib/tags";
-import { PairedYoYBar } from "./PairedYoYBar";
 import { Sparkline } from "./Sparkline";
 import styles from "./ContentTableV2.module.css";
 
@@ -37,27 +34,35 @@ type MetricMap = Partial<Record<string, MetricCell>>;
 interface Props {
   view: CurrentView;
   drills: ExportLabSite[];
-  trends?: ContentTrends; // geo-only; omitted hides the trend column (acct modal)
+  trends?: ContentTrends; // geo-only; omitted hides the trend columns (acct modal)
   /** Cumulative end month: caps the sparkline's current-year line to the window. */
   months?: number;
   dim: Dim;
   area: GeoArea | AcctArea;
   market: Market;
-  metric: Metric;
-  /** Open the metric explorer for a main row — any metric: YoY chips (pieces /
-   *  shipments) and the ratio bar (efficiency) all lead there. */
-  onExplore?: (rowKey: string) => void;
+  /** Open the metric explorer for a main row from its Pieces or Shipments YoY chip. */
+  onExplore?: (rowKey: string, metric: DataMetric) => void;
   noFallback?: boolean;
   /** Amber frame — signals the table is showing the accounting perimeter. */
   accent?: boolean;
   caption: string;
 }
 
+const VOLUME_METRICS: readonly DataMetric[] = ["pieces", "shipments"];
+
 const getMap = (o: { geo_data: MetricMap; acct_data: MetricMap }, dim: Dim) =>
   dim === "geo" ? o.geo_data : o.acct_data;
 
-const metricLabel = (m: Metric) =>
-  m === "pieces" ? "Pieces" : m === "shipments" ? "Shipments" : "Efficiency";
+const metricLabel = (m: DataMetric) => (m === "pieces" ? "Pieces" : "Shipments");
+
+function YoyChip({ yoy }: { yoy: number | null }) {
+  return (
+    <span className={`${styles.chip} ${styles[sign(yoy)]}`}>
+      {trend(yoy) && <span className={styles.trendGlyph}>{trend(yoy)} </span>}
+      {fmtPctSigned(yoy)}
+    </span>
+  );
+}
 
 export function ContentTableV2({
   view,
@@ -67,7 +72,6 @@ export function ContentTableV2({
   dim,
   area,
   market,
-  metric,
   onExplore,
   noFallback = false,
   accent = false,
@@ -82,9 +86,7 @@ export function ContentTableV2({
       return next;
     });
 
-  const isEff = metric === "efficiency";
   const showTrend = !!trends;
-  const fmtBar = isEff ? fmtRatio : fmtCompact;
 
   const resolve = (map: MetricMap): GeoArea =>
     (noFallback
@@ -93,18 +95,6 @@ export function ContentTableV2({
         ? area
         : "ALL") as GeoArea;
 
-  // Shared bar scale across the visible MAIN rows for the active market+metric.
-  const maxVal = useMemo(() => {
-    let max = 0;
-    for (const row of view.rows) {
-      const map = getMap(row, dim);
-      const cell = map[resolve(map)] ?? null;
-      const { cur, py } = cellTriple(cell, metric, market);
-      max = Math.max(max, cur, py);
-    }
-    return max;
-  }, [view.rows, dim, area, market, metric, noFallback]);
-
   // First Frames row (Accounting) hosts the International-rules affordance.
   const framesFirstIdx = useMemo(
     () => (dim === "acct" ? view.rows.findIndex((r) => r.category === "Frames") : -1),
@@ -112,18 +102,80 @@ export function ContentTableV2({
   );
 
   const catCls = (cat: string) => (cat === "Stock Lenses" ? styles.catType2 : styles.catType1);
-  const emptyMsg = isEff
-    ? `No ${market} shipments`
-    : `No ${market} ${metric === "pieces" ? "volume" : "shipments"}`;
-  const colCount = 4 + (showTrend ? 1 : 0);
+  const emptyMsg = (m: DataMetric) => `No ${market} ${m === "pieces" ? "volume" : "shipments"}`;
+  const isEmpty = (cell: MetricCell | null, m: DataMetric) => {
+    const t = cellTriple(cell, m, market);
+    return t.cur === 0 && t.py === 0;
+  };
+  const volCols = showTrend ? 2 : 1;
+  const colCount = 2 + VOLUME_METRICS.length * volCols + 1;
 
-  const barHint = isEff ? "pcs / shipment" : "this yr vs last";
+  /** Year-to-date figure with its YoY chip underneath. The prior year stays
+   *  reachable: hover title, screen-reader text, sparkline and explorer. */
+  const valueStack = (
+    cur: number,
+    py: number,
+    fmt: (n: number) => string,
+    unit: string,
+    chip: ReactNode,
+  ) => (
+    <span className={styles.valStack}>
+      <span className={styles.valNum} title={`Prior YTD ${fmt(py)}`} aria-hidden="true">
+        {fmt(cur)}
+      </span>
+      <span className="sr-only">
+        {view.year} YTD {fmt(cur)} {unit}, prior YTD {fmt(py)}.
+      </span>
+      {chip}
+    </span>
+  );
 
-  // The combined "pieces · shipments" caption shown under the ratio bar so the
-  // two figures behind the efficiency number are visible together.
-  const combined = (cell: MetricCell | null) => {
-    const c = components(cell, market);
-    return `${fmtCompact(c.pieces.cur)} pcs · ${fmtCompact(c.shipments.cur)} ship`;
+  const volumeCell = (
+    cell: MetricCell | null,
+    m: DataMetric,
+    explore?: { rowKey: string; label: string; tour: boolean },
+  ) => {
+    if (isEmpty(cell, m)) return <span className={styles.muted}>{emptyMsg(m)}</span>;
+    const t = cellTriple(cell, m, market);
+    const chip =
+      explore && onExplore ? (
+        <button
+          type="button"
+          className={styles.chipBtn}
+          title="Why? See the change explained"
+          aria-haspopup="dialog"
+          aria-label={`Explain the ${fmtPctSigned(t.yoy)} year over year change in ${m} for ${explore.label}`}
+          data-tour={explore.tour ? "v2-yoy" : undefined}
+          onClick={(e) => {
+            e.stopPropagation();
+            onExplore(explore.rowKey, m);
+          }}
+        >
+          <YoyChip yoy={t.yoy} />
+          <span className={styles.chipGo} aria-hidden="true">
+            ↗
+          </span>
+        </button>
+      ) : (
+        <YoyChip yoy={t.yoy} />
+      );
+    return valueStack(t.cur, t.py, fmtCompact, m, chip);
+  };
+
+  const effCell = (cell: MetricCell | null, tour: boolean) => {
+    const e = cellTriple(cell, "efficiency", market);
+    return (
+      <td
+        className={`${styles.valCol} ${styles.grpStart}`}
+        data-tour={tour ? "v2-eff" : undefined}
+      >
+        {hasShipments(cell, market) ? (
+          valueStack(e.cur, e.py, fmtRatio, "pieces per shipment", <YoyChip yoy={e.yoy} />)
+        ) : (
+          <span className={styles.muted}>—</span>
+        )}
+      </td>
+    );
   };
 
   return (
@@ -133,22 +185,44 @@ export function ContentTableV2({
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>
-            <th scope="col">Category</th>
-            <th scope="col">Sub-category</th>
-            <th scope="col" className={styles.barCol}>
-              {market} · {metricLabel(metric)}
-              <span className={styles.thHint}> — {barHint}</span>
+            <th scope="col" rowSpan={2}>
+              Category
             </th>
-            <th scope="col" className={styles.yoyCol}>
-              YoY %
+            <th scope="col" rowSpan={2}>
+              Sub-category
             </th>
-            {showTrend && (
-              <th scope="col" className={styles.trendCol}>
-                Monthly trend
+            {VOLUME_METRICS.map((m) => (
+              <th
+                key={m}
+                scope="colgroup"
+                colSpan={volCols}
+                className={`${styles.grpHead} ${styles.grpStart}`}
+              >
+                {market} · {metricLabel(m)}
               </th>
-            )}
-            <th scope="col" className={styles.covCol}>
-              Coverage %
+            ))}
+            <th scope="col" className={`${styles.grpHead} ${styles.grpStart}`}>
+              {market} ·{" "}
+              <abbr className={styles.grpAbbr} title="Pieces per shipment — batch size">
+                Pcs / ship
+              </abbr>
+            </th>
+          </tr>
+          <tr>
+            {VOLUME_METRICS.map((m) => (
+              <Fragment key={m}>
+                <th scope="col" className={`${styles.valCol} ${styles.grpStart}`}>
+                  YTD · YoY
+                </th>
+                {showTrend && (
+                  <th scope="col" className={styles.trendCol}>
+                    Monthly trend
+                  </th>
+                )}
+              </Fragment>
+            ))}
+            <th scope="col" className={`${styles.valCol} ${styles.grpStart}`}>
+              Ratio · YoY
             </th>
           </tr>
         </thead>
@@ -158,41 +232,18 @@ export function ContentTableV2({
             const map = getMap(row, dim);
             const used = resolve(map);
             const cell = map[used] ?? null;
-            const { cur, py, yoy } = cellTriple(cell, metric, market);
             const isExportLabs = row.sub_category === "Export Labs";
             const rowKey = `${row.category}|${row.sub_category}`;
             const isOpen = open.has(rowKey);
             const drillId = `${dim}-drill-${ri}`;
-            const empty = isEff ? !hasShipments(cell, market) : cur === 0 && py === 0;
 
             const visibleDrills = isExportLabs
               ? drills.filter((s) => {
                   const m = getMap(s, dim);
-                  const f = cellTriple(m[resolve(m)] ?? null, metric, market);
-                  return isEff ? hasShipments(m[resolve(m)] ?? null, market) : f.cur > 0 || f.py > 0;
+                  const sc = m[resolve(m)] ?? null;
+                  return VOLUME_METRICS.some((metric) => !isEmpty(sc, metric));
                 })
               : [];
-
-            const pairedBar = (
-              <PairedYoYBar
-                cur={cur}
-                py={py}
-                max={maxVal}
-                fmt={fmtBar}
-                curLabel={`${view.year} YTD`}
-                pyLabel="prior YTD"
-              />
-            );
-            // Efficiency keeps the pieces · shipments caption under the ratio,
-            // but no longer opens the explorer (explore removed from this view).
-            const bar = isEff ? (
-              <div className={styles.effCell}>
-                {pairedBar}
-                <span className={styles.effRaw}>{combined(cell)}</span>
-              </div>
-            ) : (
-              pairedBar
-            );
 
             // First Frames row in Accounting mode: clickable “?” for the
             // International plant rules (hidden until asked).
@@ -250,67 +301,49 @@ export function ContentTableV2({
                       row.sub_category || ""
                     )}
                   </td>
-                  <td className={styles.barCol} data-tour={ri === 0 ? "v2-bar" : undefined}>
-                    {empty ? <span className={styles.muted}>{emptyMsg}</span> : bar}
-                  </td>
-                  <td
-                    className={`${styles.yoyCol} ${styles.num}`}
-                    data-tour={ri === 0 ? "v2-yoy" : undefined}
-                  >
-                    {(() => {
-                      const chip = (
-                        <span className={`${styles.chip} ${styles[sign(yoy)]}`}>
-                          {trend(yoy) && <span className={styles.trendGlyph}>{trend(yoy)} </span>}
-                          {fmtPctSigned(yoy)}
-                        </span>
-                      );
-                      return onExplore && !isEff && !empty ? (
-                        <button
-                          type="button"
-                          className={styles.chipBtn}
-                          title="Why? See the change explained"
-                          aria-haspopup="dialog"
-                          aria-label={`Explain the ${fmtPctSigned(yoy)} year over year change for ${row.category} ${row.sub_category}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onExplore(rowKey);
-                          }}
+                  {VOLUME_METRICS.map((m) => {
+                    const tour = ri === 0 && m === "pieces";
+                    return (
+                      <Fragment key={m}>
+                        <td
+                          className={`${styles.valCol} ${styles.grpStart}`}
+                          data-tour={tour ? "v2-bar" : undefined}
                         >
-                          {chip}
-                          <span className={styles.chipGo} aria-hidden="true">
-                            ↗
-                          </span>
-                        </button>
-                      ) : (
-                        chip
-                      );
-                    })()}
-                  </td>
-                  {showTrend && (
-                    <td className={styles.trendCol} data-tour={ri === 0 ? "v2-trend" : undefined}>
-                      {(() => {
-                        const node = trends!.rows[rowKey]?.[used] ?? null;
-                        const s = seriesFor(node, metric, market);
-                        const cy = months != null ? s.cy.slice(0, months) : s.cy;
-                        return cy.length || s.py.length ? (
-                          <Sparkline
-                            cy={cy}
-                            py={s.py}
-                            monthLabels={trends!.month_labels}
-                            valueFmt={fmtBar}
-                            currentYear={trends!.current_year}
-                            priorYear={trends!.prior_year}
-                            label={`${row.category} ${market} ${metricLabel(metric)} monthly trend, ${trends!.current_year} vs ${trends!.prior_year}`}
-                          />
-                        ) : (
-                          <span className={styles.muted}>—</span>
-                        );
-                      })()}
-                    </td>
-                  )}
-                  <td className={styles.covCol}>
-                    <CoverageBar value={row.coverage} compact />
-                  </td>
+                          {volumeCell(cell, m, {
+                            rowKey,
+                            label: `${row.category} ${row.sub_category}`,
+                            tour,
+                          })}
+                        </td>
+                        {showTrend && (
+                          <td
+                            className={styles.trendCol}
+                            data-tour={tour ? "v2-trend" : undefined}
+                          >
+                            {(() => {
+                              const node = trends!.rows[rowKey]?.[used] ?? null;
+                              const s = seriesFor(node, m, market);
+                              const cy = months != null ? s.cy.slice(0, months) : s.cy;
+                              return cy.length || s.py.length ? (
+                                <Sparkline
+                                  cy={cy}
+                                  py={s.py}
+                                  width={120}
+                                  monthLabels={trends!.month_labels}
+                                  currentYear={trends!.current_year}
+                                  priorYear={trends!.prior_year}
+                                  label={`${row.category} ${market} ${metricLabel(m)} monthly trend, ${trends!.current_year} vs ${trends!.prior_year}`}
+                                />
+                              ) : (
+                                <span className={styles.muted}>—</span>
+                              );
+                            })()}
+                          </td>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                  {effCell(cell, ri === 0)}
                 </tr>
 
                 {isExportLabs && isOpen && visibleDrills.length > 0 &&
@@ -318,7 +351,6 @@ export function ContentTableV2({
                     const m = getMap(s, dim);
                     const usedS = resolve(m);
                     const sc = m[usedS] ?? null;
-                    const f = cellTriple(sc, metric, market);
                     const flow =
                       dim === "geo" && market === "LM" && s.lm_flow && s.lm_flow.area === usedS
                         ? s.lm_flow
@@ -339,35 +371,22 @@ export function ContentTableV2({
                           {s.site}
                           {flow && <span className={`${styles.flowPill} ${flowCls}`}>{flow.label}</span>}
                         </td>
-                        <td className={styles.barCol}>
-                          {(isEff ? !hasShipments(sc, market) : f.cur === 0 && f.py === 0) ? (
-                            <span className={styles.muted}>{emptyMsg}</span>
-                          ) : (
-                            <PairedYoYBar
-                              cur={f.cur}
-                              py={f.py}
-                              max={maxVal}
-                              fmt={fmtBar}
-                              curLabel={`${view.year} YTD`}
-                              pyLabel="prior YTD"
-                            />
-                          )}
-                        </td>
-                        <td className={`${styles.yoyCol} ${styles.num}`}>
-                          <span className={`${styles.chip} ${styles[sign(f.yoy)]}`}>
-                            {trend(f.yoy) && <span className={styles.trendGlyph}>{trend(f.yoy)} </span>}
-                            {fmtPctSigned(f.yoy)}
-                          </span>
-                        </td>
-                        {showTrend && <td className={styles.trendCol} />}
-                        <td className={styles.covCol} />
+                        {VOLUME_METRICS.map((metric) => (
+                          <Fragment key={metric}>
+                            <td className={`${styles.valCol} ${styles.grpStart}`}>
+                              {volumeCell(sc, metric)}
+                            </td>
+                            {showTrend && <td className={styles.trendCol} />}
+                          </Fragment>
+                        ))}
+                        {effCell(sc, false)}
                       </tr>
                     );
                   })}
 
                 {isExportLabs && isOpen && visibleDrills.length === 0 && (
                   <tr id={drillId} className={`${styles.drillRow} ${catCls(row.category)}`}>
-                    <td colSpan={colCount + 1}>
+                    <td colSpan={colCount}>
                       <span className={styles.muted}>
                         No contributing sites with {market} activity in this scope.
                       </span>
