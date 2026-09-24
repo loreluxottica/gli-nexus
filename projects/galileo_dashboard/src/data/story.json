@@ -12,7 +12,7 @@
       "href": "/content/",
       "target": "[data-tour=\"v2-bar\"]",
       "title": "Every flow vs last year",
-      "body": "Solid bar = this year, ghost = same period last year, on one shared scale. The sparkline shows exactly where the year diverges."
+      "body": "Pieces and shipments side by side: the year-to-date figure with its change against the same period last year. The sparkline shows exactly where the year diverges."
     },
     {
       "id": "why",
@@ -22,8 +22,8 @@
     },
     {
       "id": "efficiency",
-      "href": "/content/?metric=efficiency",
-      "target": "[data-tour=\"v2-toggle\"]",
+      "href": "/content/",
+      "target": "[data-tour=\"v2-eff\"]",
       "title": "Efficiency: pieces per shipment",
       "body": "Batch size shows where logistics consolidates or fragments: rising means each shipment carries more."
     },
