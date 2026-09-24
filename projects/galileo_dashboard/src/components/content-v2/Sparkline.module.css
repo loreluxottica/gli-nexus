@@ -74,7 +74,6 @@
   font-family: var(--mono), monospace;
   font-size: 12px;
   text-align: center;
-  width: 140px;
 }
 
 /* ---- tooltip (portalled to <body>, fixed to the viewport) --------------- */

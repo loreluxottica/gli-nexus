@@ -1,11 +1,8 @@
 import type { Market } from "@/data/types";
-import type { Metric } from "@/lib/contentMetrics";
 import styles from "./MarketMetricToggle.module.css";
 
-export type { Metric };
-
 /**
- * Two segmented controls: Market (REP / LM) and Metric (Pieces / Shipments).
+ * Segmented controls: Market (REP / LM) and, optionally, Perimeter.
  * REP (Replenishment, Intra-Network flows) and LM (Last Mile, to the ECP/customer) are
  * different units — a REP shipment carries ~380× more pieces than an LM one —
  * so the table shows ONE market at a time on its own scale rather than blending
@@ -53,18 +50,14 @@ type Perimeter = "geo" | "acct";
 
 export function MarketMetricToggle({
   market,
-  metric,
   acct,
   onMarket,
-  onMetric,
   onAcct,
 }: {
   market: Market;
-  metric: Metric;
   /** Accounting perimeter active. When `onAcct` is given, a Perimeter segment renders. */
   acct?: boolean;
   onMarket: (m: Market) => void;
-  onMetric: (m: Metric) => void;
   onAcct?: (on: boolean) => void;
 }) {
   return (
@@ -76,20 +69,6 @@ export function MarketMetricToggle({
         options={[
           { value: "REP", label: "REP", hint: "Replenishment — Intra-Network flows" },
           { value: "LM", label: "LM", hint: "Last Mile — delivery to the ECP / end customer" },
-        ]}
-      />
-      <Segmented<Metric>
-        label="Metric"
-        value={metric}
-        onChange={onMetric}
-        options={[
-          { value: "pieces", label: "Pieces", hint: "Volume moved" },
-          { value: "shipments", label: "Shipments", hint: "Number of shipments" },
-          {
-            value: "efficiency",
-            label: "Efficiency",
-            hint: "Pieces per shipment — batch size; pieces and shipments together",
-          },
         ]}
       />
       {onAcct && (
