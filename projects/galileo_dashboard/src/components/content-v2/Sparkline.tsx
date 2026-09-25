@@ -53,7 +53,11 @@ export function Sparkline({
 
   if (!hasData) {
     return (
-      <span className={styles.empty} style={{ width }} aria-hidden="true">
+      <span
+        className={styles.empty}
+        style={{ width, height, lineHeight: `${height}px` }}
+        aria-hidden="true"
+      >
         —
       </span>
     );
