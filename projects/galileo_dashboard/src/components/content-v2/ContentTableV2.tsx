@@ -18,6 +18,7 @@ import {
   seriesFor,
   type DataMetric,
 } from "@/lib/contentMetrics";
+import { contentRowLabel } from "@/lib/products";
 import { toneForFlow } from "@/lib/tags";
 import { Sparkline } from "./Sparkline";
 import styles from "./ContentTableV2.module.css";
@@ -277,6 +278,7 @@ export function ContentTableV2({
             const cell = map[used] ?? null;
             const isExportLabs = row.sub_category === "Export Labs";
             const rowKey = `${row.category}|${row.sub_category}`;
+            const label = dim === "geo" ? contentRowLabel(row, used) : row;
             const isOpen = open.has(rowKey);
             const drillId = `${dim}-drill-${ri}`;
 
@@ -314,13 +316,13 @@ export function ContentTableV2({
                         aria-label="When is Frames counted as International?"
                         title="When is Frames counted as International?"
                       >
-                        <span>{row.category}</span>
+                        <span>{label.category}</span>
                         <span className={styles.intlHint} aria-hidden="true">
                           ?
                         </span>
                       </button>
                     ) : (
-                      row.category
+                      label.category
                     )}
                   </td>
                   <td className={styles.sub}>
@@ -338,10 +340,10 @@ export function ContentTableV2({
                         >
                           ▸
                         </span>
-                        <b>{row.sub_category}</b>
+                        <b>{label.sub_category}</b>
                       </button>
                     ) : (
-                      row.sub_category || ""
+                      label.sub_category || ""
                     )}
                   </td>
                   {VOLUME_METRICS.map((m) => {
@@ -354,7 +356,7 @@ export function ContentTableV2({
                         >
                           {volumeCell(cell, m, {
                             rowKey,
-                            label: `${row.category} ${row.sub_category}`,
+                            label: `${label.category} ${label.sub_category}`,
                             tour,
                           })}
                         </td>
@@ -375,7 +377,7 @@ export function ContentTableV2({
                                   monthLabels={trends!.month_labels}
                                   currentYear={trends!.current_year}
                                   priorYear={trends!.prior_year}
-                                  label={`${row.category} ${market} ${metricLabel(m)} monthly trend, ${trends!.current_year} vs ${trends!.prior_year}`}
+                                  label={`${label.category} ${market} ${metricLabel(m)} monthly trend, ${trends!.current_year} vs ${trends!.prior_year}`}
                                 />
                               ) : (
                                 <span className={`${styles.muted} ${styles.valEmpty}`}>—</span>

@@ -20,6 +20,21 @@ export function productLabel(product: string): string {
   }
 }
 
+/**
+ * Display-only Category / Sub-category for a Content row in an area. EMEA
+ * shows the GV row as one GV category covering all its sub-flows. The source
+ * text stays the join key (`Category|Sub-category`) for trends and comments.
+ */
+export function contentRowLabel(
+  row: { category: string; sub_category: string },
+  area: string,
+): { category: string; sub_category: string } {
+  if (area === "EMEA" && row.category === "Frames" && row.sub_category === "GV Frames*") {
+    return { category: "GV", sub_category: "Frames, Contact Lenses, Lenses" };
+  }
+  return { category: row.category, sub_category: row.sub_category };
+}
+
 /** Stable sort key for product lists (unknown products go last). */
 export function productSortIndex(product: string): number {
   const i = PRODUCT_ORDER.indexOf(product as Product);
