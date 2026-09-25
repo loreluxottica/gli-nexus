@@ -24,6 +24,13 @@ draws at its container's real width, and "Where the change comes from" ranks
 areas under a Global row by absolute change vs last year, with every bar on
 one scale; on phones the bar column drops and the printed change remains.
 
+The Content table has fixed column widths (`table-layout: fixed` and a
+`<colgroup>`), so switching market or area never moves a column: the labels
+are sized to the longest name and the trend columns take the rest, with
+sparklines filling them between 112 and 220px. Rows keep one height too:
+empty cells match a figure's height and the LM-only flow pill sits under its
+site name.
+
 The explorer's `CommentPanel` reads and writes the shared comments API for its
 flow and market. A region view shows and saves only that region's comments;
 Global shows every area and saves as Global. Author is the signed-in user;

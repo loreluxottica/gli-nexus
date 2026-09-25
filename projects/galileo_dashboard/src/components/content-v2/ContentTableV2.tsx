@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   AcctArea,
   ContentTrends,
@@ -50,6 +50,11 @@ interface Props {
 
 const VOLUME_METRICS: readonly DataMetric[] = ["pieces", "shipments"];
 
+/** Sparklines fill their column between these widths: readable on a laptop,
+ *  never stretched thin on a wide screen. */
+const SPARK_MIN = 112;
+const SPARK_MAX = 220;
+
 const getMap = (o: { geo_data: MetricMap; acct_data: MetricMap }, dim: Dim) =>
   dim === "geo" ? o.geo_data : o.acct_data;
 
@@ -87,6 +92,24 @@ export function ContentTableV2({
     });
 
   const showTrend = !!trends;
+
+  // Columns are fixed, so one trend header gives every sparkline its width.
+  // Measured before paint, then kept in step with window resizes.
+  const trendHeadRef = useRef<HTMLTableCellElement>(null);
+  const [sparkW, setSparkW] = useState(SPARK_MIN);
+  useLayoutEffect(() => {
+    const el = trendHeadRef.current;
+    if (!el) return;
+    const fit = () => {
+      const cs = getComputedStyle(el);
+      const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      setSparkW(Math.min(SPARK_MAX, Math.max(SPARK_MIN, Math.floor(inner))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showTrend]);
 
   const resolve = (map: MetricMap): GeoArea =>
     (noFallback
@@ -135,7 +158,8 @@ export function ContentTableV2({
     m: DataMetric,
     explore?: { rowKey: string; label: string; tour: boolean },
   ) => {
-    if (isEmpty(cell, m)) return <span className={styles.muted}>{emptyMsg(m)}</span>;
+    if (isEmpty(cell, m))
+      return <span className={`${styles.muted} ${styles.valEmpty}`}>{emptyMsg(m)}</span>;
     const t = cellTriple(cell, m, market);
     const chip =
       explore && onExplore ? (
@@ -172,7 +196,7 @@ export function ContentTableV2({
         {hasShipments(cell, market) ? (
           valueStack(e.cur, e.py, fmtRatio, "pieces per shipment", <YoyChip yoy={e.yoy} />)
         ) : (
-          <span className={styles.muted}>—</span>
+          <span className={`${styles.muted} ${styles.valEmpty}`}>—</span>
         )}
       </td>
     );
@@ -181,8 +205,23 @@ export function ContentTableV2({
   return (
     <>
     <div className={`${styles.wrap} ${accent ? styles.wrapAcct : ""}`}>
-      <table className={styles.table}>
+      <table className={`${styles.table} ${showTrend ? styles.withTrend : ""}`}>
         <caption className="sr-only">{caption}</caption>
+        {/* Fixed widths: the layout never depends on the figures, so switching
+            market or area cannot move the columns. Row labels fit the longest
+            name; the trend columns (or, without trends, the figures) share
+            the rest. */}
+        <colgroup>
+          <col className={styles.colCat} />
+          <col className={styles.colSub} />
+          {VOLUME_METRICS.map((m) => (
+            <Fragment key={m}>
+              <col className={showTrend ? styles.colVal : undefined} />
+              {showTrend && <col />}
+            </Fragment>
+          ))}
+          <col className={showTrend ? styles.colVal : undefined} />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" rowSpan={2}>
@@ -215,7 +254,11 @@ export function ContentTableV2({
                   YTD · YoY
                 </th>
                 {showTrend && (
-                  <th scope="col" className={styles.trendCol}>
+                  <th
+                    scope="col"
+                    className={styles.trendCol}
+                    ref={m === VOLUME_METRICS[0] ? trendHeadRef : undefined}
+                  >
                     Monthly trend
                   </th>
                 )}
@@ -280,7 +323,7 @@ export function ContentTableV2({
                       row.category
                     )}
                   </td>
-                  <td>
+                  <td className={styles.sub}>
                     {isExportLabs ? (
                       <button
                         type="button"
@@ -328,14 +371,14 @@ export function ContentTableV2({
                                 <Sparkline
                                   cy={cy}
                                   py={s.py}
-                                  width={120}
+                                  width={sparkW}
                                   monthLabels={trends!.month_labels}
                                   currentYear={trends!.current_year}
                                   priorYear={trends!.prior_year}
                                   label={`${row.category} ${market} ${metricLabel(m)} monthly trend, ${trends!.current_year} vs ${trends!.prior_year}`}
                                 />
                               ) : (
-                                <span className={styles.muted}>—</span>
+                                <span className={`${styles.muted} ${styles.valEmpty}`}>—</span>
                               );
                             })()}
                           </td>

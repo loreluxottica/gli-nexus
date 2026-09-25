@@ -1,5 +1,9 @@
+/* Top-aligned so the chart takes exactly its height (no space under a text
+   baseline); the empty state takes the same box, so rows with and without a
+   trend stay the same height. */
 .wrap {
   display: inline-block;
+  vertical-align: top;
   line-height: 0;
   cursor: crosshair;
 }
@@ -70,6 +74,7 @@
 
 .empty {
   display: inline-block;
+  vertical-align: top;
   color: var(--ink-faint);
   font-family: var(--mono), monospace;
   font-size: 12px;
