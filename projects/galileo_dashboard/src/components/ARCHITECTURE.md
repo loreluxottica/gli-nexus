@@ -19,7 +19,10 @@ write lens state through URL params.
 **Decisions:** the Content table shows Pieces, Shipments and pieces per
 shipment side by side (YTD figure over its YoY chip, plus a sparkline), with
 no Metric toggle and no Coverage column. A YoY chip opens the explorer on its
-own metric through `?explore=` and `?metric=`.
+own metric through `?explore=` and `?metric=`. The explorer's trend chart
+draws at its container's real width, and "Where the change comes from" ranks
+areas under a Global row by absolute change vs last year, with every bar on
+one scale; on phones the bar column drops and the printed change remains.
 
 The explorer's `CommentPanel` reads and writes the shared comments API for its
 flow and market. A region view shows and saves only that region's comments;
