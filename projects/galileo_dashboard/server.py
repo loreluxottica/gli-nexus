@@ -21,7 +21,7 @@ from flask import Blueprint, Response, abort, jsonify, request, send_from_direct
 
 from shared import auth
 
-from . import data_service
+from . import comments_store, data_service
 
 _log = logging.getLogger(__name__)
 
@@ -165,6 +165,76 @@ def api_refresh():
         abort(403)
     data_service.invalidate()
     return jsonify({"invalidated": True})
+
+
+# ---- Shared KPI comments ---------------------------------------------------
+
+
+def _commenter() -> str:
+    """The author identity. Past auth.authorized() a missing email only
+    happens in a local run, never once deployed."""
+    return auth.get_current_email() or "local-dev"
+
+
+def _comments_unavailable():
+    resp = jsonify({"error": "comments_unavailable"})
+    resp.status_code = 503
+    return resp
+
+
+@bp.route("/api/comments", methods=["GET"])
+def api_comments():
+    if not auth.authorized(_PROJECT_KEY):
+        abort(403)
+    me = _commenter()
+    try:
+        items = comments_store.list_comments(
+            request.args.get("flow", ""), request.args.get("market", "")
+        )
+    except comments_store.Unavailable:
+        return _comments_unavailable()
+    resp = jsonify(
+        {
+            "comments": [comments_store.public(c, me) for c in items],
+            "me": comments_store.display_name(me),
+        }
+    )
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@bp.route("/api/comments", methods=["POST"])
+def api_comment_add():
+    if not auth.authorized(_PROJECT_KEY):
+        abort(403)
+    # JSON only: a cross-site HTML form cannot send it without a CORS preflight.
+    if not request.is_json:
+        abort(415)
+    try:
+        fields = comments_store.validate(request.get_json(silent=True) or {})
+    except ValueError as exc:
+        return jsonify({"error": "invalid", "field": str(exc)}), 400
+    me = _commenter()
+    try:
+        comment = comments_store.add_comment(**fields, author_email=me)
+    except comments_store.Unavailable:
+        return _comments_unavailable()
+    return jsonify({"comment": comments_store.public(comment, me)}), 201
+
+
+@bp.route("/api/comments/<comment_id>", methods=["DELETE"])
+def api_comment_delete(comment_id: str):
+    if not auth.authorized(_PROJECT_KEY):
+        abort(403)
+    try:
+        comments_store.delete_comment(comment_id, _commenter())
+    except LookupError:
+        abort(404)
+    except PermissionError:
+        abort(403)
+    except comments_store.Unavailable:
+        return _comments_unavailable()
+    return jsonify({"deleted": comment_id})
 
 
 # ---- Static export ---------------------------------------------------------
