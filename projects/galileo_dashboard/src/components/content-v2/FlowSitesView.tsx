@@ -193,12 +193,14 @@ function SiteWorkspace({ scope, row, cell, view }: {
         <section className={styles.listPane} aria-label="Sites in this flow">
           <div className={styles.toolbar}>
             <label className={styles.search}>Find a site<input ref={searchRef} type="search" value={search}
-              placeholder="Search all sites in this flow..."
+              placeholder="Search..."
               onChange={(event) => update({ q: event.target.value || null, page: null })} /></label>
-            <label>Order by<select value={sort} onChange={(event) => update({ sort: event.target.value, page: null })}>
+            <label className={styles.order}>Order by<select value={sort} onChange={(event) => update({ sort: event.target.value, page: null })}>
               {SITE_SORTS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select></label>
-            <span className={styles.count} role="status">{filtered.length} of {rows.length} sites</span>
+            <span className={styles.count} role="status" data-filtered={filtered.length !== rows.length ? "true" : undefined}>
+              <b>{filtered.length}</b><span>/{rows.length}</span><span className="sr-only"> sites</span>
+            </span>
           </div>
           <div className={styles.listFrame}>
             <div className={styles.listScroll} ref={listRef}>
@@ -225,15 +227,14 @@ function SiteWorkspace({ scope, row, cell, view }: {
                 {search && <Button onClick={() => update({ q: null, page: null })}>Clear search</Button>}
               </div>}
             </div>
-            <p className={styles.tableNote}>{byChange ? "Ordered by absolute change, including increases and decreases." : "Current YTD with YoY underneath."} Click a site for its full metrics.</p>
           </div>
           {pageCount > 1 && <nav className={styles.pagination} aria-label="Site pages">
             <Button disabled={page === 1} onClick={() => update({ page: String(page - 1) })}>Previous</Button>
             <span>Page {page} of {pageCount}</span>
             <Button disabled={page === pageCount} onClick={() => update({ page: String(page + 1) })}>Next</Button>
           </nav>}
-          <div className={styles.selection}>
-            <div><strong role="status">{selected.length} selected</strong><span>Kept while you search for another site</span></div>
+          <div className={styles.selection} data-active={selected.length > 0 ? "true" : undefined}>
+            <strong className={styles.selectionCount} role="status"><span className={styles.selectionBadge}>{selected.length}</span> selected</strong>
             <Button disabled={!selected.length} onClick={() => update({ selected: [], compare: null })}>Clear</Button>
             <Button variant="accent" disabled={selected.length < 2} onClick={openComparison}>Compare ({selected.length})</Button>
           </div>

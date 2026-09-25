@@ -51,6 +51,9 @@ The workspace header combines area, market, category and sub-category in one
 title. There is no subtitle or flow-total strip; the period control remains
 available and the reclaimed height is assigned to the site list. Flow totals
 still provide the denominator for the selected site's contribution.
+Search and ordering share one control row. Selection is a count badge plus
+row tint, not an explanatory sentence; the count stays visible while a search
+hides unselected rows. A filtered count uses the accent; YoY stays color.
 
 The URL owns scope and working state; native History updates integrate with
 Next's search params without fetching on every keystroke. The left pane stays

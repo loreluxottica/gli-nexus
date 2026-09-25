@@ -54,6 +54,11 @@ The separate context subtitle and flow-total summary strip are removed to
 prioritize list and comparison space. Keep the period selector and the scoped
 metrics/denominators; this refinement changes presentation only.
 
+Search and ordering sit on one row so the site list keeps the height. Do not
+explain persistent selection with a sentence: show it with the count badge,
+selected-row tint and the count remaining while search changes the list.
+Prefer color, size and state over explanatory copy in this workspace.
+
 Local preview artifacts and screenshot-bound observations are gitignored in
 `.gli-preview/flow-sites/`. The recorded choice is B on snapshot
 `d227c71c7340d0ad134ca68ad5d8482fbe07f9c445b31d97890a142063febdb8`.
@@ -87,3 +92,5 @@ Live Databricks data was not exercised. The user authorized regenerating the
 deployment export and publishing the branch; `out/` now includes `content/sites`.
 The user also authorized rebuilding the export for the later compact-header
 refinement; `out/` now includes the contextual title and expanded site list.
+The user then authorized another export for the one-row search and ordering
+controls and the visual selection state; `out/` includes that revision.
