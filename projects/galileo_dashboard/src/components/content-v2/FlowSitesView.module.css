@@ -2,15 +2,10 @@
 .breadcrumb { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; color: var(--ink-soft); font-size: 12px; }
 .breadcrumb a { color: var(--accent-deep); text-underline-offset: 3px; }
 .heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 22px; margin-bottom: 20px; }
-.heading h1 { margin: 0; font-size: 27px; font-weight: 650; letter-spacing: -.5px; line-height: 1.25; overflow-wrap: anywhere; }
-.heading h1 span { color: var(--ink-soft); font-weight: 400; }
-.scope { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; color: var(--ink-soft); font-size: 12px; margin: 10px 0 0; }
-.market { background: var(--cat-amber-surface); color: var(--cat-amber-ink); padding: 3px 7px; border-radius: 4px; font-family: var(--mono), monospace; }
-.actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
-.totals { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; padding: 13px 0; border-block: 1px solid var(--line); margin-bottom: 22px; font-size: 12px; }
-.totals > span:first-child { color: var(--ink-soft); }
-.totals b { font-family: var(--mono), monospace; font-size: 12px; font-variant-numeric: tabular-nums; }
-.totalNote { margin-left: auto; color: var(--ink-soft); font-size: 11px; }
+.heading h1 { flex: 1; min-width: 0; margin: 0; font-size: 27px; font-weight: 650; letter-spacing: -.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.titleScope, .titleSeparator { color: var(--ink-soft); font-weight: 400; }
+.titleScope abbr { text-underline-offset: 4px; }
+.actions { display: flex; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .split { display: grid; grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); gap: 24px; align-items: start; }
 .split > * { min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 13px; align-items: flex-end; margin-bottom: 14px; }
@@ -24,7 +19,7 @@
 .toolbar input::placeholder { color: var(--ink-soft); }
 .count { margin-left: auto; padding-bottom: 10px; color: var(--ink-soft); font-size: 11px; }
 .listFrame { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
-.listScroll { overflow: auto; max-height: clamp(220px, calc(100dvh - 670px), 490px); }
+.listScroll { overflow: auto; max-height: clamp(220px, calc(100dvh - 580px), 580px); }
 .listTable { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; }
 .listTable th, .listTable td { padding: 9px 15px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .listTable thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
@@ -107,8 +102,6 @@
   .heading { flex-direction: column; }
   .heading h1 { font-size: 24px; }
   .actions { justify-content: flex-start; }
-  .totals { gap: 12px; }
-  .totalNote { width: 100%; margin: 0; }
   .split { grid-template-columns: minmax(0, 1fr); }
   .listScroll { max-height: 350px; }
   .inspection { scroll-margin-top: 185px; position: static; max-height: none; overflow-y: visible; }

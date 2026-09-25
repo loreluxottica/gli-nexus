@@ -49,6 +49,11 @@ The left search/list pane stays mounted while the right pane switches
 between a scoped site's detail and side-by-side comparison. On narrow screens
 the panes stack, and explicit detail actions bring the detail into view.
 
+The refined workspace header reads `Area · Market · Category / Sub-category`.
+The separate context subtitle and flow-total summary strip are removed to
+prioritize list and comparison space. Keep the period selector and the scoped
+metrics/denominators; this refinement changes presentation only.
+
 Local preview artifacts and screenshot-bound observations are gitignored in
 `.gli-preview/flow-sites/`. The recorded choice is B on snapshot
 `d227c71c7340d0ad134ca68ad5d8482fbe07f9c445b31d97890a142063febdb8`.
@@ -80,3 +85,5 @@ restoration, keyboard focus, mobile layout and explicit API-failure states.
 The existing TypeScript check and nine pure-helper regressions pass.
 Live Databricks data was not exercised. The user authorized regenerating the
 deployment export and publishing the branch; `out/` now includes `content/sites`.
+The user also authorized rebuilding the export for the later compact-header
+refinement; `out/` now includes the contextual title and expanded site list.

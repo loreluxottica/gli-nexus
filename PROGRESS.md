@@ -1,6 +1,7 @@
 # Progress
 
 ## Done
+- 2026-09-25 Galileo Sites header: area, market, category and sub-category combined in the title; context subtitle and flow-total strip removed, with the recovered height assigned to the site list. Period controls and scoped calculations preserved; authorized `out/` rebuild completed.
 - 2026-09-25 Galileo Content sites: approved layout B implemented at `content/sites`, with all-site search, size/change sorting, scoped detail, persistent selection and side-by-side comparison. Existing data contracts unchanged; source verified with synthetic browser fixtures and helper regressions.
 - 2026-09-24 Galileo Content: Pieces, Shipments and Pcs/ship side by side; Metric toggle and Coverage column removed; `out/` rebuilt.
 - 2026-09-24 Repo structure: `AGENTS.md` entry, a doc in every module, `PROGRESS.md`, `Makefile`, vendored `scripts/check-structure.mjs`.

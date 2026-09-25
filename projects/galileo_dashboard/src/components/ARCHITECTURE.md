@@ -47,6 +47,10 @@ shows either scoped site metrics or a horizontally scrollable comparison.
 On desktop its position stays below the shared shell while scrolling, and
 the list height adapts to the viewport.
 Comparison never sums selected sites, and search never changes flow totals.
+The workspace header combines area, market, category and sub-category in one
+title. There is no subtitle or flow-total strip; the period control remains
+available and the reclaimed height is assigned to the site list. Flow totals
+still provide the denominator for the selected site's contribution.
 
 The URL owns scope and working state; native History updates integrate with
 Next's search params without fetching on every keystroke. The left pane stays

@@ -176,10 +176,10 @@ function SiteWorkspace({ scope, row, cell, view }: {
       <Link href={contentScopeHref(scope)}>Content</Link><span aria-hidden="true">/</span><span>{label.category}</span><span aria-hidden="true">/</span><span aria-current="page">Sites</span>
     </nav>
     <header className={styles.heading}>
-      <div>
-        <h1>{label.sub_category} <span>/ Sites</span></h1>
-        <p className={styles.scope}><span className={styles.market}>{scope.market}</span>{scope.market === "LM" ? "Last Mile" : "Intra-Network"}<span>· {areaLabel(scope.area)}</span><span>· {periodLabel} {view.year} vs {year - 1}</span></p>
-      </div>
+      <h1>
+        <span className={styles.titleScope}>{areaLabel(scope.area)} · <abbr title={scope.market === "LM" ? "Last Mile" : "Intra-Network"}>{scope.market}</abbr> · </span>
+        {label.category}<span className={styles.titleSeparator}> / </span>{label.sub_category}
+      </h1>
       <div className={styles.actions}>
         <PeriodSelect options={view.period_options} value={scope.period} year={view.year}
           onChange={(n) => update({ period: String(n), page: null }, true)} />
@@ -187,11 +187,6 @@ function SiteWorkspace({ scope, row, cell, view }: {
       </div>
     </header>
     {copyMessage && <p className={styles.message} role={copyError ? "alert" : "status"}>{copyMessage}</p>}
-    <div className={styles.totals} aria-label="Flow totals">
-      <span>Flow total</span>
-      {METRICS.map(({ key, label: name }) => <span key={key}><b>{value(totals?.[key].cur, key)}</b> {name.toLowerCase()}</span>)}
-      <span className={styles.totalNote}>Unaffected by search or selection</span>
-    </div>
     {dataError ? <section className={styles.notice} role="alert"><h2>Site detail unavailable</h2><p>{dataError} Reload to retry, or return to Content.</p><Button onClick={() => window.location.reload()}>Reload data</Button></section> : <>
       {rawSort !== sort && <p className={styles.notice} role="status">The sort in this link is not supported. Showing Pieces, highest first.</p>}
       <div className={styles.split}>
