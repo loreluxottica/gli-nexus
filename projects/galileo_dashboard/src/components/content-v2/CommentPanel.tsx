@@ -3,11 +3,18 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { GeoArea, KpiComment, Market } from "@/data/types";
 import { seededComments } from "@/data/contentComments";
+import {
+  deleteComment,
+  fetchComments,
+  postComment,
+  type SharedComment,
+} from "@/data/comments";
 import { getSiteAnalysis, getSiteNames } from "@/data/siteAnalysis";
 import { areaLabel } from "@/data/geo";
 import { Button } from "@/components/ui/Button";
 import styles from "./CommentPanel.module.css";
 
+/** Browser-only drafts written by the pre-sharing version of this panel. */
 const LS_KEY = "galileo:eff-comments";
 const AREAS = ["ALL", "EMEA", "NA", "APAC", "LATAM"];
 // Lazy: the payload arrives by fetch, so this cannot be built at module scope.
@@ -15,27 +22,32 @@ let siteSet: Set<string> | null = null;
 const knownSite = (name: string) => (siteSet ??= new Set(getSiteNames())).has(name);
 const MENTION_RE = /@\[([^\]]+)\]/g;
 
-function loadLocal(): KpiComment[] {
+function loadDrafts(): KpiComment[] {
   try {
     return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
   } catch {
     return [];
   }
 }
-function saveLocal(list: KpiComment[]) {
+function saveDrafts(list: KpiComment[]) {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(list));
+    if (list.length) localStorage.setItem(LS_KEY, JSON.stringify(list));
+    else localStorage.removeItem(LS_KEY);
   } catch {
-    /* storage unavailable — POC degrades to in-memory only */
+    /* storage unavailable */
   }
 }
 
+type Item = KpiComment & { kind: "seed" | "shared" | "draft"; mine: boolean };
+type Status = "loading" | "ready" | "error";
+
 /**
- * Comments on an efficiency KPI (a flow + market). Seeded comments come from the
- * committed JSON (shared with everyone); the compose form adds comments to
- * localStorage so they appear immediately, with "copy to publish" to promote one
- * into the committed file. Scoped by flow + market so each KPI keeps its own
- * thread; the area is recorded per comment as context.
+ * Comments on a Content KPI (a flow + market), shared with everyone who has
+ * Galileo access: the thread is read from and written to the server, and the
+ * author is the signed-in user. Committed seed comments (content_comments.json)
+ * show read-only alongside. Drafts left in this browser by the earlier
+ * local-only version can be published or discarded. The area is recorded per
+ * comment as context.
  */
 export function CommentPanel({
   flow,
@@ -51,17 +63,35 @@ export function CommentPanel({
   /** Open the single-site analysis for a tagged plant. */
   onSite: (site: string) => void;
 }) {
-  const [local, setLocal] = useState<KpiComment[]>([]);
+  const [shared, setShared] = useState<SharedComment[]>([]);
+  const [me, setMe] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("loading");
+  const [drafts, setDrafts] = useState<KpiComment[]>([]);
   const [composing, setComposing] = useState(false);
-  const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
   const [areaSel, setAreaSel] = useState<string>(area);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [siteQuery, setSiteQuery] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => setLocal(loadLocal()), []);
+  useEffect(() => setDrafts(loadDrafts()), []);
   useEffect(() => setAreaSel(area), [area]);
+  useEffect(() => {
+    let alive = true;
+    setStatus("loading");
+    fetchComments(flow, market)
+      .then((thread) => {
+        if (!alive) return;
+        setShared(thread.comments);
+        setMe(thread.me);
+        setStatus("ready");
+      })
+      .catch(() => alive && setStatus("error"));
+    return () => {
+      alive = false;
+    };
+  }, [flow, market]);
 
   // Only plants that belong to THIS section (flow + the comment's area) are
   // taggable — e.g. Sedico (EMEA Frames/RX) never shows for Stock Lenses · NA.
@@ -122,52 +152,61 @@ export function CommentPanel({
   }
 
   const match = (c: KpiComment) => c.flow === flow && c.market === market;
-  const items = [
-    ...seededComments.filter(match).map((c) => ({ ...c, local: false })),
-    ...local.filter(match).map((c) => ({ ...c, local: true })),
+  const items: Item[] = [
+    ...seededComments.filter(match).map((c) => ({ ...c, kind: "seed" as const, mine: false })),
+    ...shared.map((c) => ({ ...c, kind: "shared" as const })),
+    ...drafts.filter(match).map((c) => ({ ...c, kind: "draft" as const, mine: true })),
   ].sort((a, b) => b.date.localeCompare(a.date));
 
-  function add() {
+  async function add() {
     const t = text.trim();
-    if (!t) return;
-    const c: KpiComment = {
-      id: `local-${Date.now()}`,
-      flow,
-      market,
-      area: areaSel,
-      author: author.trim() || "Anonymous",
-      date: new Date().toISOString().slice(0, 10),
-      text: t,
-    };
-    const next = [...local, c];
-    setLocal(next);
-    saveLocal(next);
-    setText("");
-    setComposing(false);
-  }
-
-  function remove(id: string) {
-    const next = local.filter((c) => c.id !== id);
-    setLocal(next);
-    saveLocal(next);
-  }
-
-  async function copyEntry(c: KpiComment) {
-    const entry = {
-      id: `c-${Date.now()}`,
-      flow: c.flow,
-      market: c.market,
-      area: c.area,
-      author: c.author,
-      date: c.date,
-      text: c.text,
-    };
+    if (!t || busy) return;
+    setBusy("new");
+    setError(null);
     try {
-      await navigator.clipboard.writeText(JSON.stringify(entry, null, 2));
-      setCopiedId(c.id);
-      setTimeout(() => setCopiedId(null), 1600);
+      const saved = await postComment({ flow, market, area: areaSel, text: t });
+      setShared((list) => [saved, ...list]);
+      setText("");
+      setComposing(false);
     } catch {
-      /* clipboard blocked */
+      setError("Could not save the comment. Your text is still here; try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(id: string) {
+    if (busy) return;
+    setBusy(id);
+    setError(null);
+    try {
+      await deleteComment(id);
+      setShared((list) => list.filter((c) => c.id !== id));
+    } catch {
+      setError("Could not delete the comment. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function discardDraft(id: string) {
+    const next = drafts.filter((c) => c.id !== id);
+    setDrafts(next);
+    saveDrafts(next);
+  }
+
+  async function publishDraft(d: KpiComment) {
+    if (busy) return;
+    setBusy(d.id);
+    setError(null);
+    try {
+      const saved = await postComment({ flow: d.flow, market: d.market, area: d.area, text: d.text });
+      setShared((list) => [saved, ...list]);
+      discardDraft(d.id);
+    } catch {
+      setError("Could not publish the draft. Try again.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -194,31 +233,68 @@ export function CommentPanel({
         )}
       </div>
 
-      {items.length === 0 && !composing && (
+      {status === "loading" && <p className={styles.empty}>Loading comments…</p>}
+      {status === "error" && (
+        <p className={styles.empty} role="status">
+          Shared comments are unavailable right now
+          {items.length ? "; showing only the published ones." : "."}
+        </p>
+      )}
+      {status === "ready" && items.length === 0 && !composing && (
         <p className={styles.empty}>
           No comments on this KPI yet. Add an insight on what is driving the change.
+        </p>
+      )}
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
         </p>
       )}
 
       {items.length > 0 && (
         <ul className={styles.list}>
           {items.map((c) => (
-            <li key={c.id} className={`${styles.item} ${c.local ? styles.itemLocal : ""}`}>
+            <li
+              key={`${c.kind}-${c.id}`}
+              className={`${styles.item} ${c.kind === "draft" ? styles.itemLocal : ""}`}
+            >
               <div className={styles.meta}>
                 <span className={styles.author}>{c.author}</span>
                 <span className={styles.dot}>·</span>
                 <span className={styles.date}>{c.date}</span>
                 <span className={styles.areaTag}>{areaLabel(c.area as GeoArea)}</span>
-                {c.local && <span className={styles.localTag}>local draft</span>}
+                {c.kind === "draft" && <span className={styles.localTag}>unpublished draft</span>}
               </div>
               <p className={styles.text}>{renderText(c.text)}</p>
-              {c.local && (
+              {c.kind === "draft" && (
                 <div className={styles.localActions}>
-                  <button type="button" className={styles.linkBtn} onClick={() => copyEntry(c)}>
-                    {copiedId === c.id ? "copied ✓" : "copy to publish"}
+                  <button
+                    type="button"
+                    className={styles.linkBtn}
+                    onClick={() => publishDraft(c)}
+                    disabled={busy !== null}
+                  >
+                    {busy === c.id ? "publishing…" : "publish"}
                   </button>
-                  <button type="button" className={styles.linkBtn} onClick={() => remove(c.id)}>
-                    delete
+                  <button
+                    type="button"
+                    className={styles.linkBtn}
+                    onClick={() => discardDraft(c.id)}
+                    disabled={busy !== null}
+                  >
+                    discard
+                  </button>
+                </div>
+              )}
+              {c.kind === "shared" && c.mine && (
+                <div className={styles.localActions}>
+                  <button
+                    type="button"
+                    className={styles.linkBtn}
+                    onClick={() => remove(c.id)}
+                    disabled={busy !== null}
+                  >
+                    {busy === c.id ? "deleting…" : "delete"}
                   </button>
                 </div>
               )}
@@ -230,12 +306,6 @@ export function CommentPanel({
       {composing && (
         <div className={styles.form}>
           <div className={styles.formRow}>
-            <input
-              className={styles.input}
-              placeholder="Name (author)"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-            />
             <select
               className={styles.input}
               aria-label="Reference area"
@@ -253,7 +323,8 @@ export function CommentPanel({
             ref={taRef}
             className={styles.textarea}
             rows={3}
-            placeholder={`Insight on what is driving ${flowLabel} (${market}) efficiency…`}
+            placeholder={`Insight on what is driving ${flowLabel} (${market})…`}
+            maxLength={2000}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
@@ -290,23 +361,24 @@ export function CommentPanel({
             )}
           </div>
           <div className={styles.formActions}>
-            <Button variant="accent" onClick={add}>
-              Save comment
+            <Button variant="accent" onClick={add} disabled={busy !== null || !text.trim()}>
+              {busy === "new" ? "Saving…" : "Save comment"}
             </Button>
             <Button
               variant="ghost"
               onClick={() => {
                 setComposing(false);
                 setText("");
+                setError(null);
               }}
             >
               Cancel
             </Button>
           </div>
           <p className={styles.note}>
-            Saved in your browser (POC). Use &ldquo;copy to publish&rdquo; to make it visible to
-            everyone. With &ldquo;Tag a site&rdquo; you mention a plant: in the comment it becomes
-            clickable and opens its analysis.
+            Visible to everyone with access to Galileo
+            {me ? <>, posted as <strong>{me}</strong></> : null}. With &ldquo;Tag a site&rdquo;
+            you mention a plant: in the comment it becomes clickable and opens its analysis.
           </p>
         </div>
       )}

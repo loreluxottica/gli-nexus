@@ -154,6 +154,17 @@
 .linkBtn:hover {
   text-decoration: underline;
 }
+.linkBtn:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+  text-decoration: none;
+}
+.error {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neg);
+}
 
 /* Compose form */
 .form {

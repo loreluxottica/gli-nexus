@@ -4,8 +4,10 @@
 
 **Interfaces:**
 - `types.ts`: authoritative payload shapes.
-- `api.ts`: fetches and memoizes `/galileo/api/*.json`
+- `api.ts`: fetches and memoizes `/galileo/api/*.json`; exports `API_BASE`
   (`NEXT_PUBLIC_GALILEO_API_BASE`).
+- `comments.ts`: client for the shared comments API (list, post, delete); not
+  cached, not part of the payload contract.
 - `GalileoData.tsx`: gate that renders children only once payloads are loaded.
 - `content.ts`, `contentTrends.ts`, `contentPeriods.ts`, `siteAnalysis.ts`:
   synchronous getters; they throw if used outside the gate.

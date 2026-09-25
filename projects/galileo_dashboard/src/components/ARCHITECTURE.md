@@ -20,3 +20,8 @@ write lens state through URL params.
 shipment side by side (YTD figure over its YoY chip, plus a sparkline), with
 no Metric toggle and no Coverage column. A YoY chip opens the explorer on its
 own metric through `?explore=` and `?metric=`.
+
+The explorer's `CommentPanel` reads and writes the shared comments API for its
+flow and market. Author is the signed-in user; seed comments from
+`content_comments.json` show read-only; drafts left in `localStorage` by the
+old browser-only version can be published or discarded.

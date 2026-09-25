@@ -12,10 +12,10 @@
  * where `next dev` serves :3000 while Flask serves the API on :8000 —
  * `output: "export"` rules out a rewrite proxy.
  */
-const BASE = process.env.NEXT_PUBLIC_GALILEO_API_BASE ?? "/galileo/api";
+export const API_BASE = process.env.NEXT_PUBLIC_GALILEO_API_BASE ?? "/galileo/api";
 
 export function apiUrl(name: string): string {
-  return `${BASE}/${name}.json`;
+  return `${API_BASE}/${name}.json`;
 }
 
 export async function fetchPayload<T>(name: string): Promise<T> {
