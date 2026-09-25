@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { ContentTrends, CurrentView, GeoArea, Market, MetricCell } from "@/data/types";
 import { areaLabel } from "@/data/geo";
 import { getSiteAnalysis } from "@/data/siteAnalysis";
@@ -17,8 +17,31 @@ const GEO_AREAS: GeoArea[] = ["EMEA", "NA", "APAC", "LATAM"];
 const resolveArea = (map: Record<string, unknown>, area: GeoArea): GeoArea =>
   (Object.prototype.hasOwnProperty.call(map, area) ? area : "ALL") as GeoArea;
 
-/** Larger over-time line chart: current year (solid) over prior year (ghost),
- *  shared y-scale, with a y-max tick and month labels. */
+/** Smallest 1/2/4/5 × 10ⁿ at or above v, so the half-way gridline stays round. */
+function niceMax(v: number): number {
+  if (v <= 0) return 1;
+  const mag = 10 ** Math.floor(Math.log10(v));
+  return ([1, 2, 4, 5, 10].find((s) => s * mag >= v) ?? 10) * mag;
+}
+
+/** Rendered width of an element, so the chart draws in real pixels instead of
+ *  stretching a fixed viewBox (which also scaled its text). */
+function useWidth<T extends HTMLElement>(fallback: number) {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(fallback);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(Math.round(entry.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
+/** Over-time line chart: current year (solid) over prior year (dashed ghost)
+ *  on a shared y-scale with 0 / half / max gridlines, every month labelled and
+ *  the latest current-year value written at its point. */
 function TrendChart({
   cy,
   py,
@@ -36,49 +59,59 @@ function TrendChart({
   fmt: (n: number | null | undefined) => string;
   metricName: string;
 }) {
-  const W = 720;
-  const H = 150;
-  const padL = 46;
-  const padR = 12;
-  const padT = 14;
-  const padB = 24;
-  const plotW = W - padL - padR;
+  const [wrapRef, W] = useWidth<HTMLDivElement>(720);
+  const H = 220;
+  const padL = 50;
+  const padR = 56;
+  const padT = 12;
+  const padB = 26;
+  const plotW = Math.max(1, W - padL - padR);
   const plotH = H - padT - padB;
-  const ymax = Math.max(1, ...cy, ...py);
+  const top = niceMax(Math.max(0, ...cy, ...py));
   const x = (i: number) => padL + (i * plotW) / 11;
-  const y = (v: number) => padT + plotH - (v / ymax) * plotH;
+  const y = (v: number) => padT + plotH - (v / top) * plotH;
   const line = (vals: number[]) =>
     vals.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const lastI = cy.length - 1;
+  const everyMonth = plotW / 11 >= 34;
 
   return (
-    <svg
-      className={styles.chart}
-      viewBox={`0 0 ${W} ${H}`}
-      role="img"
-      aria-label={`Monthly ${metricName}, ${currentYear} versus ${priorYear}`}
-    >
-      {/* y axis: max + zero */}
-      <line className={styles.grid} x1={padL} y1={padT} x2={W - padR} y2={padT} />
-      <line className={styles.grid} x1={padL} y1={padT + plotH} x2={W - padR} y2={padT + plotH} />
-      <text className={styles.axis} x={padL - 6} y={padT + 4} textAnchor="end">
-        {fmt(ymax)}
-      </text>
-      <text className={styles.axis} x={padL - 6} y={padT + plotH} textAnchor="end">
-        0
-      </text>
-      {/* month labels (every other) */}
-      {monthLabels.map((m, i) =>
-        i % 2 === 0 ? (
-          <text key={m} className={styles.axis} x={x(i)} y={H - 6} textAnchor="middle">
-            {m}
-          </text>
-        ) : null,
-      )}
-      <path className={styles.py} d={line(py)} />
-      {cy.length > 1 && <path className={styles.cy} d={line(cy)} />}
-      {lastI >= 0 && cy[lastI] > 0 && <circle className={styles.dot} cx={x(lastI)} cy={y(cy[lastI])} r={3} />}
-    </svg>
+    <div ref={wrapRef} className={styles.chartWrap}>
+      <svg
+        className={styles.chart}
+        width={W}
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Monthly ${metricName}, ${currentYear} versus ${priorYear}`}
+      >
+        {[0, top / 2, top].map((t) => (
+          <g key={t}>
+            <line className={styles.grid} x1={padL} y1={y(t)} x2={W - padR} y2={y(t)} />
+            <text className={styles.axis} x={padL - 8} y={y(t) + 3} textAnchor="end">
+              {t === 0 ? "0" : fmt(t)}
+            </text>
+          </g>
+        ))}
+        {monthLabels.map((m, i) =>
+          everyMonth || i % 2 === 0 ? (
+            <text key={m} className={styles.axis} x={x(i)} y={H - 8} textAnchor="middle">
+              {m}
+            </text>
+          ) : null,
+        )}
+        <path className={styles.py} d={line(py)} />
+        {cy.length > 1 && <path className={styles.cy} d={line(cy)} />}
+        {lastI >= 0 && cy[lastI] > 0 && (
+          <>
+            <circle className={styles.dot} cx={x(lastI)} cy={y(cy[lastI])} r={3.5} />
+            <text className={styles.endLabel} x={x(lastI) + 8} y={y(cy[lastI]) + 4}>
+              {fmt(cy[lastI])}
+            </text>
+          </>
+        )}
+      </svg>
+    </div>
   );
 }
 
@@ -95,37 +128,46 @@ function MktChip({ market, lg }: { market: Market; lg?: boolean }) {
   );
 }
 
-/** One comparison row in the cross-area list. The diverging bar grows from a
- *  centre line; `mag` (0..1) is the row's weight on the list's own scale:
- *  |YoY| for ratios, absolute contribution |cur − py| for volumes. With
- *  `onClick` the row is a button that reveals its top driver sites. */
-function EffRow({
+/** One row of "Where the change comes from": area | bar | change | YTD | YoY.
+ *  The bar is the change vs last year on a scale shared by every area and it
+ *  always sits next to its own printed value. `zero` (0..100) places the zero
+ *  line so the track is used in full when every area moved the same way. The
+ *  Global total row has no bar. With `onClick` the row is a button that
+ *  reveals its top driver sites. */
+function ChangeRow({
   label,
+  delta,
+  deltaText,
   value,
   yoy,
   defined,
-  pos,
-  mag,
   naText,
+  zero,
+  span,
+  total,
   focus,
   onClick,
   expanded,
 }: {
   label: string;
+  delta: number;
+  deltaText: string;
   value: string;
   yoy: number | null;
   defined: boolean;
-  pos: boolean;
-  mag: number;
   naText: string;
+  zero: number;
+  span: number;
+  total?: boolean;
   focus?: boolean;
   onClick?: () => void;
   expanded?: boolean;
 }) {
-  const width = Math.min(50, mag * 50);
+  const width = span > 0 ? (Math.abs(delta) / span) * 100 : 0;
+  const deltaCls = delta > 0 ? styles.pos : delta < 0 ? styles.neg : "";
   const inner = (
     <>
-      <span className={styles.effLabel} title={label}>
+      <span className={styles.chgLabel} title={label}>
         {onClick && (
           <span className={`${styles.chev} ${expanded ? styles.chevOpen : ""}`} aria-hidden="true">
             ▸
@@ -135,28 +177,42 @@ function EffRow({
       </span>
       {defined ? (
         <>
-          <span className={styles.effBarTrack}>
-            <span
-              className={`${styles.effBar} ${pos ? styles.barPos : styles.barNeg}`}
-              style={pos ? { left: "50%", width: `${width}%` } : { right: "50%", width: `${width}%` }}
-            />
+          <span className={styles.chgTrack} aria-hidden="true">
+            {!total && (
+              <>
+                <span className={styles.chgZero} style={{ left: `${zero}%` }} />
+                {delta !== 0 && (
+                  <span
+                    className={`${styles.chgBar} ${delta > 0 ? styles.barPos : styles.barNeg}`}
+                    style={
+                      delta > 0
+                        ? { left: `${zero}%`, width: `${width}%` }
+                        : { right: `${100 - zero}%`, width: `${width}%` }
+                    }
+                  />
+                )}
+              </>
+            )}
           </span>
-          <span className={styles.effRatio}>{value}</span>
+          <span className={`${styles.chgDelta} ${deltaCls}`}>{deltaText}</span>
+          <span className={styles.chgVal}>{value}</span>
           <span className={`${styles.effChip} ${styles[sign(yoy)]}`}>
             {trend(yoy)} {fmtPctSigned(yoy)}
           </span>
         </>
       ) : (
-        <span className={styles.effNa}>{naText}</span>
+        <span className={styles.chgNa}>{naText}</span>
       )}
     </>
   );
-  const cls = `${styles.effRow} ${focus ? styles.focus : ""}`;
+  const cls = [styles.chgRow, total && styles.chgTotal, focus && styles.focus]
+    .filter(Boolean)
+    .join(" ");
   if (onClick) {
     return (
       <button
         type="button"
-        className={`${cls} ${styles.effRowBtn}`}
+        className={`${cls} ${styles.chgRowBtn}`}
         onClick={onClick}
         aria-expanded={expanded}
         title="Show the top driver sites"
@@ -166,18 +222,6 @@ function EffRow({
     );
   }
   return <div className={cls}>{inner}</div>;
-}
-
-/** Aligned column header for a comparison list. */
-function EffHead({ valueLabel }: { valueLabel: string }) {
-  return (
-    <div className={styles.effHeadRow}>
-      <span />
-      <span />
-      <span className={styles.effHeadNum}>{valueLabel}</span>
-      <span className={styles.effHeadNum}>YoY</span>
-    </div>
-  );
 }
 
 /** Metric-aware "why" explorer. Opened from any YoY chip (pieces / shipments)
@@ -232,25 +276,50 @@ export function MetricExplorer({
   // Cap the current-year line to the selected window (prior year stays full).
   const series = { cy: rawSeries.cy.slice(0, period), py: rawSeries.py };
 
-  // Cross-area: this flow across geographies. Bar weight = |YoY| for ratios,
-  // absolute contribution for volumes, so a large % swing on a tiny base
-  // cannot masquerade as the driver.
+  // Cross-area: where the change comes from. Every area is weighed by its
+  // absolute change vs last year, so a large % swing on a tiny base cannot
+  // masquerade as the driver.
+  const isDefined = (c: MetricCell | null, t: { cur: number; py: number }) =>
+    isEff ? hasShipments(c, market) : t.cur > 0 || t.py > 0;
+  // A ratio only changes when both years have one (0 means no shipments);
+  // volumes can change from or to zero.
+  const changeOf = (t: { cur: number; py: number }) =>
+    isEff && (t.cur === 0 || t.py === 0) ? null : t.cur - t.py;
+  const fmtDelta = (d: number | null) =>
+    d == null
+      ? "—"
+      : isEff
+        ? d === 0
+          ? "0"
+          : `${d > 0 ? "+" : "−"}${fmtRatio(Math.abs(d))}`
+        : fmtDeltaCompact(d);
   const areaList = GEO_AREAS.filter((a) =>
     Object.prototype.hasOwnProperty.call(focusRow.geo_data, a),
   ).map((a) => {
     const c = focusRow.geo_data[a] ?? null;
     const t = cellTriple(c, metric, market);
+    const change = changeOf(t);
     return {
       key: a,
       label: areaLabel(a),
       ...t,
-      delta: t.cur - t.py,
-      defined: isEff ? hasShipments(c, market) : t.cur > 0 || t.py > 0,
+      delta: change ?? 0,
+      deltaText: fmtDelta(change),
+      defined: isDefined(c, t),
     };
   });
-  const weight = (a: { yoy: number | null; delta: number }) =>
-    isEff ? (a.yoy != null ? Math.abs(a.yoy) : 0) : Math.abs(a.delta);
-  const maxW = Math.max(0, ...areaList.map(weight));
+  const ranked = [...areaList].sort(
+    (a, b) => Number(b.defined) - Number(a.defined) || Math.abs(b.delta) - Math.abs(a.delta),
+  );
+  const totalCell = focusRow.geo_data["ALL"] ?? null;
+  const total = cellTriple(totalCell, metric, market);
+  const totalChange = changeOf(total);
+  // One scale for every bar: the track spans the largest drop plus the
+  // largest gain, and the zero line sits between them.
+  const negMax = Math.max(0, ...areaList.filter((a) => a.defined).map((a) => -a.delta));
+  const posMax = Math.max(0, ...areaList.filter((a) => a.defined).map((a) => a.delta));
+  const span = negMax + posMax;
+  const zero = span > 0 ? (negMax / span) * 100 : 50;
 
   // Top driver plants behind an area's number (on demand — plant detail stays
   // behind a click). Volumes rank by absolute delta, the sites that actually
@@ -403,25 +472,47 @@ export function MetricExplorer({
       <section className={styles.section}>
         <h3 className={styles.h3}>
           <span className={styles.h3Title}>
-            Across areas <MktChip market={market} />
+            Where the change comes from <MktChip market={market} />
           </span>
         </h3>
         {areaList.length ? (
           <>
-            <EffHead valueLabel={isEff ? "pcs/ship" : noun} />
-            {areaList.map((a) => {
+            <div className={styles.chgHead}>
+              <span />
+              <span className={`${styles.chgHeadNum} ${styles.chgHeadWide}`}>
+                Change vs {trends.prior_year}
+              </span>
+              <span className={styles.chgHeadNum}>{trends.current_year} YTD</span>
+              <span className={styles.chgHeadNum}>YoY</span>
+            </div>
+            <ChangeRow
+              label={areaLabel("ALL")}
+              delta={totalChange ?? 0}
+              deltaText={fmtDelta(totalChange)}
+              value={fmtVal(total.cur)}
+              yoy={total.yoy}
+              defined={isDefined(totalCell, total)}
+              naText={naText}
+              zero={zero}
+              span={span}
+              total
+              focus={usedArea === "ALL"}
+            />
+            {ranked.map((a) => {
               const expanded = openArea === a.key;
               const drivers = expanded ? topSites(a.key) : [];
               return (
                 <Fragment key={a.key}>
-                  <EffRow
+                  <ChangeRow
                     label={a.label}
+                    delta={a.delta}
+                    deltaText={a.deltaText}
                     value={fmtVal(a.cur)}
                     yoy={a.yoy}
                     defined={a.defined}
-                    pos={isEff ? (a.yoy ?? 0) >= 0 : a.delta >= 0}
-                    mag={maxW > 0 ? weight(a) / maxW : 0}
                     naText={naText}
+                    zero={zero}
+                    span={span}
                     focus={a.key === usedArea}
                     onClick={a.defined ? () => setOpenArea(expanded ? null : a.key) : undefined}
                     expanded={expanded}
@@ -457,6 +548,10 @@ export function MetricExplorer({
                 </Fragment>
               );
             })}
+            <p className={styles.chgNote}>
+              Bar = change vs {trends.prior_year} over the same months, on one scale for every
+              area. Click an area for its top driver sites.
+            </p>
           </>
         ) : (
           <p className={styles.muted}>No per-area breakdown.</p>

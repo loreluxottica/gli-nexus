@@ -139,25 +139,37 @@
 .swCur { background: var(--accent); }
 .swPy { background: var(--ink-faint); opacity: 0.55; }
 
-/* Over-time chart */
+/* Over-time chart: drawn at the container's real pixel width, fixed height. */
+.chartWrap {
+  width: 100%;
+}
 .chart {
   display: block;
-  width: 100%;
-  height: auto;
 }
 .grid { stroke: var(--line); stroke-width: 1; }
 .axis {
   fill: var(--ink-faint);
   font-family: var(--mono), monospace;
-  font-size: 10px;
+  font-size: 10.5px;
 }
 .py {
   fill: none;
   stroke: var(--ink-faint);
-  stroke-width: 1.4;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
   stroke-linejoin: round;
   stroke-linecap: round;
-  opacity: 0.5;
+  opacity: 0.75;
+}
+.endLabel {
+  fill: var(--accent-deep);
+  font-family: var(--mono), monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 .cy {
   fill: none;
@@ -175,85 +187,100 @@
   gap: 26px;
 }
 
-/* Shared column geometry for the header + rows so they line up exactly:
-   label (flex) | diverging bar | current ratio | YoY chip. */
-.effHeadRow,
-.effRow {
+/* "Where the change comes from": one grid shared by the header, the rows and
+   the site drill so the numbers line up:
+   area | change bar (flex) | change | YTD | YoY. */
+.chgHead,
+.chgRow,
+.siteRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 62px 64px;
-  gap: 14px;
+  grid-template-columns: minmax(80px, 140px) minmax(72px, 1fr) 72px 68px 78px;
+  gap: 12px;
 }
-.effHeadRow {
+.chgHead {
   padding: 0 10px 6px;
   border-bottom: 1px solid var(--line-strong);
   margin-bottom: 2px;
 }
-.effHeadNum {
+.chgHeadNum {
   font-family: var(--mono), monospace;
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--ink-faint);
   text-align: right;
 }
+.chgHeadWide {
+  grid-column: 2 / 4;
+}
 
-/* Comparison rows — fixed-width numeric columns so every row aligns; the label
-   column flexes and truncates. Each row is its own grid, but identical fixed
-   track + ratio + chip widths make the columns line up across rows. */
-.effRow {
+.chgRow {
   align-items: center;
-  padding: 7px 10px;
+  padding: 8px 10px;
   border-radius: var(--radius);
 }
-.effRow + .effRow {
+.chgRow + .chgRow {
   border-top: 1px solid var(--line);
 }
-.effRow.focus {
+.chgRow.focus {
   background: var(--accent-tint);
   border-top-color: transparent;
   box-shadow: inset 3px 0 0 var(--accent);
 }
-.effLabel {
-  font-size: 12px;
+.chgTotal .chgLabel,
+.chgTotal .chgVal {
+  font-weight: 700;
+}
+.chgLabel {
+  font-size: 12.5px;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Centred diverging track: a hairline marks zero; fills grow out from it. */
-.effBarTrack {
+/* The zero line sits where the data puts it; bars grow away from it on one
+   scale shared by every area. */
+.chgTrack {
   position: relative;
-  height: 10px;
+  height: 12px;
   width: 100%;
-  background: var(--surface-3);
-  border-radius: 2px;
 }
-.effBarTrack::before {
-  content: "";
+.chgZero {
   position: absolute;
-  left: 50%;
-  top: -1px;
-  bottom: -1px;
+  top: -3px;
+  bottom: -3px;
   width: 1px;
-  background: var(--line-strong);
+  background: var(--ink-faint);
 }
-.effBar {
+.chgBar {
   position: absolute;
   top: 0;
   bottom: 0;
+  min-width: 2px;
   border-radius: 2px;
 }
 .barPos { background: var(--pos); }
 .barNeg { background: var(--neg); }
 
-.effRatio {
+.chgDelta,
+.chgVal {
   font-family: var(--mono), monospace;
-  font-size: 11.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  color: var(--ink);
   white-space: nowrap;
   text-align: right;
+}
+.chgDelta {
+  font-weight: 700;
+}
+.chgVal {
+  color: var(--ink);
+}
+.chgNote {
+  margin: 8px 10px 0;
+  font-size: 11.5px;
+  color: var(--ink-faint);
 }
 .effChip {
   font-family: var(--mono), monospace;
@@ -263,7 +290,7 @@
   white-space: nowrap;
   text-align: right;
 }
-.effNa {
+.chgNa {
   grid-column: 2 / -1;
   text-align: right;
   font-size: 11px;
@@ -272,7 +299,7 @@
 }
 
 /* Area rows are buttons: click reveals the top driver sites behind the number. */
-.effRowBtn {
+.chgRowBtn {
   width: 100%;
   border: 0;
   background: transparent;
@@ -280,7 +307,7 @@
   text-align: left;
   cursor: pointer;
 }
-.effRowBtn:hover {
+.chgRowBtn:hover {
   background: var(--accent-tint);
 }
 .chev {
@@ -309,13 +336,14 @@
   text-transform: uppercase;
   color: var(--ink-faint);
 }
-/* Same fixed numeric tracks as .effRow so the figures line up with the areas. */
+/* Shares the .chgRow grid (declared above) so site figures line up with the
+   areas; the site name spans the label and bar columns. */
 .siteRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 62px 64px;
-  gap: 14px;
   align-items: center;
   padding: 5px 0;
+}
+.siteRow .siteBtn {
+  grid-column: 1 / 3;
 }
 .siteRow + .siteRow {
   border-top: 1px solid var(--line);
@@ -371,4 +399,22 @@
 @media (max-width: 760px) {
   .headline { grid-template-columns: 1fr; gap: 14px; }
   .cols { grid-template-columns: 1fr; gap: 18px; }
+}
+
+/* Phones: five columns no longer fit, so the bar goes and the printed change
+   carries the comparison. Areas and sites keep one shared grid. */
+@media (max-width: 560px) {
+  .chgHead,
+  .chgRow,
+  .siteRow {
+    grid-template-columns: minmax(0, 1fr) 64px 56px 72px;
+    gap: 8px;
+  }
+  .chgTrack { display: none; }
+  .chgHeadWide { grid-column: auto; }
+  /* The site name takes its own line; its figures stay in the area columns. */
+  .siteDrill { padding-left: 10px; }
+  .siteRow { row-gap: 2px; }
+  .siteRow .siteBtn { grid-column: 1 / -1; }
+  .siteRow .siteDelta { grid-column: 2; }
 }

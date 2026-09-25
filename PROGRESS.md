@@ -4,9 +4,10 @@
 - 2026-09-24 Galileo Content: Pieces, Shipments and Pcs/ship side by side; Metric toggle and Coverage column removed; `out/` rebuilt.
 - 2026-09-24 Repo structure: `AGENTS.md` entry, a doc in every module, `PROGRESS.md`, `Makefile`, vendored `scripts/check-structure.mjs`.
 - 2026-09-25 Galileo shared comments: API, Delta-table store, `CommentPanel` on the server, 12 tests (branch `fix/comments`).
+- 2026-09-25 Galileo metric explorer: trend chart at real width, "Where the change comes from" area list on one shared scale, phone layout (branch `feat/explorer-clarity`).
 
 ## In progress
-- Branch `fix/comments`: shared Galileo comments awaiting review and merge.
+- Branch `feat/explorer-clarity`: explorer redesign awaiting review and merge; `out/` not rebuilt yet, so it does not ship until the build runs.
 
 ## Blocked
 - Galileo comments table: run `projects/galileo_dashboard/comments_table.sql` and grant the app service principal before deploying; until then the panel says shared comments are unavailable.
