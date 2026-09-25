@@ -1,45 +1,62 @@
-# Repository working rules
+# GLI Nexus
 
-## Galileo data-pipeline protection
+## What this project is
+One Databricks App that serves the GLI Nexus portal at `/` and mounts each
+product under its own subpath: Project Kelly `/kelly/` (Dash), Cortana
+`/cortana/`, Galileo `/galileo/` and Laplace `/laplace/` (Flask blueprints).
+Every page is gated by the central `user_access` grant table. Deploy steps,
+environment variables and grant examples: `README.md`.
 
-Before changing `projects/galileo_dashboard/`, read
-`projects/galileo_dashboard/DATA_PIPELINE_READTHROUGH.md`.
+## Run
+| Task | make | Direct command |
+|---|---|---|
+| Install | `make setup` | `pip install -r requirements.txt` then `npm --prefix projects/galileo_dashboard ci` |
+| Start portal + all projects | `make dev` | `python app.py` → http://localhost:8000 |
+| Galileo frontend only | — | `npm --prefix projects/galileo_dashboard run dev` (API base: `projects/galileo_dashboard/HANDOFF.md`) |
 
-The Galileo ingestion, extraction, transformation, and frontend data contracts
-are protected. A general cleanup, refactor, formatting pass, dependency audit,
-code audit, dead-code removal, or "fix everything" request does **not** authorize
-changes to them.
+`make` is not installed on the Windows dev machines: use the direct commands.
+Real data locally needs a Databricks CLI profile and a SQL warehouse id
+(`README.md`); without them pages show an explicit "data unavailable" state.
 
-Unless the user explicitly asks to change the Galileo data pipeline or one of
-its contracts, do not edit, move, rename, delete, reformat, or "simplify":
+## Verify
+| Check | make | Direct command |
+|---|---|---|
+| Lint (Galileo typecheck) | `make lint` | `npm --prefix projects/galileo_dashboard run typecheck` |
+| Tests | `make test` | `python -m unittest discover -s tests` |
+| Repo structure | `make structure` | `node scripts/check-structure.mjs --module-root . --module-root projects --module-root projects/galileo_dashboard/src` |
+| Everything | `make check` | the three rows above |
 
-- `projects/galileo_dashboard/data_pipeline/*.py`
-- `projects/galileo_dashboard/reference-data-pipeline/**`
-- `projects/galileo_dashboard/src/data/types.ts`
-- `projects/galileo_dashboard/src/data/geo.ts`
-- `projects/galileo_dashboard/src/data/content.ts`
-- `projects/galileo_dashboard/src/data/contentPeriods.ts`
-- `projects/galileo_dashboard/src/data/contentTrends.ts`
-- `projects/galileo_dashboard/src/data/siteAnalysis.ts`
-- generated `projects/galileo_dashboard/src/data/content.json`
-- generated `projects/galileo_dashboard/src/data/db.json`
-- generated `projects/galileo_dashboard/src/data/content_trends.json`
-- generated `projects/galileo_dashboard/src/data/site_analysis.json`
-- hand-authored `content_comments.json` and `story.json` during any generic
-  cleanup; edit them only for an explicit narrative/content request
-- the committed deployment artifact `projects/galileo_dashboard/out/**`
+A Galileo UI change reaches production only when `npm run build` in
+`projects/galileo_dashboard` regenerates the committed `out/`: Databricks Apps
+does not build Node. Run it only for a change that is authorized to ship.
 
-For audits, inspect these paths read-only and report findings without applying
-fixes. Do not hand-edit generated JSON or `out/`; they may change only through
-an explicitly authorized pipeline regeneration and Next.js build.
+## Hard constraints
+- Galileo data pipeline, data contracts, generated payloads and `out/` are
+  protected. A general cleanup, refactor, formatting pass, dependency audit,
+  code audit, dead-code removal or "fix everything" request never authorizes
+  changing them. Read `projects/galileo_dashboard/CONSTRAINTS.md` before
+  touching that project.
+- Access control lives in `shared/auth.py` and fails closed once deployed;
+  every project gates its pages on its own project key.
+- No secrets in the repo: `.env` stays local, the Mapbox token comes from an app
+  resource. Real data files (`*.xlsx`) and `reference/` stay untracked.
+- New UI work follows the GLI Product System: Geist for UI, Sora for display,
+  IBM Plex Mono for data, EssilorLuxottica endorsement in the primary shell.
+  Existing apps predate it; each module doc records its current fonts.
+- Docs ship with code: when a module's responsibilities, interfaces or
+  constraints change, update its `ARCHITECTURE.md` / `CONSTRAINTS.md` in the
+  same commit, and update `PROGRESS.md` at the end of each slice.
 
-Frontend features should normally be implemented in `src/components/`, route
-composition in `src/app/`, component styles, or additive selectors/helpers in
-`src/lib/`. Consume the existing typed data contract without changing its
-meaning. If a feature truly needs a new source column, aggregation, table, JSON
-field, tuple position, geographical rule, or reporting-window rule, stop and
-ask for an explicit data-contract change request.
-
-The deleted temporary Databricks upload notebook must not be recreated,
-optimized, or replaced during cleanup work. Its required behavior is preserved
-as the immutable upstream contract in `DATA_PIPELINE_READTHROUGH.md`.
+## Map
+- `app.py` — WSGI entry: portal routes, `/api/my-access`, project mounts
+- `portal/ARCHITECTURE.md` — launcher front-end served at `/`
+- `shared/ARCHITECTURE.md` — access control and Databricks SQL helpers
+- `projects/ARCHITECTURE.md` — how a project plugs into the app
+- `projects/kelly_dashboard/ARCHITECTURE.md` — Project Kelly
+- `projects/cortana_dashboard/ARCHITECTURE.md` — Cortana Usage Monitor
+- `projects/galileo_dashboard/ARCHITECTURE.md` and `CONSTRAINTS.md` — Galileo Observatory
+- `projects/galileo_dashboard/src/{app,components,data,lib}/ARCHITECTURE.md` — Galileo frontend
+- `projects/laplace_dashboard/ARCHITECTURE.md` — Laplace Pipeline Monitor
+- `tests/` — portal and Galileo contract regression tests (unittest)
+- `scripts/check-structure.mjs` — vendored structure check; re-copy from the GLI skill, never edit
+- `PROGRESS.md` — done, in progress, blocked
