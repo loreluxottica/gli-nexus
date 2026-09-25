@@ -6,13 +6,13 @@
 - 2026-09-25 Galileo shared comments: API, Delta-table store, `CommentPanel` on the server, 12 tests (branch `fix/comments`).
 - 2026-09-25 Galileo metric explorer: trend chart at real width, "Where the change comes from" area list on one shared scale, phone layout (branch `feat/explorer-clarity`).
 - 2026-09-25 Galileo Content table: fixed column widths and row heights, so REP ↔ LM no longer shifts the layout; narrower Sub-category, wider trends (branch `fix/finetuning`).
+- 2026-09-25 Galileo `out/` rebuilt on `fix/finetuning`: ships shared comments, metric explorer and the Content table layout.
 
 ## In progress
-- Branch `fix/finetuning`: Content table layout awaiting review and merge.
+- Branch `fix/finetuning`: Content table layout and rebuilt `out/` awaiting review and merge; live after merge and a Databricks redeploy.
 
 ## Blocked
 - Galileo comments table: run `projects/galileo_dashboard/comments_table.sql` and grant the app service principal before deploying; until then the panel says shared comments are unavailable.
-- Galileo UI since 2026-09-24 (shared comments, metric explorer, Content table layout): live only after an authorized `npm run build` regenerates `out/`.
 - Python lint: no linter configured, so `make lint` only type-checks Galileo. Unblocks when the team picks a tool and adds it to the dev requirements.
 - Product brief `.gli/brief.md`: not written; needs audience, job and outcome confirmed by the product owners.
 - GLI fonts: portal and Kelly use Avenir LT Std, Galileo Schibsted Grotesk and Spline Sans Mono, not Geist / Sora / IBM Plex Mono. Needs an explicit design task.
