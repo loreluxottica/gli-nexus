@@ -8,6 +8,14 @@ Content row label: EMEA shows `Frames · GV Frames*` as
 `GV · Frames, Contact Lenses, Lenses`), `features.ts` (build-time
 feature switches).
 
+`flowSites.ts` reads the existing period/flow/canonical-area site tuples,
+selects only the requested market, validates tuple shape, and derives
+nullable ratios and current/prior comparisons. It also owns non-mutating
+search/ranking and links between Content and the site workspace. It does not
+aggregate selected sites, infer missing periods or fall back to Global.
+Its regression tests run through `python -m unittest discover -s tests`
+using the existing Galileo TypeScript compiler and Node.
+
 **Interfaces:** imported by components and routes; no data fetching and no
 side effects.
 

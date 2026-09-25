@@ -14,8 +14,8 @@ import type { CurrentView, PeriodSnapshot } from "@/data/types";
  * full multi-month `periods` map already arrived with content.json, but keeping
  * the slim shape means the table does not walk every month on first paint.
  *
- * This is the only route that needs the per-plant site analysis (comment
- * mentions drill into it), so it takes the extra payload here rather than
+ * Content and its sites workspace need the per-plant site analysis, so they
+ * take the extra payload at route level rather than
  * making the landing and the other routes wait for it.
  */
 function slimView(full: CurrentView): CurrentView {

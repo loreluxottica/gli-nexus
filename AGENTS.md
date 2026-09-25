@@ -6,6 +6,7 @@ product under its own subpath: Project Kelly `/kelly/` (Dash), Cortana
 `/cortana/`, Galileo `/galileo/` and Laplace `/laplace/` (Flask blueprints).
 Every page is gated by the central `user_access` grant table. Deploy steps,
 environment variables and grant examples: `README.md`.
+Galileo product scope and approved interaction goals: `.gli/brief.md`.
 
 ## Run
 | Task | make | Direct command |

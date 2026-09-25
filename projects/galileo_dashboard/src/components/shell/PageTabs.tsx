@@ -55,7 +55,7 @@ export function PageTabs() {
   return (
     <nav className={styles.pagetabs} aria-label="Primary">
       {PAGES.map((p) => {
-        const isActive = pathname === p.href || pathname === `${p.href}/`;
+        const isActive = pathname === p.href || pathname.startsWith(`${p.href}/`);
         const href = qs ? `${p.href}?${qs}` : p.href;
         return (
           <Link

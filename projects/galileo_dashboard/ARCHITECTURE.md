@@ -30,6 +30,11 @@ change ships). For comments:
 - `POST` accepts JSON only, which blocks cross-site form posts.
 - An unreachable table returns 503, never an empty thread.
 
+Content also links to a full-width `content/sites` workspace for scoped site
+lookup and side-by-side comparison. It consumes the existing site-analysis
+payload (no new database or pipeline contract). Product scope and approved
+layout: `../../.gli/brief.md`.
+
 **Details:** `HANDOFF.md` (run, build, data flow; in Italian) and
 `DATA_PIPELINE_READTHROUGH.md` (authoritative pipeline and contract guide).
 

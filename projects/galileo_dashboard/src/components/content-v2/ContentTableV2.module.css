@@ -130,6 +130,15 @@
 }
 
 .cat { font-weight: 600; }
+.sitesLink {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent-deep);
+  text-underline-offset: 3px;
+}
 .muted { color: var(--ink-faint); font-size: 12px; }
 
 /* Accounting · Frames: open International plant rules (coverage-style ?). */

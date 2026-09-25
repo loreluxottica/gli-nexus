@@ -37,3 +37,21 @@ Global shows every area and saves as Global. Author is the signed-in user;
 seed comments from
 `content_comments.json` show read-only; drafts left in `localStorage` by the
 old browser-only version can be published or discarded.
+
+`FlowSitesView` implements the approved list-and-detail layout at
+`content/sites`. Content rows expose `View sites`; explorer summaries expose
+`View all sites`, and driver names open the same workspace at that site.
+The left list supports search across all contributors, size/absolute-change
+ordering, 25-site pagination and persistent multi-selection. The right pane
+shows either scoped site metrics or a horizontally scrollable comparison.
+On desktop its position stays below the shared shell while scrolling, and
+the list height adapts to the viewport.
+Comparison never sums selected sites, and search never changes flow totals.
+
+The URL owns scope and working state; native History updates integrate with
+Next's search params without fetching on every keystroke. The left pane stays
+mounted while detail/comparison changes. Explicit detail actions move focus
+to the right pane (and bring it into view on phones); returning focuses search.
+Names absent in a changed scope remain explicitly unavailable, not zero.
+Site detail uses `flow_site_metrics`, never the general `sites` summary.
+Comments' general site-mention summary remains separate and unchanged.

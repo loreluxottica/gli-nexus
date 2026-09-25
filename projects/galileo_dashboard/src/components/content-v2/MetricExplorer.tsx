@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { ContentTrends, CurrentView, GeoArea, Market, MetricCell } from "@/data/types";
 import { areaLabel } from "@/data/geo";
 import { getSiteAnalysis } from "@/data/siteAnalysis";
@@ -11,6 +12,7 @@ import { SiteAnalysis } from "./SiteAnalysis";
 import { fmtCompact, fmtDeltaCompact, fmtPctSigned, fmtRatio, sign, trend } from "@/lib/format";
 import { cellTriple, components, hasShipments, seriesFor, type Metric } from "@/lib/contentMetrics";
 import { contentRowLabel } from "@/lib/products";
+import { flowSitesHref } from "@/lib/flowSites";
 import styles from "./MetricExplorer.module.css";
 
 const GEO_AREAS: GeoArea[] = ["EMEA", "NA", "APAC", "LATAM"];
@@ -476,6 +478,10 @@ export function MetricExplorer({
           <span className={styles.h3Title}>
             Where the change comes from <MktChip market={market} />
           </span>
+          <Link className={styles.allSites} href={flowSitesHref({
+            flow: rowKey, area, market, period,
+            sort: metric === "shipments" ? "shipments-change" : "pieces-change",
+          })}>View all sites</Link>
         </h3>
         {areaList.length ? (
           <>
@@ -527,14 +533,13 @@ export function MetricExplorer({
                       {drivers.length ? (
                         drivers.map((d) => (
                           <div key={d.site} className={styles.siteRow}>
-                            <button
-                              type="button"
+                            <Link
                               className={styles.siteBtn}
-                              onClick={() => setSiteView(d.site)}
+                              href={flowSitesHref({ flow: rowKey, area: a.key, market, period, site: d.site })}
                               title={`Open the ${d.site} site analysis`}
                             >
                               <span aria-hidden="true">📍</span> {d.site}
-                            </button>
+                            </Link>
                             <span className={styles.siteDelta}>{d.delta ?? ""}</span>
                             <span className={styles.siteVal}>{d.value}</span>
                             <span className={`${styles.effChip} ${styles[sign(d.yoy)]}`}>
@@ -545,6 +550,10 @@ export function MetricExplorer({
                       ) : (
                         <p className={styles.siteNone}>No site detail in this scope.</p>
                       )}
+                      <Link className={styles.allSites} href={flowSitesHref({
+                        flow: rowKey, area: a.key, market, period,
+                        sort: metric === "shipments" ? "shipments-change" : "pieces-change",
+                      })}>View all sites in {a.label}</Link>
                     </div>
                   )}
                 </Fragment>

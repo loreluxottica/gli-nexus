@@ -349,6 +349,7 @@
   border-top: 1px solid var(--line);
 }
 .siteBtn {
+  text-decoration: none;
   border: 0;
   background: transparent;
   padding: 0;
@@ -363,6 +364,13 @@
 }
 .siteBtn:hover {
   text-decoration: underline;
+}
+.allSites {
+  color: var(--accent-deep);
+  font: 500 12px/1.5 var(--font), sans-serif;
+  text-transform: none;
+  letter-spacing: 0;
+  text-underline-offset: 3px;
 }
 .siteVal {
   font-family: var(--mono), monospace;

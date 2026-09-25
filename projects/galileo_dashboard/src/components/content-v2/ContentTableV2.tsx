@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Fragment, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   AcctArea,
@@ -19,6 +20,8 @@ import {
   type DataMetric,
 } from "@/lib/contentMetrics";
 import { contentRowLabel } from "@/lib/products";
+import { flowSitesHref } from "@/lib/flowSites";
+import { isGeoArea } from "@/data/geo";
 import { toneForFlow } from "@/lib/tags";
 import { Sparkline } from "./Sparkline";
 import styles from "./ContentTableV2.module.css";
@@ -323,6 +326,16 @@ export function ContentTableV2({
                       </button>
                     ) : (
                       label.category
+                    )}
+                    {dim === "geo" && isGeoArea(area) && months != null && (
+                      <Link
+                        className={styles.sitesLink}
+                        href={flowSitesHref({ flow: rowKey, area, market, period: months })}
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label={`View sites for ${label.category} ${label.sub_category}, ${market}`}
+                      >
+                        View sites
+                      </Link>
                     )}
                   </td>
                   <td className={styles.sub}>

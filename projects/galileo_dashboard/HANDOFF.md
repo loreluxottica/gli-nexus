@@ -86,7 +86,11 @@ prerenderizzato contiene lo scheletro e i numeri compaiono all'hydration.
 Dove sta il cancello:
 - `src/app/(app)/layout.tsx` — copre masthead, tab e tutte le rotte dell'app.
 - `src/app/(app)/content/page.tsx` — aggiunge `needsSiteAnalysis` (i ~279 KB
-  per impianto servono solo lì).
+  per impianto supportano commenti e driver di Content).
+- `src/app/(app)/content/sites/page.tsx` — usa lo stesso gate per la vista
+  siti del flusso, senza caricare `db.json`. Ricerca, ordinamento, pagina,
+  sito attivo e selezioni di confronto sono conservati nell'URL. Il dettaglio
+  usa le metriche del flusso/area/mercato/periodo, non il totale generale del sito.
 - `src/components/landing/LandingStats.tsx` — la landing resta un server
   component perché esporta `metadata`, quindi solo le due cifre dell'hero sono
   un figlio client con cancello proprio.
