@@ -4,12 +4,13 @@
 - 2026-09-24 Galileo Content: Pieces, Shipments and Pcs/ship side by side; Metric toggle and Coverage column removed; `out/` rebuilt.
 - 2026-09-24 Repo structure: `AGENTS.md` entry, a doc in every module, `PROGRESS.md`, `Makefile`, vendored `scripts/check-structure.mjs`.
 - 2026-09-25 Galileo shared comments: API, Delta-table store, `CommentPanel` on the server, 12 tests (branch `fix/comments`).
-- 2026-09-25 Galileo metric explorer: trend chart at real width, "Where the change comes from" area list on one shared scale, phone layout (branch `feat/explorer-clarity`).
-- 2026-09-25 Galileo Content table: fixed column widths and row heights, so REP ↔ LM no longer shifts the layout; narrower Sub-category, wider trends (branch `fix/finetuning`).
-- 2026-09-25 Galileo `out/` rebuilt on `fix/finetuning`: ships shared comments, metric explorer and the Content table layout.
+- 2026-09-25 Galileo metric explorer: trend chart at real width, "Where the change comes from" area list on one shared scale, phone layout (PR #20).
+- 2026-09-25 Galileo Content table: fixed column widths and row heights, so REP ↔ LM no longer shifts the layout; narrower Sub-category, wider trends (PR #21).
+- 2026-09-25 Galileo `out/` rebuilt on `fix/finetuning` (PR #21): ships shared comments, metric explorer and the Content table layout.
+- 2026-09-25 Galileo Content, EMEA: the GV row shows as `GV · Frames, Contact Lenses, Lenses` (label only; the `Frames|GV Frames*` key and data are unchanged); `out/` rebuilt (branch `tune/emea`).
 
 ## In progress
-- Branch `fix/finetuning`: Content table layout and rebuilt `out/` awaiting review and merge; live after merge and a Databricks redeploy.
+- Branch `tune/emea`: EMEA GV label and rebuilt `out/` awaiting review and merge; live after merge and a Databricks redeploy.
 
 ## Blocked
 - Galileo comments table: run `projects/galileo_dashboard/comments_table.sql` and grant the app service principal before deploying; until then the panel says shared comments are unavailable.

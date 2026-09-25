@@ -10,6 +10,7 @@ import { CommentPanel } from "./CommentPanel";
 import { SiteAnalysis } from "./SiteAnalysis";
 import { fmtCompact, fmtDeltaCompact, fmtPctSigned, fmtRatio, sign, trend } from "@/lib/format";
 import { cellTriple, components, hasShipments, seriesFor, type Metric } from "@/lib/contentMetrics";
+import { contentRowLabel } from "@/lib/products";
 import styles from "./MetricExplorer.module.css";
 
 const GEO_AREAS: GeoArea[] = ["EMEA", "NA", "APAC", "LATAM"];
@@ -269,6 +270,7 @@ export function MetricExplorer({
   const naText = metric === "pieces" ? "no volume" : "no shipments";
 
   const usedArea = resolveArea(focusRow.geo_data, area);
+  const rowLabel = contentRowLabel(focusRow, usedArea);
   const cell: MetricCell | null = focusRow.geo_data[usedArea] ?? null;
   const triple = cellTriple(cell, metric, market);
   const node = trends.rows[rowKey]?.[usedArea] ?? null;
@@ -407,7 +409,7 @@ export function MetricExplorer({
           <MktChip market={market} lg />
           <div className={styles.headText}>
             <h2 id="eff-title" className={styles.title}>
-              {focusRow.category} · {focusRow.sub_category}
+              {rowLabel.category} · {rowLabel.sub_category}
             </h2>
             <span className={styles.scope}>
               {areaLabel(usedArea)} · {isEff ? "pieces per shipment" : `${noun} YTD`}
@@ -438,7 +440,7 @@ export function MetricExplorer({
         flow={rowKey}
         market={market}
         area={usedArea}
-        flowLabel={`${focusRow.category} · ${focusRow.sub_category}`}
+        flowLabel={`${rowLabel.category} · ${rowLabel.sub_category}`}
         onSite={setSiteView}
       />
 
