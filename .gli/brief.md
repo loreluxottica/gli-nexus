@@ -58,6 +58,10 @@ Search and ordering sit on one row so the site list keeps the height. Do not
 explain persistent selection with a sentence: show it with the count badge,
 selected-row tint and the count remaining while search changes the list.
 Prefer color, size and state over explanatory copy in this workspace.
+On desktop the list box and the detail box end on the same bottom edge.
+Do not restore the site-detail scope sentence.
+Selected sites can download a Database-format CSV: same columns and monthly
+source rows, scoped to the active flow, area, market and YTD months.
 
 Local preview artifacts and screenshot-bound observations are gitignored in
 `.gli-preview/flow-sites/`. The recorded choice is B on snapshot

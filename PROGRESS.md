@@ -1,6 +1,8 @@
 # Progress
 
 ## Done
+- 2026-09-25 Galileo Sites CSV: selected sites download as Database source rows, same columns and monthly grain, scoped to the active flow, area, market and YTD months. Authorized `out/` rebuild completed.
+- 2026-09-25 Galileo Sites panes: left list bottom aligned with the detail pane; scope note removed. Authorized `out/` rebuild completed.
 - 2026-09-25 Galileo Sites controls: search and ordering share one row; the selection sentence is replaced by a count badge, row tint and filtered count. Authorized `out/` rebuild completed.
 - 2026-09-25 Galileo Sites header: area, market, category and sub-category combined in the title; context subtitle and flow-total strip removed, with the recovered height assigned to the site list. Period controls and scoped calculations preserved; authorized `out/` rebuild completed.
 - 2026-09-25 Galileo Content sites: approved layout B implemented at `content/sites`, with all-site search, size/change sorting, scoped detail, persistent selection and side-by-side comparison. Existing data contracts unchanged; source verified with synthetic browser fixtures and helper regressions.
@@ -13,7 +15,7 @@
 - 2026-09-25 Galileo Content, EMEA: the GV row shows as `GV · Frames, Contact Lenses, Lenses` (label only; the `Frames|GV Frames*` key and data are unchanged); `out/` rebuilt (branch `tune/emea`).
 
 ## In progress
-- Branch `data/aggregationview`: site workspace and authorized `out/` rebuild ready for review and merge. Live Databricks data not exercised locally. Brief: `.gli/brief.md`.
+- Branch `data/aggregationview`: site workspace ready for review and merge. Live Databricks data not exercised locally. Brief: `.gli/brief.md`.
 
 ## Blocked
 - Galileo comments table: run `projects/galileo_dashboard/comments_table.sql` and grant the app service principal before deploying; until then the panel says shared comments are unavailable.

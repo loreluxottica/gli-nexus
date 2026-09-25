@@ -1,7 +1,8 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { flowSites, flowTotals, visibleFlowSites, flowSitesHref, contentScopeHref, isSiteSort } =
+const { flowSites, flowTotals, visibleFlowSites, flowSitesHref, contentScopeHref, isSiteSort,
+  contentFlowKey, scopedSourceRecords, databaseCsv } =
   require(path.join(process.env.GALILEO_TEST_OUT, "lib", "flowSites.js"));
 
 const flow = "Frames|Finished Frames";
@@ -125,4 +126,48 @@ test("links encode the exact flow and site, keep scope and do not leak explorer 
   assert.equal(back.searchParams.has("site"), false);
   assert.equal(isSiteSort("shipments-change"), true);
   assert.equal(isSiteSort("arbitrary"), false);
+});
+
+function source(month, site, market, product, siteType, pieces, shipments, geo = "EMEA") {
+  return [month, site, market, product, siteType, pieces, shipments, geo, "", "IT", geo];
+}
+
+test("source export keeps database grain and the active scope only", () => {
+  const rows = [
+    source("2026-05", "Demo Lyon", "LM", "Finished Frames", "Lab", 10, 1),
+    source("2026-02", "Demo Lyon", "LM", "Finished Frames", "Lab", 20, 2),
+    source("2025-02", "Demo Lyon", "LM", "Finished Frames", "Lab", 5, 1),
+    source("2026-02", "Demo Porto", "LM", "Finished Frames", "Lab", 7, 1),
+    source("2026-02", "Demo Lyon", "REP", "Finished Frames", "Lab", 9, 1),
+    source("2026-02", "Demo Lyon", "LM", "GV Frames", "Lab", 8, 1),
+    source("2026-02", "Demo Lyon", "LM", "Finished Frames", "Lab", 0, 0),
+    source("2026-02", "Demo Lyon", "LM", "RX", "Local Labs to ECP", 4, 1),
+    source("2026-02", "Demo Lyon", "LM", "Finished Frames", "Lab", 3, 1, "NA"),
+    source("2026-02", "Hidden", "LM", "Finished Frames", "Lab", 11, 1),
+    source("2026-02", "", "LM", "Finished Frames", "Lab", 2, 1),
+    source("2026-02", "Demo Lyon", "LM", "Finished Frames", "Lab", 1, 0, ""),
+  ];
+  const matched = scopedSourceRecords(rows, scope, ["Demo Lyon", "Demo Porto", "(unknown)"], 2026);
+  assert.deepEqual(matched.map((row) => [row[0], row[1], row[5]]), [
+    ["2026-02", "Demo Lyon", 20],
+    ["2025-02", "Demo Lyon", 5],
+    ["2026-02", "Demo Porto", 7],
+    ["2026-02", "", 2],
+  ]);
+  assert.deepEqual(scopedSourceRecords(rows, { ...scope, area: "ALL" }, ["Demo Lyon"], 2026).map((row) => row[10]), ["EMEA", "EMEA", "NA"]);
+  assert.equal(contentFlowKey("RX", "Export Labs"), "RX Lenses|Export Labs");
+  assert.equal(contentFlowKey("Stock Lenses", "Other"), null);
+  const columns = [
+    { label: "Month" }, { label: "Site, name" }, { label: "Market" }, { label: "Product" },
+    { label: "Site type" }, { label: "Pieces" }, { label: "Shipments" }, { label: "Geo" },
+    { label: "Accounting" }, { label: 'Country "X"' },
+  ];
+  const record = source("2026-02", 'Lyon, "A"', "LM", "Finished Frames", "Lab", 20, 2);
+  record[10] = "canonical-hidden";
+  const csv = databaseCsv(columns, [record]);
+  assert.equal(csv.charCodeAt(0), 0xfeff);
+  assert.equal(csv.slice(1).split("\n")[0], 'Month,"Site, name",Market,Product,Site type,Pieces,Shipments,Geo,Accounting,"Country ""X"""');
+  assert.match(csv, /"Lyon, ""A"""/);
+  assert.equal(csv.includes("canonical-hidden"), false);
+  assert.equal(scopedSourceRecords(rows, scope, [], 2026).length, 0);
 });

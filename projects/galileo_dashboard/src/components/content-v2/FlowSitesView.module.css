@@ -1,4 +1,4 @@
-.workspace { color: var(--ink); }
+.workspace { color: var(--ink); display: flex; flex-direction: column; height: calc(100dvh - var(--top-h) - var(--tabs-h) - 124px); }
 .breadcrumb { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; color: var(--ink-soft); font-size: 12px; }
 .breadcrumb a { color: var(--accent-deep); text-underline-offset: 3px; }
 .heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 22px; margin-bottom: 20px; }
@@ -6,8 +6,9 @@
 .titleScope, .titleSeparator { color: var(--ink-soft); font-weight: 400; }
 .titleScope abbr { text-underline-offset: 4px; }
 .actions { display: flex; flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
-.split { display: grid; grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); gap: 24px; align-items: start; }
-.split > * { min-width: 0; }
+.split { display: grid; grid-template-columns: minmax(0, 44fr) minmax(0, 56fr); gap: 24px; align-items: stretch; flex: 1 1 auto; min-height: 0; }
+.split > * { min-width: 0; min-height: 0; }
+.listPane { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .toolbar { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 10px; }
 .toolbar label { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--ink-soft); font-size: 11px; font-weight: 550; }
 .search { flex: 1 1 auto; }
@@ -22,8 +23,8 @@
 .count { display: flex; flex: 0 0 auto; align-items: baseline; gap: 1px; padding: 0 1px 11px; color: var(--ink-soft); font: 12px var(--mono), monospace; font-variant-numeric: tabular-nums; }
 .count b { color: var(--ink); font-weight: 650; }
 .count[data-filtered="true"] b { color: var(--accent-deep); }
-.listFrame { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
-.listScroll { overflow: auto; max-height: clamp(220px, calc(100dvh - 470px), 680px); }
+.listFrame { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.listScroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .listTable { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: 12px; }
 .listTable th, .listTable td { padding: 9px 15px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .listTable thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); }
@@ -43,25 +44,24 @@
 .pos { color: var(--pos); }
 .neg { color: var(--neg); }
 .muted { color: var(--ink-soft); }
-.selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; background: var(--surface); }
+.selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--surface); }
 .selection[data-active="true"] { border-color: var(--accent-bright); background: var(--accent-tint); }
 .selectionCount { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-size: 12px; font-weight: 600; }
 .selectionBadge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--surface-3); color: var(--ink-soft); font: 650 11px var(--mono), monospace; font-variant-numeric: tabular-nums; }
 .selection[data-active="true"] .selectionBadge { background: var(--accent); color: var(--on-accent); }
 .selection button { font-size: 11px; }
-.selectedNames { font-size: 12px; margin-top: 13px; color: var(--ink-soft); }
+.exportNote { margin: 0; padding: 8px 12px 0; color: var(--danger); font-size: 11px; }
+.selectedNames { font-size: 12px; margin: 0; padding: 8px 12px 10px; border-top: 1px solid var(--line); color: var(--ink-soft); }
 .selectedNames summary { cursor: pointer; padding: 5px 0; }
 .selectedNames ul { list-style: none; padding: 0; max-height: 160px; overflow: auto; margin: 6px 0 0; }
 .selectedNames li { display: flex; gap: 12px; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--line); }
 .selectedNames li span { overflow-wrap: anywhere; }
 .selectedNames button, .remove { border: 0; background: transparent; color: var(--accent-deep); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 11px; color: var(--ink-soft); }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--ink-soft); }
 .pagination button { font-size: 11px; }
 .inspection {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
-  padding: 22px; scroll-margin-top: 180px; position: sticky;
-  top: calc(var(--top-h) + var(--tabs-h) + 16px);
-  max-height: calc(100dvh - var(--top-h) - var(--tabs-h) - 32px); overflow-y: auto;
+  padding: 22px; scroll-margin-top: 180px; position: relative; height: 100%; overflow-y: auto;
 }
 .inspection:focus { outline: none; }
 .inspection:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -82,7 +82,6 @@
 .contribution { margin: 25px 0 20px; }
 .contribution h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .contribution p { margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.7; }
-.detailNote { border-top: 1px solid var(--line); padding-top: 19px; margin-top: 25px; margin-bottom: 0; color: var(--ink-soft); font-size: 11px; line-height: 1.7; }
 .comparisonScroll { margin-top: 20px; }
 .comparison { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 12px; }
 .comparison th, .comparison td { padding: 14px 16px; border-bottom: 1px solid var(--line); }
@@ -106,11 +105,13 @@
   .heading { flex-direction: column; }
   .heading h1 { font-size: 24px; }
   .actions { justify-content: flex-start; }
-  .split { grid-template-columns: minmax(0, 1fr); }
+  .workspace { display: block; height: auto; }
+  .split { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .listPane, .listFrame, .inspection { height: auto; }
+  .listScroll { max-height: min(420px, calc(100dvh - 530px)); }
   .toolbar { flex-wrap: nowrap; }
   .search { flex: 1 1 12rem; }
   .order { flex: 0 1 16rem; width: min(16rem, 46%); }
-  .listScroll { max-height: min(420px, calc(100dvh - 530px)); }
   .inspection { scroll-margin-top: 185px; position: static; max-height: none; overflow-y: visible; }
   .selection { position: sticky; bottom: 10px; z-index: 2; }
 }

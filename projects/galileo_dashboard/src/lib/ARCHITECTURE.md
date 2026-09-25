@@ -11,7 +11,9 @@ feature switches).
 `flowSites.ts` reads the existing period/flow/canonical-area site tuples,
 selects only the requested market, validates tuple shape, and derives
 nullable ratios and current/prior comparisons. It also owns non-mutating
-search/ranking and links between Content and the site workspace. It does not
+search/ranking, links between Content and the site workspace, and the
+source-record filter for the Database-format CSV. That filter keeps monthly
+rows for the selected sites, flow, area, market and YTD months. It does not
 aggregate selected sites, infer missing periods or fall back to Global.
 Its regression tests run through `python -m unittest discover -s tests`
 using the existing Galileo TypeScript compiler and Node.

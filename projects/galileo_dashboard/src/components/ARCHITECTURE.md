@@ -54,6 +54,12 @@ still provide the denominator for the selected site's contribution.
 Search and ordering share one control row. Selection is a count badge plus
 row tint, not an explanatory sentence; the count stays visible while a search
 hides unselected rows. A filtered count uses the accent; YoY stays color.
+On desktop the site list and detail panes share one height, so their bottoms
+align; the list scrolls inside that height. The site-detail scope note is not
+shown.
+Download CSV exports the selected sites as Database source rows: same columns
+and monthly grain, limited to the active flow, area, market and YTD months.
+Search and paging do not change the file. The database payload loads on click.
 
 The URL owns scope and working state; native History updates integrate with
 Next's search params without fetching on every keystroke. The left pane stays

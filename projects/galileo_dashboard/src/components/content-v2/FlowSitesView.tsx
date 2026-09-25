@@ -5,14 +5,15 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getContent } from "@/data/content";
 import { getSiteAnalysis } from "@/data/siteAnalysis";
+import { loadPayload } from "@/data/api";
 import { areaLabel, isGeoArea } from "@/data/geo";
-import type { ContentRow, CurrentView, MetricCell } from "@/data/types";
+import type { ContentRow, CurrentView, DbRow, MetricCell } from "@/data/types";
 import { Button } from "@/components/ui/Button";
 import { PeriodSelect } from "./PeriodSelect";
 import { contentRowLabel } from "@/lib/products";
 import { fmtCompact, fmtDeltaCompact, fmtInt, fmtPct, fmtPctSigned, fmtRatio, sign } from "@/lib/format";
 import {
-  contentScopeHref, flowSites, flowTotals, isSiteSort, SITE_SORTS, visibleFlowSites,
+  contentScopeHref, databaseCsv, flowSites, flowTotals, isSiteSort, scopedSourceRecords, SITE_SORTS, visibleFlowSites,
   type FlowScope, type FlowSite, type SiteMetric, type SiteMetricKey,
 } from "@/lib/flowSites";
 import styles from "./FlowSitesView.module.css";
@@ -89,6 +90,8 @@ function SiteWorkspace({ scope, row, cell, view }: {
   const focusIntent = useRef(false);
   const [copyMessage, setCopyMessage] = useState("");
   const [copyError, setCopyError] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState("");
   const result = useMemo(() => flowSites(getSiteAnalysis(), scope), [scope]);
   const totals = flowTotals(cell, scope.market);
   const rows = result.rows;
@@ -159,6 +162,34 @@ function SiteWorkspace({ scope, row, cell, view }: {
     if (listRef.current) listRef.current.scrollTop = 0;
   }, [search, sort, page]);
 
+  const downloadCsv = async () => {
+    if (!selected.length || exporting) return;
+    setExporting(true);
+    setExportMessage("");
+    try {
+      const records = await loadPayload<DbRow[]>("db");
+      const matched = scopedSourceRecords(records, scope, selected, year);
+      if (!matched.length) {
+        setExportMessage("No source records for this selection.");
+        return;
+      }
+      const csv = databaseCsv(getContent().database_page.columns, matched);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      link.href = objectUrl;
+      link.download = `galileo-db-${scope.area.toLowerCase()}-${scope.market.toLowerCase()}-${stamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      setExportMessage("Source records are unavailable. Try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
   const copyLink = async () => {
     try {
       if (!navigator.clipboard) throw new Error("Clipboard access is unavailable in this browser.");
@@ -227,20 +258,25 @@ function SiteWorkspace({ scope, row, cell, view }: {
                 {search && <Button onClick={() => update({ q: null, page: null })}>Clear search</Button>}
               </div>}
             </div>
+            {pageCount > 1 && <nav className={styles.pagination} aria-label="Site pages">
+              <Button disabled={page === 1} onClick={() => update({ page: String(page - 1) })}>Previous</Button>
+              <span>Page {page} of {pageCount}</span>
+              <Button disabled={page === pageCount} onClick={() => update({ page: String(page + 1) })}>Next</Button>
+            </nav>}
+            <div className={styles.selection} data-active={selected.length > 0 ? "true" : undefined}>
+              <strong className={styles.selectionCount} role="status"><span className={styles.selectionBadge}>{selected.length}</span> selected</strong>
+              <Button disabled={!selected.length} onClick={() => update({ selected: [], compare: null })}>Clear</Button>
+              <Button disabled={!selected.length || exporting} aria-busy={exporting || undefined}
+                aria-label={`Download CSV of ${selected.length} selected sites`} onClick={() => { void downloadCsv(); }}>
+                {exporting ? "Downloading" : "Download CSV"}
+              </Button>
+              <Button variant="accent" disabled={selected.length < 2} onClick={openComparison}>Compare ({selected.length})</Button>
+            </div>
+            {exportMessage && <p className={styles.exportNote} role="alert">{exportMessage}</p>}
+            {selected.length > 0 && <details className={styles.selectedNames}><summary>Manage selected sites</summary>
+              <ul>{selected.map((name) => <li key={name}><span>{name}</span><button type="button" onClick={() => toggle(name)} aria-label={`Remove ${name} from comparison`}>Remove</button></li>)}</ul>
+            </details>}
           </div>
-          {pageCount > 1 && <nav className={styles.pagination} aria-label="Site pages">
-            <Button disabled={page === 1} onClick={() => update({ page: String(page - 1) })}>Previous</Button>
-            <span>Page {page} of {pageCount}</span>
-            <Button disabled={page === pageCount} onClick={() => update({ page: String(page + 1) })}>Next</Button>
-          </nav>}
-          <div className={styles.selection} data-active={selected.length > 0 ? "true" : undefined}>
-            <strong className={styles.selectionCount} role="status"><span className={styles.selectionBadge}>{selected.length}</span> selected</strong>
-            <Button disabled={!selected.length} onClick={() => update({ selected: [], compare: null })}>Clear</Button>
-            <Button variant="accent" disabled={selected.length < 2} onClick={openComparison}>Compare ({selected.length})</Button>
-          </div>
-          {selected.length > 0 && <details className={styles.selectedNames}><summary>Manage selected sites</summary>
-            <ul>{selected.map((name) => <li key={name}><span>{name}</span><button type="button" onClick={() => toggle(name)} aria-label={`Remove ${name} from comparison`}>Remove</button></li>)}</ul>
-          </details>}
         </section>
         <section id="flow-site-detail" ref={detailRef} tabIndex={-1} className={styles.inspection} aria-label={comparing ? "Site comparison" : "Site detail"}>
           <div className={styles.inspectionTop}><Button onClick={backToList}>Back to site list</Button><span>{scope.market} · {areaLabel(scope.area)}</span></div>
@@ -299,6 +335,5 @@ function SiteDetail({ site, label, year, totalPieces, selected, onToggle }: {
         Change vs prior YTD: <strong>{fmtDeltaCompact(site.pieces.delta)}</strong> pieces.</p>
     </div>
     <Button onClick={onToggle}>{selected ? "Remove from comparison" : "Add to comparison"}</Button>
-    <p className={styles.detailNote}>These figures include only the selected flow, market, area and period, not the site&apos;s overall activity. A dash means the ratio is unavailable; zero remains zero.</p>
   </>;
 }

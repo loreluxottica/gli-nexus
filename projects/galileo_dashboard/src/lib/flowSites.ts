@@ -1,4 +1,4 @@
-import type { GeoArea, Market, MetricCell, SiteAnalysisData } from "@/data/types";
+import type { DbRow, GeoArea, Market, MetricCell, SiteAnalysisData } from "@/data/types";
 import { yoy } from "./format";
 
 export type SiteMetricKey = "pieces" | "shipments" | "efficiency";
@@ -111,4 +111,57 @@ export function contentScopeHref(scope: Pick<FlowScope, "area" | "market" | "per
   return `/content?${new URLSearchParams({
     area: scope.area, market: scope.market, period: String(scope.period),
   })}`;
+}
+
+/** Content flow a database record feeds. Same rules as the site-analysis build. */
+export function contentFlowKey(product: string, siteType: string): string | null {
+  const item = product.trim();
+  const kind = siteType.trim();
+  if (item === "Finished Frames") return "Frames|Finished Frames";
+  if (item === "GV Frames") return "Frames|GV Frames*";
+  if (item === "Stock Lenses" && kind === "Mass Production | DCs") return "Stock Lenses|Mass Production | DCs";
+  if (item === "RX") {
+    if (kind === "Export Labs") return "RX Lenses|Export Labs";
+    if (kind === "Nearshore Labs") return "RX Lenses|Nearshore Labs";
+    if (kind === "Local Labs to ECP") return "RX Lenses|Local Labs to ECP";
+  }
+  return null;
+}
+
+function ytdMonths(year: number, period: number): Set<string> {
+  const months = new Set<string>();
+  for (const reportingYear of [year, year - 1]) {
+    for (let month = 1; month <= period; month++) months.add(`${reportingYear}-${String(month).padStart(2, "0")}`);
+  }
+  return months;
+}
+
+/** Source rows behind the selected sites. Search and paging are not filters. */
+export function scopedSourceRecords(
+  rows: readonly DbRow[],
+  scope: FlowScope,
+  sites: readonly string[],
+  year: number,
+): DbRow[] {
+  const selected = new Set(sites);
+  if (!selected.size || !Number.isInteger(year) || !Number.isInteger(scope.period) || scope.period < 1) return [];
+  const months = ytdMonths(year, scope.period);
+  return rows.filter((row) => {
+    if (!months.has(row[0]) || row[2] !== scope.market || !selected.has(row[1] || "(unknown)")) return false;
+    const geo = String(row[10] ?? "").trim();
+    if (!geo || (scope.area !== "ALL" && geo !== scope.area)) return false;
+    if (contentFlowKey(String(row[3] ?? ""), String(row[4] ?? "")) !== scope.flow) return false;
+    return Number(row[5] || 0) > 0 || Number(row[6] || 0) > 0;
+  });
+}
+
+/** Database CSV: displayed columns only, source order, UTF-8 BOM for Excel. */
+export function databaseCsv(columns: readonly { label: string }[], rows: readonly DbRow[]): string {
+  const esc = (value: unknown) => {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
+  const header = columns.map((column) => esc(column.label)).join(",");
+  const body = rows.map((row) => columns.map((_, index) => esc(row[index])).join(",")).join("\n");
+  return `\uFEFF${header}${body ? `\n${body}` : ""}`;
 }
