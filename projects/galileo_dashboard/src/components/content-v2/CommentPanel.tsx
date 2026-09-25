@@ -16,7 +16,6 @@ import styles from "./CommentPanel.module.css";
 
 /** Browser-only drafts written by the pre-sharing version of this panel. */
 const LS_KEY = "galileo:eff-comments";
-const AREAS = ["ALL", "EMEA", "NA", "APAC", "LATAM"];
 // Lazy: the payload arrives by fetch, so this cannot be built at module scope.
 let siteSet: Set<string> | null = null;
 const knownSite = (name: string) => (siteSet ??= new Set(getSiteNames())).has(name);
@@ -69,14 +68,12 @@ export function CommentPanel({
   const [drafts, setDrafts] = useState<KpiComment[]>([]);
   const [composing, setComposing] = useState(false);
   const [text, setText] = useState("");
-  const [areaSel, setAreaSel] = useState<string>(area);
   const [siteQuery, setSiteQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => setDrafts(loadDrafts()), []);
-  useEffect(() => setAreaSel(area), [area]);
   useEffect(() => {
     let alive = true;
     setStatus("loading");
@@ -93,9 +90,9 @@ export function CommentPanel({
     };
   }, [flow, market]);
 
-  // Only plants that belong to THIS section (flow + the comment's area) are
-  // taggable — e.g. Sedico (EMEA Frames/RX) never shows for Stock Lenses · NA.
-  const sectionSites = getSiteAnalysis().flow_sites[flow]?.[areaSel] ?? [];
+  // Only plants that belong to THIS section (flow + area) are taggable —
+  // e.g. Sedico (EMEA Frames/RX) never shows for Stock Lenses · NA.
+  const sectionSites = getSiteAnalysis().flow_sites[flow]?.[area] ?? [];
   const q = siteQuery.trim().toLowerCase();
   const siteMatches = q
     ? sectionSites.filter((n) => n.toLowerCase().includes(q)).slice(0, 8)
@@ -151,12 +148,15 @@ export function CommentPanel({
     return out;
   }
 
-  const match = (c: KpiComment) => c.flow === flow && c.market === market;
+  // A region shows only its own comments; Global is the overview of every area.
+  const inArea = (c: KpiComment) => area === "ALL" || c.area === area;
+  const match = (c: KpiComment) => c.flow === flow && c.market === market && inArea(c);
   const items: Item[] = [
     ...seededComments.filter(match).map((c) => ({ ...c, kind: "seed" as const, mine: false })),
-    ...shared.map((c) => ({ ...c, kind: "shared" as const })),
+    ...shared.filter(inArea).map((c) => ({ ...c, kind: "shared" as const })),
     ...drafts.filter(match).map((c) => ({ ...c, kind: "draft" as const, mine: true })),
   ].sort((a, b) => b.date.localeCompare(a.date));
+  const scope = areaLabel(area);
 
   async function add() {
     const t = text.trim();
@@ -164,7 +164,7 @@ export function CommentPanel({
     setBusy("new");
     setError(null);
     try {
-      const saved = await postComment({ flow, market, area: areaSel, text: t });
+      const saved = await postComment({ flow, market, area, text: t });
       setShared((list) => [saved, ...list]);
       setText("");
       setComposing(false);
@@ -242,7 +242,10 @@ export function CommentPanel({
       )}
       {status === "ready" && items.length === 0 && !composing && (
         <p className={styles.empty}>
-          No comments on this KPI yet. Add an insight on what is driving the change.
+          {area === "ALL"
+            ? "No comments on this KPI yet."
+            : `No ${scope} comments on this KPI yet.`}{" "}
+          Add an insight on what is driving the change.
         </p>
       )}
       {error && (
@@ -305,20 +308,6 @@ export function CommentPanel({
 
       {composing && (
         <div className={styles.form}>
-          <div className={styles.formRow}>
-            <select
-              className={styles.input}
-              aria-label="Reference area"
-              value={areaSel}
-              onChange={(e) => setAreaSel(e.target.value)}
-            >
-              {AREAS.map((a) => (
-                <option key={a} value={a}>
-                  {areaLabel(a as GeoArea)}
-                </option>
-              ))}
-            </select>
-          </div>
           <textarea
             ref={taRef}
             className={styles.textarea}
@@ -376,7 +365,7 @@ export function CommentPanel({
             </Button>
           </div>
           <p className={styles.note}>
-            Visible to everyone with access to Galileo
+            Saved to <strong>{scope}</strong> and visible to everyone with access to Galileo
             {me ? <>, posted as <strong>{me}</strong></> : null}. With &ldquo;Tag a site&rdquo;
             you mention a plant: in the comment it becomes clickable and opens its analysis.
           </p>

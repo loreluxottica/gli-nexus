@@ -172,12 +172,6 @@
   padding-top: 12px;
   border-top: 1px solid var(--accent);
 }
-.formRow {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 9px;
-}
-.input,
 .textarea {
   width: 100%;
   font: inherit;
@@ -188,15 +182,11 @@
   border-radius: var(--radius);
   padding: 9px 11px;
 }
-.input {
-  height: 42px;
-}
 .textarea {
   resize: vertical;
   min-height: 64px;
   line-height: 1.5;
 }
-.input:focus-visible,
 .textarea:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;

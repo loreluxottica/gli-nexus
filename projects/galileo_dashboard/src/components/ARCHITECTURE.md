@@ -22,6 +22,8 @@ no Metric toggle and no Coverage column. A YoY chip opens the explorer on its
 own metric through `?explore=` and `?metric=`.
 
 The explorer's `CommentPanel` reads and writes the shared comments API for its
-flow and market. Author is the signed-in user; seed comments from
+flow and market. A region view shows and saves only that region's comments;
+Global shows every area and saves as Global. Author is the signed-in user;
+seed comments from
 `content_comments.json` show read-only; drafts left in `localStorage` by the
 old browser-only version can be published or discarded.
