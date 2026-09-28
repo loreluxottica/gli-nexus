@@ -1,4 +1,5 @@
-import type { DbRow, GeoArea, Market, MetricCell, SiteAnalysisData } from "@/data/types";
+import type { ContentRow, CurrentView, DbRow, GeoArea, Market, MetricCell, SiteAnalysisData } from "@/data/types";
+import { isGeoArea } from "../data/geo";
 import { yoy } from "./format";
 
 export type SiteMetricKey = "pieces" | "shipments" | "efficiency";
@@ -23,6 +24,79 @@ export interface FlowScope {
   area: GeoArea;
   market: Market;
   period: number;
+}
+
+export function resolveFlowScope(
+  params: Pick<URLSearchParams, "get">,
+  view: CurrentView,
+): { scope: FlowScope; row: ContentRow; cell: MetricCell | null } | { error: string } {
+  const area = params.get("area") ?? "ALL";
+  const market = params.get("market") ?? "REP";
+  const rawPeriod = params.get("period");
+  const period = rawPeriod == null ? Number(view.period_number) : Number(rawPeriod);
+  const flow = params.get("flow") ?? "";
+  if (params.get("acct") === "1") return { error: "Site exploration is available for geographical areas, not the International accounting perimeter." };
+  if (!isGeoArea(area)) return { error: "The link contains an unknown geographical area." };
+  if (market !== "REP" && market !== "LM") return { error: "The link contains an unknown market. Choose REP or LM from Content." };
+  if (params.get("year") != null && Number(params.get("year")) !== Number(view.year)) {
+    return { error: "The reporting year in this link is no longer available." };
+  }
+  if (!Number.isInteger(period) || period < 1 ||
+      (period !== Number(view.period_number) && !view.period_options.some((option) => option.n === period))) {
+    return { error: "The link contains an unavailable reporting period." };
+  }
+  const index = view.rows.findIndex((row) => `${row.category}|${row.sub_category}` === flow);
+  if (index < 0) return { error: "Choose a valid flow using View sites on Content." };
+  const row = view.rows[index];
+  const snapshot = view.periods[String(period)];
+  if (period !== Number(view.period_number) && !snapshot?.rows[index]) {
+    return { error: "The flow totals are unavailable for this reporting period." };
+  }
+  const geo = period === Number(view.period_number) ? row.geo_data : snapshot.rows[index].geo_data;
+  return { scope: { flow, area, market, period }, row, cell: geo[area] ?? null };
+}
+
+export interface FlowRecordsScope {
+  scope: FlowScope;
+  row: ContentRow;
+  sites: string[];
+  year: number;
+}
+
+export function flowRecordsScope(
+  params: Pick<URLSearchParams, "get" | "getAll" | "has">,
+  view: CurrentView,
+): FlowRecordsScope | { error: string } | null {
+  if (!params.has("records")) return null;
+  if (params.get("records") !== "sites" ||
+      ["flow", "period", "year"].some((key) => !params.get(key))) {
+    return { error: "This records link is incomplete. Open records again from the site workspace." };
+  }
+  const resolved = resolveFlowScope(params, view);
+  if ("error" in resolved) return resolved;
+  const sites = [...new Set(params.getAll("selected"))];
+  if (!sites.length || sites.some((site) => !site.trim())) {
+    return { error: "This records link has no selected sites. Select sites in the workspace first." };
+  }
+  const year = Number(view.year);
+  if (!Number.isInteger(year)) return { error: "The reporting year is unavailable." };
+  return { scope: resolved.scope, row: resolved.row, sites, year };
+}
+
+export function flowRecordsHref(query: string, scope: FlowScope, year: number): string {
+  const params = new URLSearchParams(query);
+  for (const key of [...params.keys()]) if (key.startsWith("db-")) params.delete(key);
+  for (const [key, value] of Object.entries(scope)) params.set(key, String(value));
+  params.set("records", "sites");
+  params.set("year", String(year));
+  return `/database?${params}`;
+}
+
+export function flowSitesReturnHref(query: string): string {
+  const params = new URLSearchParams(query);
+  params.delete("records");
+  for (const key of [...params.keys()]) if (key.startsWith("db-")) params.delete(key);
+  return `/content/sites?${params}`;
 }
 
 export const SITE_SORTS: { value: SiteSort; label: string }[] = [

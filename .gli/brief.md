@@ -35,7 +35,8 @@ selected period and must not silently substitute for contextual detail.
 Accounting-area site exploration is not supported by this payload.
 No new monthly site-history contract, arbitrary site aggregate, database
 schema, ingestion change or other product work is authorized by this brief.
-Do not load the raw Database payload for this feature.
+Load raw Database records only for an explicit CSV download or a Database
+drill-through; site list, detail and comparison use the lean site payload.
 
 ## Identity and design status
 
@@ -62,6 +63,23 @@ On desktop the list box and the detail box end on the same bottom edge.
 Do not restore the site-detail scope sentence.
 Selected sites can download a Database-format CSV: same columns and monthly
 source rows, scoped to the active flow, area, market and YTD months.
+
+## Connected investigation
+
+The next authorized slice connects selected sites to the existing Database
+view, not to a new surface. `View records` carries the same selection, flow,
+market, canonical area and current/prior YTD window as the CSV.
+Database refinements narrow that scope and use separate URL parameters, so
+`Back to sites` restores the originating search, ordering, page, active site
+and comparison. Keep the list's scroll position within the browser session.
+The record link names its reporting year and fails explicitly if that year
+is no longer served. `All records` exits the investigation deliberately.
+
+Keep this lightweight: reuse the cached payload loader, Database table,
+source-record filter, CSV writer and native URL state. No new dependencies,
+endpoints, pipeline changes or payload contracts. Preserve the existing
+layout and identity; only add contextual navigation and compact scope.
+Change attribution and notable-change signals remain later slices.
 
 Local preview artifacts and screenshot-bound observations are gitignored in
 `.gli-preview/flow-sites/`. The recorded choice is B on snapshot
@@ -91,10 +109,22 @@ fixtures (35 sites, two periods, multiple areas, and zero/missing baselines).
 Verified Content/explorer entry, full-list search and paging, preserved
 selection and list scroll, scoped detail/comparison, browser Back, shared URL
 restoration, keyboard focus, mobile layout and explicit API-failure states.
-The existing TypeScript check and nine pure-helper regressions pass.
+The TypeScript check and pure-helper regressions pass.
 Live Databricks data was not exercised. The user authorized regenerating the
 deployment export and publishing the branch; `out/` now includes `content/sites`.
 The user also authorized rebuilding the export for the later compact-header
 refinement; `out/` now includes the contextual title and expanded site list.
 The user then authorized another export for the one-row search and ordering
 controls and the visual selection state; `out/` includes that revision.
+
+The connected-records slice is implemented and exported. Synthetic browser
+fixtures verified exact CSV parity for 64 monthly source rows, a single cached
+Database request across CSV and browsing, namespaced refinements, native Back
+and explicit return (including list scroll), shared links, normal Database
+browsing, empty/invalid/stale-year links, retry and keyboard/mobile behavior.
+Both the new journey and existing Content/Sites regressions passed against the
+actual static export. The 15 pure-helper regressions and structure check pass.
+Compared with the preceding export, referenced Database JavaScript grew by
+3,394 gzip bytes; Content by 795 and Sites by 536. No packages, endpoints,
+pipeline or payload contracts were added or changed. Live Databricks data
+was not exercised.

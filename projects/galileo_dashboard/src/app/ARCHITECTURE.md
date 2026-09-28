@@ -7,7 +7,8 @@ shell `(app)/layout.tsx`, and the routes `content`, `content/sites`, `coverage`,
 
 **Interfaces:** each route renders inside the `GalileoData` gate from
 `src/data`. Only `content` and its `content/sites` drill request `site_analysis`; only `database`
-loads `db.json`, lazily.
+loads `db.json` for browsing, lazily. An explicit CSV action in `content/sites`
+can also load it; both reuse the memoized payload.
 
 **Constraints:**
 - Static export (`output: "export"`, `basePath: /galileo`, trailing slash):
@@ -18,7 +19,14 @@ loads `db.json`, lazily.
 
 `content/sites` is the dedicated flow site workspace (the Content tab remains
 active). It validates the flow, market, canonical area and period in the URL,
-then reads existing scoped site metrics. It does not load raw Database records.
+then reads existing scoped site metrics. Raw records load only for an explicit
+CSV action; `View records` opens the existing Database route instead.
 `q`, `sort`, `page`, `site`, repeated `selected`, and `compare=1` preserve the
 working state. Detail/comparison navigation adds browser-history entries;
 search, sorting, pagination and selection replace the current entry.
+
+`database` receives Content's small reporting metadata plus its existing
+column/filter config. `records=sites` opts into the selected-site source scope;
+the link includes the reporting year and current/prior YTD end month.
+Database refinements use `db-q`, `db-<filter key>` and `db-page`, preserving
+the original Sites parameters for return navigation and shared links.

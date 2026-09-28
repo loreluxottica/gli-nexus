@@ -60,11 +60,28 @@ shown.
 Download CSV exports the selected sites as Database source rows: same columns
 and monthly grain, limited to the active flow, area, market and YTD months.
 Search and paging do not change the file. The database payload loads on click.
+`View records` navigates to the existing Database view with that same scope.
+The list remembers one scroll position in module memory, keyed by scope,
+search, ordering and page, so a Database round trip restores the list without
+storing record data or writing transient coordinates into the URL.
+
+`DatabaseView` reuses the same source-row filter and CSV writer for
+`records=sites` links. Its search, filters and page live in namespaced `db-*`
+URL parameters; `Back to sites` removes only those refinements and the records
+marker. The header shows flow, area, market, both reporting years and selected
+sites; unrelated mapping/tutorial content stays on the ordinary Database view.
+`All records` deliberately exits the fixed selection. Normal Database links
+continue to browse all records in the chosen area, with URL-backed filters.
+Area changes clear Database pagination. Invalid investigation/filter links,
+empty scopes and failed record loads are explicit; failed loads can retry
+through the existing memoized loader. Scope filtering is memoized separately
+from search/pagination, and browsing does not request site-analysis data.
 
 The URL owns scope and working state; native History updates integrate with
 Next's search params without fetching on every keystroke. The left pane stays
 mounted while detail/comparison changes. Explicit detail actions move focus
-to the right pane (and bring it into view on phones); returning focuses search.
+to the right pane (and bring it into view on phones); returning from detail
+focuses search.
 Names absent in a changed scope remain explicitly unavailable, not zero.
 Site detail uses `flow_site_metrics`, never the general `sites` summary.
 Comments' general site-mention summary remains separate and unchanged.

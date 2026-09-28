@@ -6,14 +6,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getContent } from "@/data/content";
 import { getSiteAnalysis } from "@/data/siteAnalysis";
 import { loadPayload } from "@/data/api";
-import { areaLabel, isGeoArea } from "@/data/geo";
+import { areaLabel } from "@/data/geo";
 import type { ContentRow, CurrentView, DbRow, MetricCell } from "@/data/types";
 import { Button } from "@/components/ui/Button";
 import { PeriodSelect } from "./PeriodSelect";
 import { contentRowLabel } from "@/lib/products";
 import { fmtCompact, fmtDeltaCompact, fmtInt, fmtPct, fmtPctSigned, fmtRatio, sign } from "@/lib/format";
 import {
-  contentScopeHref, databaseCsv, flowSites, flowTotals, isSiteSort, scopedSourceRecords, SITE_SORTS, visibleFlowSites,
+  contentScopeHref, databaseCsv, flowRecordsHref, flowSites, flowTotals, isSiteSort,
+  resolveFlowScope, scopedSourceRecords, SITE_SORTS, visibleFlowSites,
   type FlowScope, type FlowSite, type SiteMetric, type SiteMetricKey,
 } from "@/lib/flowSites";
 import styles from "./FlowSitesView.module.css";
@@ -24,6 +25,7 @@ const METRICS: { key: SiteMetricKey; label: string }[] = [
   { key: "efficiency", label: "Pcs/ship" },
 ];
 const PAGE_SIZE = 25;
+let listPosition: { key: string; top: number } | null = null;
 
 function value(value: number | null | undefined, key: SiteMetricKey): string {
   // Zero pieces with positive shipments is a measured ratio of zero.
@@ -46,29 +48,9 @@ function ScopeError({ message }: { message: string }) {
 export function FlowSitesView() {
   const params = useSearchParams();
   const view = getContent().current_view;
-  const area = params.get("area") ?? "ALL";
-  const market = params.get("market") ?? "REP";
-  const rawPeriod = params.get("period");
-  const period = rawPeriod == null ? Number(view.period_number) : Number(rawPeriod);
-  const flow = params.get("flow") ?? "";
-  const index = view.rows.findIndex((row) => `${row.category}|${row.sub_category}` === flow);
-  if (params.get("acct") === "1") return <ScopeError message="Site exploration is available for geographical areas, not the International accounting perimeter." />;
-  if (!isGeoArea(area)) return <ScopeError message="The link contains an unknown geographical area." />;
-  if (market !== "REP" && market !== "LM") return <ScopeError message="The link contains an unknown market. Choose REP or LM from Content." />;
-  if (!Number.isInteger(period) || period < 1 ||
-      (period !== Number(view.period_number) && !view.period_options.some((option) => option.n === period))) {
-    return <ScopeError message="The link contains an unavailable reporting period." />;
-  }
-  if (index < 0) return <ScopeError message="Choose a valid flow using View sites on Content." />;
-  const snapshot = view.periods[String(period)];
-  if (period !== Number(view.period_number) && !snapshot?.rows[index]) {
-    return <ScopeError message="The flow totals are unavailable for this reporting period." />;
-  }
-  const row = view.rows[index];
-  const geo = period === Number(view.period_number) ? row.geo_data : snapshot.rows[index].geo_data;
-  const scope: FlowScope = { flow, area, market, period };
-  return <SiteWorkspace key={`${flow}|${area}|${market}|${period}`}
-    scope={scope} row={row} cell={geo[area] ?? null} view={view} />;
+  const resolved = resolveFlowScope(params, view);
+  if ("error" in resolved) return <ScopeError message={resolved.error} />;
+  return <SiteWorkspace key={JSON.stringify(resolved.scope)} {...resolved} view={view} />;
 }
 
 function SiteWorkspace({ scope, row, cell, view }: {
@@ -100,6 +82,7 @@ function SiteWorkspace({ scope, row, cell, view }: {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rawPage = Number(params.get("page") ?? "1");
   const page = Number.isInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, pageCount) : 1;
+  const listKey = JSON.stringify([scope, view.year, search, sort, page]);
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const active = requestedSite ? byName.get(requestedSite) : pageRows[0];
   const label = contentRowLabel(row, scope.area);
@@ -159,8 +142,8 @@ function SiteWorkspace({ scope, row, cell, view }: {
     }
   }, [requestedSite, comparing]);
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = 0;
-  }, [search, sort, page]);
+    if (listRef.current) listRef.current.scrollTop = listPosition?.key === listKey ? listPosition.top : 0;
+  }, [listKey]);
 
   const downloadCsv = async () => {
     if (!selected.length || exporting) return;
@@ -234,7 +217,8 @@ function SiteWorkspace({ scope, row, cell, view }: {
             </span>
           </div>
           <div className={styles.listFrame}>
-            <div className={styles.listScroll} ref={listRef}>
+            <div className={styles.listScroll} ref={listRef}
+              onScroll={(event) => { listPosition = { key: listKey, top: event.currentTarget.scrollTop }; }}>
               <table className={styles.listTable}>
                 <caption className="sr-only">{scopedLabel}. Select sites for comparison or open a site for detail.</caption>
                 <thead><tr><th scope="col" className={styles.checkCol}><span className="sr-only">Select</span></th>
@@ -266,6 +250,8 @@ function SiteWorkspace({ scope, row, cell, view }: {
             <div className={styles.selection} data-active={selected.length > 0 ? "true" : undefined}>
               <strong className={styles.selectionCount} role="status"><span className={styles.selectionBadge}>{selected.length}</span> selected</strong>
               <Button disabled={!selected.length} onClick={() => update({ selected: [], compare: null })}>Clear</Button>
+              {selected.length > 0 && <Link className={styles.recordsLink}
+                href={flowRecordsHref(params.toString(), scope, year)}>View records</Link>}
               <Button disabled={!selected.length || exporting} aria-busy={exporting || undefined}
                 aria-label={`Download CSV of ${selected.length} selected sites`} onClick={() => { void downloadCsv(); }}>
                 {exporting ? "Downloading" : "Download CSV"}
