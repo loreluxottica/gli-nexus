@@ -5,7 +5,8 @@ with gate, single-product view, detail cards and launcher dialog. No build step.
 
 **Interfaces:**
 - Served by `app.py` routes `/`, `/css/*`, `/js/*`, `/assets/*` and
-  `/GLI-Branding/*` (kept one compatibility cycle for cached pages).
+  `/GLI-Branding/*` (the eleven legacy URLs alias canonical assets, without
+  keeping a second copy on disk).
 - Reads `/api/my-access` (`js/access.js`) to open or restrict each product.
 - Product roster: `js/worlds-data.js` (`NEXUS_WORLDS`: link and access project
   key). Detail cards: `js/detail-data.js` (`NEXUS_DETAILS`).
@@ -17,7 +18,10 @@ with gate, single-product view, detail cards and launcher dialog. No build step.
 - Keep the script load order in `index.html`; design tokens live only in
   `css/tokens.css`.
 - `tests/test_portal.py` requires every local asset referenced by
-  `index.html` to exist.
+  `index.html` to exist and prevents duplicate image/font copies.
+- Published screenshots and fonts live only in `assets/`. `Project Details/`
+  retains original intakes and distinct source captures, not copies of the
+  published screenshots.
 - Fonts today: Avenir LT Std for UI and display, IBM Plex Mono for data. The
   EssilorLuxottica endorsement is in the shell.
 

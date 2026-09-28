@@ -18,6 +18,9 @@ Databricks notebook, plus the Flags Excel download.
 - A notebook run refreshes the page with no redeploy.
 
 **Known gap:** `publish_to_nexus.py` still appends to the `laplace_report`
-table, while `server.py` reads the volume, and the root `README.md` still
-describes the table. Confirm which one the notebook uses before changing
-either.
+table, while `server.py` reads the volume. The root README describes the reader,
+not a verified notebook publish procedure. Confirm which path the notebook
+uses before changing either; the reference publisher is not a current runbook.
+
+**Regression checks:** `tests/test_project_routes.py` covers both project gates,
+unavailable data, full/fragment reports, volume selection and exact download bytes.

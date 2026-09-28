@@ -1,6 +1,5 @@
+-r ../../shared/requirements.txt
 dash>=2.16
 plotly>=5.20
 pandas>=2.0
 requests>=2.28
-databricks-sql-connector>=3.7,<4
-databricks-sdk>=0.38

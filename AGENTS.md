@@ -22,10 +22,14 @@ Real data locally needs a Databricks CLI profile and a SQL warehouse id
 ## Verify
 | Check | make | Direct command |
 |---|---|---|
-| Lint (Galileo typecheck) | `make lint` | `npm --prefix projects/galileo_dashboard run typecheck` |
+| Lint (Galileo typecheck + unused symbols) | `make lint` | `npm --prefix projects/galileo_dashboard run typecheck` |
 | Tests | `make test` | `python -m unittest discover -s tests` |
 | Repo structure | `make structure` | `node scripts/check-structure.mjs --module-root . --module-root projects --module-root projects/galileo_dashboard/src` |
 | Everything | `make check` | the three rows above |
+
+Run these checks locally before publishing; GitHub Actions CI is deferred.
+Python packages shared across projects live in `shared/requirements.txt`.
+Tests also require Git and the documented Node setup.
 
 A Galileo UI change reaches production only when `npm run build` in
 `projects/galileo_dashboard` regenerates the committed `out/`: Databricks Apps
@@ -58,6 +62,6 @@ does not build Node. Run it only for a change that is authorized to ship.
 - `projects/galileo_dashboard/ARCHITECTURE.md` and `CONSTRAINTS.md` — Galileo Observatory
 - `projects/galileo_dashboard/src/{app,components,data,lib}/ARCHITECTURE.md` — Galileo frontend
 - `projects/laplace_dashboard/ARCHITECTURE.md` — Laplace Pipeline Monitor
-- `tests/` — portal and Galileo contract regression tests (unittest)
+- `tests/` — portal/project routes, Kelly caches and Galileo contracts (unittest)
 - `scripts/check-structure.mjs` — vendored structure check; re-copy from the GLI skill, never edit
 - `PROGRESS.md` — done, in progress, blocked

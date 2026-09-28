@@ -1,6 +1,6 @@
 """Cortana Usage Monitor — Flask blueprint.
 
-Renders cortana.html (a Python str.format template) server-side with data
+Renders cortana.html (__TOKEN__ placeholders) server-side with data
 from `sbx-logistics.gli_nexus.cortana_usage`. Access is gated by the
 central GLI Nexus access table (project CORTANA).
 """

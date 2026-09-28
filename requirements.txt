@@ -1,6 +1,5 @@
 # GLI Nexus — root deps (unified server) + all sub-project deps.
-flask>=3.0
-werkzeug>=3.0
+-r shared/requirements.txt
 gunicorn>=21.2
 
 # Sub-projects

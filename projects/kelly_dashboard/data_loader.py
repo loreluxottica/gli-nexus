@@ -1,13 +1,16 @@
 from __future__ import annotations
 import logging
 import os
+import threading
 import pandas as pd
-from kelly_dashboard.warehouses import get_warehouse
+from kelly_dashboard.warehouses import WAREHOUSE_MAP, get_warehouse
 from shared.db import _IDENTIFIER_PART_RE, _sql_connect_kwargs, _sql_http_path
 
 _log = logging.getLogger(__name__)
 
-_cache: dict[str, pd.DataFrame] = {}
+_cache: dict[str, tuple[str, pd.DataFrame]] = {}
+_locks = {warehouse_id: threading.Lock() for warehouse_id in WAREHOUSE_MAP}
+_failed_attempts = dict.fromkeys(WAREHOUSE_MAP, 0)
 
 # A closed facility-day is recorded as 100% absenteeism (or missing). Days at or
 # above this level are treated as non-working (closure), not real absenteeism.
@@ -22,24 +25,35 @@ def load_data(warehouse_id: str) -> pd.DataFrame | None:
     None is never substituted with placeholder data: callers render an explicit
     "data unavailable" state instead of a plausible-looking but invented one.
     """
-    # Key by day so a long-lived process picks up fresh data after midnight
-    cache_key = f"{warehouse_id}:{pd.Timestamp.today():%Y-%m-%d}"
-    if cache_key in _cache:
-        return _cache[cache_key]
-
-    df = _load_delta(warehouse_id)
-    if df is None:
-        # Not cached: a transient warehouse error must not pin the plant to
-        # "unavailable" for the rest of the calendar day.
+    lock = _locks.get(warehouse_id)
+    if lock is None:
+        _log.warning("Unknown Kelly warehouse: %r", warehouse_id)
         return None
 
-    df["ID"] = df["ID"].apply(_fix_encoding)
-    df["Date"] = pd.to_datetime(df["Date"])
-    df["Year"] = df["Date"].dt.year
-    df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
-    df = _add_working_flag(df, warehouse_id)
-    _cache[cache_key] = df
-    return df
+    failed_attempt = _failed_attempts[warehouse_id]
+    # Serialize misses per plant, not across plants; replace yesterday's frame.
+    with lock:
+        today = f"{pd.Timestamp.today():%Y-%m-%d}"
+        cached = _cache.get(warehouse_id)
+        if cached is not None and cached[0] == today:
+            return cached[1]
+        # Waiters share a failed attempt; a later request can retry immediately.
+        if _failed_attempts[warehouse_id] != failed_attempt:
+            return None
+
+        df = _load_delta(warehouse_id)
+        if df is None:
+            # Do not cache failures or display yesterday's data as today's.
+            _failed_attempts[warehouse_id] += 1
+            return None
+
+        df["ID"] = df["ID"].apply(_fix_encoding)
+        df["Date"] = pd.to_datetime(df["Date"])
+        df["Year"] = df["Date"].dt.year
+        df["Week"] = df["Date"].dt.isocalendar().week.astype(int)
+        df = _add_working_flag(df, warehouse_id)
+        _cache[warehouse_id] = (today, df)
+        return df
 
 
 def _add_working_flag(df: pd.DataFrame, warehouse_id: str) -> pd.DataFrame:

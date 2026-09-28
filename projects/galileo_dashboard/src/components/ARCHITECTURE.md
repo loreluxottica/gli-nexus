@@ -9,6 +9,10 @@ page tabs) and `ui/` (shared primitives: Button, Modal, Tag, Tour, ...).
 through the `src/data` getters inside the `GalileoData` gate. They read and
 write lens state through URL params.
 
+Coverage renders the map, efficiency tables and mappings under review. The
+unused `TopSiteCard` component and its exclusive CSS were removed; the existing
+top-site data contract and Content's site exploration remain unchanged.
+
 **Constraints:**
 - Consume the data contract without changing its meaning: REP and LM stay
   separate, `null` stays distinct from `0`, filtering uses canonical geo, and

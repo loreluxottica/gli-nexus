@@ -8,9 +8,8 @@ The **data** is not in the export. It is served from /galileo/api/*.json, built
 on demand from the Unity Catalog tables by data_service.py, so a new month
 reaches the dashboard as soon as the tables are loaded — no rebuild, no commit.
 
-Page navigations and the data API are gated by the central GLI Nexus access
-table (project GALILEO). Static assets (_next/*, images, fonts) are served
-ungated — they are meaningless without the page and keep the SPA loading fast.
+Page navigations, static assets and the data API are gated by the central
+GLI Nexus access table (project GALILEO).
 """
 from __future__ import annotations
 

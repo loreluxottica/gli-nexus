@@ -2,8 +2,8 @@
 
 Runtime-neutral: they read only environment variables and build the kwargs the
 `databricks-sql-connector` needs to reach a SQL warehouse — no project-specific
-knowledge. Every project (auth, Kelly data loading, Cortana/Laplace report
-queries) imports these instead of re-implementing the connection dance.
+knowledge. Auth, Kelly data loading, Cortana and Galileo comments import these
+instead of re-implementing SQL connection setup. Laplace uses the Files API.
 """
 from __future__ import annotations
 import os

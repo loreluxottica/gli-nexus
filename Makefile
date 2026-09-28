@@ -1,7 +1,7 @@
 PYTHON ?= python
 NPM ?= npm
 GALILEO := projects/galileo_dashboard
-BASE ?= emu/main
+BASE ?= origin/main
 MODULE_ROOTS := --module-root . --module-root projects --module-root $(GALILEO)/src
 
 .PHONY: setup dev test lint check structure

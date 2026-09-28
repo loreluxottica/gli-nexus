@@ -17,10 +17,10 @@ produzione finché qualcuno non rifaceva build e commit.
 
 ## 1. Avviare / buildare
 
-Serve Node.js 18+ (consigliato 20).
+Usare Node.js 20 per lo sviluppo e i controlli.
 
 ```bash
-npm install       # una tantum
+npm ci             # installazione riproducibile dal lockfile
 npm run dev        # anteprima locale su http://localhost:3000
 npm run build      # genera la cartella out/ = sito statico pubblicabile ovunque
 ```
@@ -28,6 +28,11 @@ npm run build      # genera la cartella out/ = sito statico pubblicabile ovunque
 `npm run build` produce `out/` con solo **HTML/CSS/JS statici**. Nessun processo
 Node in produzione — ma serve un backend che risponda su `/galileo/api/*.json`
 (il blueprint Flask), perché l'export non contiene più i dati.
+Eseguire la build solo per una pubblicazione frontend esplicitamente
+autorizzata: una pulizia generica non autorizza a rigenerare `out/`.
+Per servire l'export, avviare `python app.py` dalla root della repo;
+`next start` non supporta questa configurazione statica.
+`npm run lint` esegue il typecheck, inclusi simboli e parametri inutilizzati.
 
 In sviluppo locale `next dev` gira su :3000 mentre l'API sta sull'app Flask
 (:8000). `output: "export"` esclude le rewrite come proxy, quindi si punta
@@ -63,7 +68,7 @@ scritti a mano.
 | Payload | Come arriva | Contenuto |
 |---------|-------------|-----------|
 | `content.json` (~289 KB) | `GET /galileo/api/content.json` | Payload principale: tabella Content (volumi per prodotto/area, YoY), pagina Coverage, config della pagina Database, drill Export Labs. |
-| `db.json` (~1,1 MB) | `GET /galileo/api/db.json` | Record di spedizione (~12.000 righe) come tuple posizionali a 11 colonne. Scaricato solo entrando su `/database`. |
+| `db.json` (~1,1 MB) | `GET /galileo/api/db.json` | Record di spedizione (~12.000 righe) come tuple posizionali a 11 colonne. Caricato dal Database o da un download CSV esplicito in Sites; la cache è condivisa. |
 | `content_trends.json` (~16 KB) | `GET /galileo/api/content_trends.json` | Serie mensili per gli sparkline di Content V2. |
 | `site_analysis.json` (~279 KB) | `GET /galileo/api/site_analysis.json` | Riepiloghi per impianto. Scaricato solo dalla rotta Content. |
 | `content_comments.json` (~1 KB) | `import` da `src/data/` | Commenti KPI pubblicati. **Scritto a mano**, non deriva dai dati. |

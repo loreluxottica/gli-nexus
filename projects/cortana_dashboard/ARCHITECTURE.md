@@ -15,5 +15,5 @@
 - Every placeholder in `cortana.html` must have a value in `_render()`;
   user-facing values are HTML-escaped before they are inserted.
 
-**Known gap:** the `server.py` docstring and the root `README.md` still call
-`cortana.html` a `str.format` template.
+**Regression checks:** `tests/test_project_routes.py` covers the project gate,
+unavailable data, KPI totals, chart series and placeholder replacement.

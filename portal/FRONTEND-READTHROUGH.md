@@ -33,6 +33,11 @@ Nexus is **one HTML page, three stacked experiences**, not three routes.
 | `js/access.js` → `NexusAccess` | which project keys the user may open |
 | Intake forms in `Project Details/<Product>/` | Official copy + screenshots for real cards |
 
+Published screenshots have one canonical copy in `portal/assets/details/`;
+`Project Details/` retains the original intake documents and distinct source
+captures. Fonts likewise live only in `portal/assets/fonts/`. Legacy branding
+URLs are aliases in `app.py`, not a second asset directory.
+
 **Script load order** (from `index.html` — keep this order if you add scripts):
 
 ```
@@ -244,7 +249,8 @@ point of the split, one product ships a 5 MB PNG.
 
 ### Content rules
 
-1. **Source of truth** for real products: `Project Details/<Name>/` intake + screenshots.  
+1. **Source of truth** for real products: intakes in `Project Details/<Name>/`;
+   published screenshots in `portal/assets/details/<id>/`.
 2. Map form fields → `NEXUS_DETAILS[id]` (see `detail-data.js` header comment).
    `problem`, `answer` and `fitFor` are the three long blocks and accept `<b>`
    on the phrases that carry the sentence — two or three anchors per field, so
@@ -273,7 +279,7 @@ If intake checklist is unsigned, keep README/detail header note that content is 
 
 Minimal path to a complete portal presence:
 
-1. **Logo** → `portal/assets/gli-<id>.png` (and branding folder if required).  
+1. **Logo** → `portal/assets/gli-<id>.png` (one copy; old URLs use explicit aliases).
 2. **Roster** → entry in `NEXUS_WORLDS` (`id`, category, accents, `backgroundType`, `link`, `project`).  
 3. **Background** → ensure `worlds-bg.js` supports `backgroundType` (reuse an existing type if possible).  
 4. **Detail** (optional but expected for launch) → `NEXUS_DETAILS[id]` + shots.  

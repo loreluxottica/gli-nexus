@@ -1,30 +1,23 @@
 # Progress
 
 ## Done
-- 2026-09-28 Galileo Sites selection: footer reduced to count, Clear and Compare; the Manage selected sites disclosure removed. Records and CSV remain available through a contextual Selected data menu by the period, with their scope and error feedback preserved. `out/` rebuilt.
-- 2026-09-28 Galileo Content entry: geographical Category names link to scoped sites with a persistent arrow instead of a second `View sites` line; 44px target, keyboard focus, Export Labs expansion and Accounting behavior preserved. `out/` rebuilt.
-- 2026-09-28 Galileo Content table: wider responsive Category and Sub-category columns reclaim unused space beside monthly trends; 112px plot minimum and narrow-screen scrolling retained. `out/` rebuilt.
-- 2026-09-25 Galileo connected investigation: `View records` opens selected sites in the existing Database with the CSV's exact scope; namespaced filters and return navigation preserve the site workspace. Reuses the cache, table and helpers; no new dependencies or backend changes. `out/` rebuilt and browser journeys verified with synthetic records.
-- 2026-09-25 Galileo Sites CSV: selected sites download as Database source rows, same columns and monthly grain, scoped to the active flow, area, market and YTD months. Authorized `out/` rebuild completed.
-- 2026-09-25 Galileo Sites panes: left list bottom aligned with the detail pane; scope note removed. Authorized `out/` rebuild completed.
-- 2026-09-25 Galileo Sites controls: search and ordering share one row; the selection sentence is replaced by a count badge, row tint and filtered count. Authorized `out/` rebuild completed.
-- 2026-09-25 Galileo Sites header: area, market, category and sub-category combined in the title; context subtitle and flow-total strip removed, with the recovered height assigned to the site list. Period controls and scoped calculations preserved; authorized `out/` rebuild completed.
-- 2026-09-25 Galileo Content sites: approved layout B implemented at `content/sites`, with all-site search, size/change sorting, scoped detail, persistent selection and side-by-side comparison. Existing data contracts unchanged; source verified with synthetic browser fixtures and helper regressions.
-- 2026-09-24 Galileo Content: Pieces, Shipments and Pcs/ship side by side; Metric toggle and Coverage column removed; `out/` rebuilt.
-- 2026-09-24 Repo structure: `AGENTS.md` entry, a doc in every module, `PROGRESS.md`, `Makefile`, vendored `scripts/check-structure.mjs`.
-- 2026-09-25 Galileo shared comments: API, Delta-table store, `CommentPanel` on the server, 12 tests (branch `fix/comments`).
-- 2026-09-25 Galileo metric explorer: trend chart at real width, "Where the change comes from" area list on one shared scale, phone layout (PR #20).
-- 2026-09-25 Galileo Content table: fixed column widths and row heights, so REP ↔ LM no longer shifts the layout; narrower Sub-category, wider trends (PR #21).
-- 2026-09-25 Galileo `out/` rebuilt on `fix/finetuning` (PR #21): ships shared comments, metric explorer and the Content table layout.
-- 2026-09-25 Galileo Content, EMEA: the GV row shows as `GV · Frames, Contact Lenses, Lenses` (label only; the `Frames|GV Frames*` key and data are unchanged); `out/` rebuilt (branch `tune/emea`).
+- 2026-09-28 Cleanup verified locally: 74 unittest cases, frontend typecheck, unified/standalone dependency dry-runs, pip check and structure check pass. Checkout reduced from 364 to 332 files (about 30% smaller); protected Galileo paths and access-control implementation unchanged.
+- 2026-09-28 Asset consolidation: removed 33 byte-identical image/font copies and the redundant font ZIP (6,323,220 bytes). Canonical assets, unique intake material and all eleven legacy branding URLs preserved.
+- 2026-09-28 Kelly caches: one daily forecast frame per plant, concurrent misses coalesced per plant, unavailable data still retryable; holiday failures logged with a 30-second retry window instead of a permanent empty calendar.
+- 2026-09-28 Source cleanup: removed the unreferenced Coverage TopSiteCard and exclusive CSS; optional roadmap and compatibility routes retained. Galileo pipeline, data contracts, payloads and deployment export unchanged.
+- 2026-09-28 Tooling: shared Python requirements declared once with version ranges unchanged; TypeScript unused-symbol checks and lint alias enabled. GitHub Actions CI deferred at the user's request; all local regressions, typecheck and Makefile checks retained.
+- 2026-09-28 Docs aligned with runtime data loading, gated Galileo assets, Kelly navigation and Laplace volume reads. Historical implementation notes consolidated here; module contracts remain next to code.
+- 2026-09-28 Galileo Content/Sites and connected Database investigation merged into main, with scoped search/comparison, CSV, return navigation, compact controls and responsive table. Existing approved export retained; product brief and synthetic browser evidence in `.gli/brief.md`.
+- 2026-09-25 Galileo shared comments and metric explorer implemented and exported; comments require the deployment grant below.
+- 2026-09-24 Repo entry, module docs, Makefile and vendored structure checker established.
 
 ## In progress
-- Branch `revolution/content`: connected records slice ready for review and merge. Live Databricks data not exercised locally. Brief: `.gli/brief.md`.
+- None. Cleanup on `clean/light` is ready for review; no production deployment performed.
 
 ## Blocked
 - Galileo comments table: run `projects/galileo_dashboard/comments_table.sql` and grant the app service principal before deploying; until then the panel says shared comments are unavailable.
 - Python lint: no linter configured, so `make lint` only type-checks Galileo. Unblocks when the team picks a tool and adds it to the dev requirements.
 - Product brief: Galileo site-exploration job and outcome confirmed in `.gli/brief.md`; broader product audiences and organizational roles remain unconfirmed.
 - GLI fonts: portal and Kelly use Avenir LT Std, Galileo Schibsted Grotesk and Spline Sans Mono, not Geist / Sora / IBM Plex Mono. Needs an explicit design task.
-- Stale docs: root `README.md` says Galileo data is baked at build time, Laplace reads a table and Cortana uses `str.format`; the code no longer does. Needs a doc update pass.
 - Laplace publish path: `publish_to_nexus.py` writes the `laplace_report` table, `server.py` reads a volume. Needs the notebook owner to confirm the live path.
+- Live Databricks and internal-network journeys require staging access. Local checks use synthetic sources and do not establish production service availability.
