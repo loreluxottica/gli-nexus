@@ -1,6 +1,7 @@
 # Progress
 
 ## Done
+- 2026-09-28 Galileo Content table: wider responsive Category and Sub-category columns reclaim unused space beside monthly trends; 112px plot minimum and narrow-screen scrolling retained. `out/` rebuilt.
 - 2026-09-25 Galileo connected investigation: `View records` opens selected sites in the existing Database with the CSV's exact scope; namespaced filters and return navigation preserve the site workspace. Reuses the cache, table and helpers; no new dependencies or backend changes. `out/` rebuilt and browser journeys verified with synthetic records.
 - 2026-09-25 Galileo Sites CSV: selected sites download as Database source rows, same columns and monthly grain, scoped to the active flow, area, market and YTD months. Authorized `out/` rebuild completed.
 - 2026-09-25 Galileo Sites panes: left list bottom aligned with the detail pane; scope note removed. Authorized `out/` rebuild completed.

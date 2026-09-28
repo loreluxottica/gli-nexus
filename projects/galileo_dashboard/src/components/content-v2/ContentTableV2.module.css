@@ -32,10 +32,15 @@
   table-layout: fixed;
   font-size: 13px;
 }
-.withTrend { min-width: 952px; } /* + two sparklines at their minimum */
+.withTrend {
+  --category-width: clamp(112px, 13vw, 184px);
+  --subcategory-width: clamp(184px, 20vw, 280px);
+  /* Three 128px values and two 112px plots with 12px padding on each side. */
+  min-width: calc(var(--category-width) + var(--subcategory-width) + 656px);
+}
 
-.colCat { width: 112px; }
-.colSub { width: 184px; }
+.colCat { width: var(--category-width, 112px); }
+.colSub { width: var(--subcategory-width, 184px); }
 .colVal { width: 128px; }
 .table th,
 .table td {

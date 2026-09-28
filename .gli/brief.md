@@ -44,6 +44,11 @@ Preserve the incumbent Galileo daylight palette, Schibsted Grotesk UI,
 Spline Sans Mono data, and EssilorLuxottica shell. This is a feature
 extension, not a font migration or rebrand.
 
+The Content table's two monthly trends should not sit in large empty columns:
+on wider screens, give Category and Sub-category more width while keeping
+both trends legible, the current row hierarchy and the existing horizontal
+scroll behavior on narrow screens. This is a layout-only refinement.
+
 The user selected **B: list and detail** after inspecting three
 medium-fidelity layouts with the same synthetic data and scope.
 The left search/list pane stays mounted while the right pane switches

@@ -26,10 +26,12 @@ one scale; on phones the bar column drops and the printed change remains.
 
 The Content table has fixed column widths (`table-layout: fixed` and a
 `<colgroup>`), so switching market or area never moves a column: the labels
-are sized to the longest name and the trend columns take the rest, with
-sparklines filling them between 112 and 220px. Rows keep one height too:
-empty cells match a figure's height and the LM-only flow pill sits under its
-site name.
+grow with the viewport only when trend columns are shown (Category 112–184px,
+Sub-category 184–280px). The minimum table width reserves both 112px charts
+plus cell padding; sparklines otherwise fill their remaining width up to
+220px. The accounting table keeps its existing label widths. Rows keep one
+height too: empty cells match a figure's height and the LM-only flow pill
+sits under its site name.
 
 The explorer's `CommentPanel` reads and writes the shared comments API for its
 flow and market. A region view shows and saves only that region's comments;
