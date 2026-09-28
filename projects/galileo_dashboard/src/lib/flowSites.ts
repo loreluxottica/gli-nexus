@@ -46,7 +46,7 @@ export function resolveFlowScope(
     return { error: "The link contains an unavailable reporting period." };
   }
   const index = view.rows.findIndex((row) => `${row.category}|${row.sub_category}` === flow);
-  if (index < 0) return { error: "Choose a valid flow using View sites on Content." };
+  if (index < 0) return { error: "Choose a valid flow from the Content table." };
   const row = view.rows[index];
   const snapshot = view.periods[String(period)];
   if (period !== Number(view.period_number) && !snapshot?.rows[index]) {

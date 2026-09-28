@@ -307,7 +307,25 @@ export function ContentTableV2({
                   onClick={isExportLabs ? () => toggle(rowKey) : undefined}
                 >
                   <td className={styles.cat}>
-                    {showIntlRules ? (
+                    {dim === "geo" && isGeoArea(area) && months != null ? (
+                      <Link
+                        className={styles.sitesLink}
+                        href={flowSitesHref({ flow: rowKey, area, market, period: months })}
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label={`View sites for ${label.category} ${label.sub_category}, ${market}`}
+                      >
+                        <span>{label.category}</span>
+                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path
+                            d="M3.5 12.5 12 4M5.5 4H12v6.5"
+                            stroke="currentColor"
+                            strokeWidth="1.7"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Link>
+                    ) : showIntlRules ? (
                       <button
                         type="button"
                         className={styles.intlHit}
@@ -326,16 +344,6 @@ export function ContentTableV2({
                       </button>
                     ) : (
                       label.category
-                    )}
-                    {dim === "geo" && isGeoArea(area) && months != null && (
-                      <Link
-                        className={styles.sitesLink}
-                        href={flowSitesHref({ flow: rowKey, area, market, period: months })}
-                        onClick={(event) => event.stopPropagation()}
-                        aria-label={`View sites for ${label.category} ${label.sub_category}, ${market}`}
-                      >
-                        View sites
-                      </Link>
                     )}
                   </td>
                   <td className={styles.sub}>

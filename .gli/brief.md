@@ -7,7 +7,7 @@ and deeper exploration beyond the top-three drivers. Selected sites can be
 compared side by side; combining them into a new total is not requested.
 
 The user approved a dedicated, full-width flow site view, reachable through
-`View sites` on Content and `View all sites` in the existing metric explorer.
+Content rows and `View all sites` in the existing metric explorer.
 It is part of Content, not a new unrelated primary-navigation section.
 
 ## Required behavior
@@ -48,6 +48,12 @@ The Content table's two monthly trends should not sit in large empty columns:
 on wider screens, give Category and Sub-category more width while keeping
 both trends legible, the current row hierarchy and the existing horizontal
 scroll behavior on narrow screens. This is a layout-only refinement.
+
+Content's geographical rows should not repeat `View sites` beneath every
+Category. Link the Category name itself, with a persistent arrow and a
+contextual accessible name, keeping the scoped destination and native link
+navigation. Do not turn the whole row into a link: the Export Labs expansion
+and metric explanations remain distinct actions. Accounting has no site link.
 
 The user selected **B: list and detail** after inspecting three
 medium-fidelity layouts with the same synthetic data and scope.

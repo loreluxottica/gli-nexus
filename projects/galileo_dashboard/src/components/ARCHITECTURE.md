@@ -41,8 +41,13 @@ seed comments from
 old browser-only version can be published or discarded.
 
 `FlowSitesView` implements the approved list-and-detail layout at
-`content/sites`. Content rows expose `View sites`; explorer summaries expose
-`View all sites`, and driver names open the same workspace at that site.
+`content/sites`. Geographical Content rows link their Category names to the
+scoped site workspace, with a persistent arrow and contextual accessible
+name instead of a second line of actions. The Export Labs sub-category
+still expands independently; Accounting rows have no site link. Explorer
+summaries expose `View all sites`, and driver names open the same workspace
+at that site.
+
 The left list supports search across all contributors, size/absolute-change
 ordering, 25-site pagination and persistent multi-selection. The right pane
 shows either scoped site metrics or a horizontally scrollable comparison.
