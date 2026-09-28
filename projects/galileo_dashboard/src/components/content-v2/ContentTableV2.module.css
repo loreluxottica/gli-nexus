@@ -32,10 +32,15 @@
   table-layout: fixed;
   font-size: 13px;
 }
-.withTrend { min-width: 952px; } /* + two sparklines at their minimum */
+.withTrend {
+  --category-width: clamp(112px, 13vw, 184px);
+  --subcategory-width: clamp(184px, 20vw, 280px);
+  /* Three 128px values and two 112px plots with 12px padding on each side. */
+  min-width: calc(var(--category-width) + var(--subcategory-width) + 656px);
+}
 
-.colCat { width: 112px; }
-.colSub { width: 184px; }
+.colCat { width: var(--category-width, 112px); }
+.colSub { width: var(--subcategory-width, 184px); }
 .colVal { width: 128px; }
 .table th,
 .table td {
@@ -130,6 +135,38 @@
 }
 
 .cat { font-weight: 600; }
+.withTrend .cat { padding-right: 8px; }
+.sitesLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+}
+.sitesLink span {
+  min-width: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.sitesLink svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: var(--accent-deep);
+}
+.sitesLink:hover,
+.sitesLink:focus-visible { color: var(--accent-deep); }
+.sitesLink:hover span,
+.sitesLink:focus-visible span { text-decoration-color: currentColor; }
+.sitesLink:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
 .muted { color: var(--ink-faint); font-size: 12px; }
 
 /* Accounting · Frames: open International plant rules (coverage-style ?). */

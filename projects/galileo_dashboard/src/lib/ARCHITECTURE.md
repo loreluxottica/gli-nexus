@@ -8,6 +8,21 @@ Content row label: EMEA shows `Frames · GV Frames*` as
 `GV · Frames, Contact Lenses, Lenses`), `features.ts` (build-time
 feature switches).
 
+`flowSites.ts` reads the existing period/flow/canonical-area site tuples,
+selects only the requested market, validates tuple shape, and derives
+nullable ratios and current/prior comparisons. It also owns non-mutating
+search/ranking, links between Content and the site workspace, and the
+source-record filter for the Database-format CSV. That filter keeps monthly
+rows for the selected sites, flow, area, market and YTD months. It does not
+aggregate selected sites, infer missing periods or fall back to Global.
+`resolveFlowScope` validates the shared Sites/Database scope against Content;
+`flowRecordsScope` additionally requires an explicit selected-site drill and
+the served reporting year. Link helpers preserve the site working state while
+removing Database-only `db-*` refinements on return. Both browsing and CSV
+consume `scopedSourceRecords` and the same CSV writer.
+Its regression tests run through `python -m unittest discover -s tests`
+using the existing Galileo TypeScript compiler and Node.
+
 **Interfaces:** imported by components and routes; no data fetching and no
 side effects.
 

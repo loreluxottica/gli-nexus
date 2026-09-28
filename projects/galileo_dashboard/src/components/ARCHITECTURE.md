@@ -26,10 +26,12 @@ one scale; on phones the bar column drops and the printed change remains.
 
 The Content table has fixed column widths (`table-layout: fixed` and a
 `<colgroup>`), so switching market or area never moves a column: the labels
-are sized to the longest name and the trend columns take the rest, with
-sparklines filling them between 112 and 220px. Rows keep one height too:
-empty cells match a figure's height and the LM-only flow pill sits under its
-site name.
+grow with the viewport only when trend columns are shown (Category 112–184px,
+Sub-category 184–280px). The minimum table width reserves both 112px charts
+plus cell padding; sparklines otherwise fill their remaining width up to
+220px. The accounting table keeps its existing label widths. Rows keep one
+height too: empty cells match a figure's height and the LM-only flow pill
+sits under its site name.
 
 The explorer's `CommentPanel` reads and writes the shared comments API for its
 flow and market. A region view shows and saves only that region's comments;
@@ -37,3 +39,60 @@ Global shows every area and saves as Global. Author is the signed-in user;
 seed comments from
 `content_comments.json` show read-only; drafts left in `localStorage` by the
 old browser-only version can be published or discarded.
+
+`FlowSitesView` implements the approved list-and-detail layout at
+`content/sites`. Geographical Content rows link their Category names to the
+scoped site workspace, with a persistent arrow and contextual accessible
+name instead of a second line of actions. The Export Labs sub-category
+still expands independently; Accounting rows have no site link. Explorer
+summaries expose `View all sites`, and driver names open the same workspace
+at that site.
+
+The left list supports search across all contributors, size/absolute-change
+ordering, 25-site pagination and persistent multi-selection. The right pane
+shows either scoped site metrics or a horizontally scrollable comparison.
+On desktop its position stays below the shared shell while scrolling, and
+the list height adapts to the viewport.
+Comparison never sums selected sites, and search never changes flow totals.
+The workspace header combines area, market, category and sub-category in one
+title. There is no subtitle or flow-total strip; the period control remains
+available and the reclaimed height is assigned to the site list. Flow totals
+still provide the denominator for the selected site's contribution.
+Search and ordering share one control row. Selection is a count badge plus
+row tint, not an explanatory sentence; the count stays visible while a search
+hides unselected rows. A filtered count uses the accent; YoY stays color.
+The selection strip holds only Clear and Compare; individual sites can still
+be deselected in the list or comparison. A contextual Selected data disclosure
+beside the period and Copy view link offers View records and Download CSV
+for the current selection without adding actions to the list footer.
+On desktop the site list and detail panes share one height, so their bottoms
+align; the list scrolls inside that height. The site-detail scope note is not
+shown.
+Download CSV exports the selected sites as Database source rows: same columns
+and monthly grain, limited to the active flow, area, market and YTD months.
+Search and paging do not change the file. The database payload loads on click.
+`View records` navigates to the existing Database view with that same scope.
+The list remembers one scroll position in module memory, keyed by scope,
+search, ordering and page, so a Database round trip restores the list without
+storing record data or writing transient coordinates into the URL.
+
+`DatabaseView` reuses the same source-row filter and CSV writer for
+`records=sites` links. Its search, filters and page live in namespaced `db-*`
+URL parameters; `Back to sites` removes only those refinements and the records
+marker. The header shows flow, area, market, both reporting years and selected
+sites; unrelated mapping/tutorial content stays on the ordinary Database view.
+`All records` deliberately exits the fixed selection. Normal Database links
+continue to browse all records in the chosen area, with URL-backed filters.
+Area changes clear Database pagination. Invalid investigation/filter links,
+empty scopes and failed record loads are explicit; failed loads can retry
+through the existing memoized loader. Scope filtering is memoized separately
+from search/pagination, and browsing does not request site-analysis data.
+
+The URL owns scope and working state; native History updates integrate with
+Next's search params without fetching on every keystroke. The left pane stays
+mounted while detail/comparison changes. Explicit detail actions move focus
+to the right pane (and bring it into view on phones); returning from detail
+focuses search.
+Names absent in a changed scope remain explicitly unavailable, not zero.
+Site detail uses `flow_site_metrics`, never the general `sites` summary.
+Comments' general site-mention summary remains separate and unchanged.

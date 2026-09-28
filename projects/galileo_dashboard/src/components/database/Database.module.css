@@ -33,6 +33,36 @@
   font-style: normal;
   font-weight: 600;
 }
+.scopeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: flex-end;
+}
+.scopeActions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent-deep);
+  font-size: 12px;
+  text-underline-offset: 3px;
+}
+.recordScope {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.recordScope strong { color: var(--ink); font-weight: 600; }
+.scopeSites { min-width: 0; font-size: 12px; color: var(--accent-deep); }
+.scopeSites summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
+.scopeSites ul { margin: 0; padding: 0 0 0 18px; max-height: 160px; overflow: auto; }
+.scopeSites li { padding: 4px 0; overflow-wrap: anywhere; color: var(--ink-soft); }
+.recordNotice { padding: 18px 0; color: var(--ink-soft); font-size: 13px; }
+.recordNotice h3 { margin: 0 0 8px; color: var(--ink); font-size: 16px; }
+.recordNotice p { margin: 0 0 14px; }
+.recordNotice a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent-deep); text-underline-offset: 3px; }
+.recordNotice button { min-height: 44px; }
 
 /* Mapping reference (searchable table) */
 .mapping {
@@ -166,6 +196,8 @@
   align-items: flex-end;
   margin-bottom: 16px;
 }
+.controls > * { max-width: 100%; }
+.controls > button { min-height: 44px; }
 .filter {
   display: flex;
   flex-direction: column;

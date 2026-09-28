@@ -1,12 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useMemo, useState, useDeferredValue } from "react";
 import { useSearchParams } from "next/navigation";
-import type { DatabasePage, DbRow } from "@/data/types";
+import type { CurrentView, DatabasePage, DbRow } from "@/data/types";
 import { loadPayload } from "@/data/api";
 import { areaLabel, GEO_DEFAULT, isGeoArea } from "@/data/geo";
 import { fmtInt } from "@/lib/format";
+import { databaseCsv, flowRecordsScope, flowSitesReturnHref, scopedSourceRecords } from "@/lib/flowSites";
+import { contentRowLabel } from "@/lib/products";
 import { Button } from "@/components/ui/Button";
 import type { TourStep } from "@/components/ui/Tour";
 import { TutorialButton } from "@/components/ui/TutorialButton";
@@ -95,70 +98,100 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-export function DatabaseView({ config }: { config: DatabasePage }) {
-  const raw = useSearchParams().get("area");
+export function DatabaseView({ config, view }: { config: DatabasePage; view: CurrentView }) {
+  const params = useSearchParams();
+  const raw = params.get("area");
   const area = isGeoArea(raw) ? raw : GEO_DEFAULT;
+  // Database refinements must not overwrite the originating site's working state.
+  const scopeQuery = new URLSearchParams([...params].filter(([key]) => !key.startsWith("db-"))).toString();
+  const resolved = useMemo(() => flowRecordsScope(new URLSearchParams(scopeQuery), view), [scopeQuery, view]);
+  const scopeError = resolved && "error" in resolved ? resolved.error : null;
+  const investigation = resolved && "scope" in resolved ? resolved : null;
+  const scoped = params.has("records");
 
-  // Heavy records (~1.1 MB) fetched ONLY when this route mounts (MASTER §7).
-  // Served with an ETag, so a revisit is a 304 rather than another megabyte.
   const [rows, setRows] = useState<DbRow[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
+    if (scopeError) return;
     let alive = true;
+    setLoadError(null);
     loadPayload<DbRow[]>("db").then((data) => {
       if (alive) setRows(data);
+    }).catch((error: unknown) => {
+      if (alive) setLoadError(error instanceof Error ? error.message : "Galileo could not load its source records.");
     });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [retry, scopeError]);
 
-  const [search, setSearch] = useState("");
+  const search = params.get("db-q") ?? "";
   const deferredSearch = useDeferredValue(search);
-  const [filters, setFilters] = useState<Record<number, string>>({});
-  const [page, setPage] = useState(0);
+  const filterQuery = new URLSearchParams(config.filters.map((filter) =>
+    [filter.key, params.get(`db-${filter.key}`) ?? ""])).toString();
+  const filters = useMemo(() => {
+    const values = new URLSearchParams(filterQuery);
+    return config.filters.map((filter) => ({ ...filter, value: values.get(filter.key) ?? "" }));
+  }, [config.filters, filterQuery]);
+  const invalidFilter = filters.find((filter) => filter.value && !filter.options.includes(filter.value));
+  const filterError = invalidFilter ? `The ${invalidFilter.label.toLowerCase()} filter in this link is unavailable. Clear the filters to continue.` : null;
+  const error = scopeError ?? loadError ?? filterError;
+  const rawPage = Number(params.get("db-page") ?? "1");
+  const page = Number.isInteger(rawPage) && rawPage > 0 ? rawPage - 1 : 0;
   const [tourOpen, setTourOpen] = useState(false);
 
-  // Reset to first page whenever the result set changes.
-  useEffect(() => {
-    setPage(0);
-  }, [area, deferredSearch, filters]);
+  const update = (changes: Record<string, string | null>) => {
+    const url = new URL(window.location.href);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value == null || value === "") url.searchParams.delete(key);
+      else url.searchParams.set(key, value);
+    }
+    window.history.replaceState(null, "", url);
+  };
+  const clearFilters = () => update(Object.fromEntries(
+    ["db-q", "db-page", ...config.filters.map((filter) => `db-${filter.key}`)].map((key) => [key, null]),
+  ));
 
   const geoCol = config.geo_col;
+  const sourceRows = useMemo(() => {
+    if (!rows || scopeError) return [];
+    return investigation
+      ? scopedSourceRecords(rows, investigation.scope, investigation.sites, investigation.year)
+      : area === "ALL" ? rows : rows.filter((row) => row[geoCol] === area);
+  }, [rows, scopeError, investigation, area, geoCol]);
   const filtered = useMemo(() => {
-    if (!rows) return [];
+    if (error) return [];
     const s = deferredSearch.trim().toLowerCase();
-    const active = Object.entries(filters).filter(([, v]) => v);
-    return rows.filter((row) => {
-      if (area !== "ALL" && row[geoCol] !== area) return false;
-      for (const [col, val] of active) if (row[Number(col)] !== val) return false;
+    const active = filters.filter((filter) => filter.value);
+    return sourceRows.filter((row) => {
+      for (const filter of active) if (row[filter.col] !== filter.value) return false;
       if (s) {
         const hay = `${row[1]} ${row[2]} ${row[3]} ${row[4]} ${row[9]}`.toLowerCase();
         if (!hay.includes(s)) return false;
       }
       return true;
     });
-  }, [rows, area, deferredSearch, filters, geoCol]);
+  }, [sourceRows, deferredSearch, filters, error]);
 
   const pageSize = config.page_size;
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pages - 1);
   const slice = filtered.slice(safePage * pageSize, safePage * pageSize + pageSize);
 
-  const loading = rows === null;
+  const loading = rows === null && !error;
+  const refining = search !== deferredSearch;
+  const hasFilters = !!search || filters.some((filter) => filter.value);
+  const label = investigation ? contentRowLabel(investigation.row, investigation.scope.area) : null;
+  const periodLabel = investigation
+    ? view.period_options.find((option) => option.n === investigation.scope.period)?.label ?? view.period_label
+    : "";
 
   // Export ALL filtered records (respects area + search + Market/Product/Site
   // Type filters) — not just the current page. Visible columns only.
   const exportCsv = () => {
-    if (loading || filtered.length === 0) return;
-    const esc = (v: unknown) => {
-      const s = String(v ?? "");
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const header = config.columns.map((c) => esc(c.label)).join(",");
-    const body = filtered
-      .map((r) => config.columns.map((_, ci) => esc(r[ci])).join(","))
-      .join("\n");
-    const csv = "﻿" + header + "\n" + body; // BOM so Excel reads UTF-8
+    if (loading || refining || filtered.length === 0) return;
+    const csv = databaseCsv(config.columns, filtered);
     const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -177,43 +210,55 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
         <div className={styles.headTop}>
           <h2>
             Database{" "}
-            <span className={styles.badge}>{fmtInt(config.row_count)} records</span>
+            {!error && (!scoped || !loading) && <span className={styles.badge}>
+              {fmtInt(scoped ? sourceRows.length : config.row_count)} records
+            </span>}
           </h2>
-          <TutorialButton onClick={() => setTourOpen(true)} />
+          {scoped ? <div className={styles.scopeActions}>
+            <Link href={flowSitesReturnHref(params.toString())}>Back to sites</Link>
+            <Link href={`/database?${new URLSearchParams({ area })}`}>All records</Link>
+          </div> : <TutorialButton onClick={() => setTourOpen(true)} />}
         </div>
-        <p className={styles.lede}>
+        {investigation && label ? <div className={styles.recordScope} role="group" aria-label="Record scope">
+          <p className={styles.lede}><strong>{areaLabel(investigation.scope.area)} · {investigation.scope.market}</strong>
+            {" · "}{label.category} / {label.sub_category}{" · "}{periodLabel} {investigation.year} &amp; {investigation.year - 1}
+          </p>
+          <details className={styles.scopeSites}>
+            <summary>{investigation.sites.length} selected {investigation.sites.length === 1 ? "site" : "sites"}</summary>
+            <ul>{investigation.sites.map((site) => <li key={site}>{site}</li>)}</ul>
+          </details>
+        </div> : !scoped && <p className={styles.lede}>
           Browsable source records for the selected area, plus how each{" "}
           <em>plant / flow</em> maps onto the Content rows.
-        </p>
+        </p>}
       </div>
 
-      <div data-tour="db-mapping">
+      {!scoped && <div data-tour="db-mapping">
         <MappingGrid mapping={config.mapping} source={config.mapping_source} />
-      </div>
+      </div>}
 
-      <div className={styles.controls} data-tour="db-controls">
+      {!scopeError && <div className={styles.controls} data-tour="db-controls">
         <label className={styles.filter}>
           <span>Search</span>
           <input
             type="search"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => update({ "db-q": e.target.value, "db-page": null })}
             placeholder="site, product, market…"
-            disabled={loading}
+            disabled={loading || !!loadError}
           />
         </label>
 
-        {config.filters.map((f) => (
+        {filters.map((f) => (
           <label key={f.key} className={styles.filter}>
             <span>{f.label}</span>
             <select
-              value={filters[f.col] ?? ""}
-              disabled={loading}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, [f.col]: e.target.value }))
-              }
+              value={f.value}
+              disabled={loading || !!loadError}
+              onChange={(e) => update({ [`db-${f.key}`]: e.target.value, "db-page": null })}
             >
-              <option value="">All</option>
+              <option value="">{scoped ? "All in scope" : "All"}</option>
+              {f.value && !f.options.includes(f.value) && <option value={f.value}>Unavailable: {f.value}</option>}
               {f.options.map((o) => (
                 <option key={o} value={o}>
                   {o}
@@ -222,10 +267,11 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
             </select>
           </label>
         ))}
+        {hasFilters && <Button onClick={clearFilters}>Clear filters</Button>}
 
         <div className={styles.status} aria-live="polite" data-tour="db-status">
           <span className={`${styles.dot} ${filtered.length ? styles.dotActive : ""}`} />
-          {loading ? (
+          {error ? "Records unavailable" : loading ? (
             "Loading records…"
           ) : (
             <>
@@ -245,24 +291,33 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
           className={styles.exportBtn}
           data-tour="db-export"
           onClick={exportCsv}
-          disabled={loading || filtered.length === 0}
+          disabled={loading || refining || filtered.length === 0}
           title="Download all filtered records as CSV"
         >
           ↓ Download CSV
         </Button>
-      </div>
+      </div>}
 
-      {loading ? (
+      {error ? <div className={styles.recordNotice} role="alert">
+        <h3>Source records unavailable</h3><p>{error}</p>
+        {loadError && !scopeError && <Button onClick={() => { setRows(null); setRetry((value) => value + 1); }}>Retry</Button>}
+        {scopeError && <Link href="/content">Back to Content</Link>}
+      </div> : loading ? (
         <DbSkeleton columns={config.columns.length} />
+      ) : filtered.length === 0 ? (
+        <p className={styles.recordNotice} role="status">
+          {hasFilters ? "No source records match these filters." : scoped
+            ? "No source records for the selected sites in this scope." : "No source records in this area."}
+        </p>
       ) : (
-        <div data-tour="db-table">
+        <div data-tour="db-table" aria-busy={refining || undefined}>
           <DbTable columns={config.columns} rows={slice} />
           {filtered.length > pageSize && (
             <div className={styles.pager}>
               <Button
                 variant="ghost"
                 disabled={safePage === 0}
-                onClick={() => setPage(safePage - 1)}
+                onClick={() => update({ "db-page": safePage === 1 ? null : String(safePage) })}
               >
                 ‹ Prev
               </Button>
@@ -272,7 +327,7 @@ export function DatabaseView({ config }: { config: DatabasePage }) {
               <Button
                 variant="ghost"
                 disabled={safePage >= pages - 1}
-                onClick={() => setPage(safePage + 1)}
+                onClick={() => update({ "db-page": String(safePage + 2) })}
               >
                 Next ›
               </Button>

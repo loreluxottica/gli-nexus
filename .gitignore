@@ -33,6 +33,8 @@ old/
 # Dev agent tooling (not app code)
 .agents/
 .claude/
+.gli-preview/
+.gli-run/
 
 # Local working notes, not part of the repo
 GUIDE.md

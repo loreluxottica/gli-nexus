@@ -22,6 +22,7 @@ export function AreaTabs({ options }: { options: GeoArea[] }) {
     const next = new URLSearchParams(params.toString());
     if (area === GEO_DEFAULT) next.delete("area");
     else next.set("area", area);
+    next.delete("db-page");
     const qs = next.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
