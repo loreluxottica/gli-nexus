@@ -1,21 +1,36 @@
 /* ============================================================
    GLI NEXUS — Gate
-   Schermata di apertura: identità GLI, poi Group Logistics
-   Intelligence, poi CTA "Open Nexus". Sfondo a wormhole (canvas):
-   anelli concentrici + streak radiali che sembrano risucchiare
-   verso il centro. Al click il wormhole accelera, flash, e sotto
-   si rivela il Worlds View, inizializzato al momento dell'ingresso.
+   Schermata di apertura: firma GLI al punto di fuga del corridoio
+   di monoliti (canvas WebGL, js/gate-bg.js), poi Group Logistics
+   Intelligence, CTA "Open Nexus" ed endorsement EssilorLuxottica.
+   Al click la camera accelera nel corridoio, la firma vola verso
+   chi guarda e, sotto la luce piena, si rivela la suite.
+   Tipi GLI: Sora per il wordmark, Geist per tutto il resto; l'ingresso
+   attende che siano caricati (classe is-ready da gate.js).
    ============================================================ */
 
 .gate {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  display: grid;
-  place-items: center;
+  z-index: 70;   /* sopra launcher e detail (60) finché non è sparito */
   background: var(--navy-deep);
-  transition: opacity 620ms var(--ease-out), visibility 620ms;
+  transition: opacity 480ms var(--ease-out), visibility 480ms;
 }
+/* Il dialog riceve il focus all'avvio (gate.js): nessun anello. */
+.gate:focus { outline: none; }
+
+/* Senza WebGL: il fondo luminoso del corridoio, statico. */
+.gate.is-static {
+  background:
+    radial-gradient(32% 28% at 50% 45%, rgba(var(--gli-blue-rgb), 0.38), transparent 72%),
+    radial-gradient(95% 80% at 50% 45%, var(--navy-nexus), var(--navy-deep) 76%);
+}
+
+/* Passaggio: appena non opaco, il gate non nasconde più al browser la
+   suite e il Worlds View, che li disegna già sotto la luce piena del
+   warp; la dissolvenza che segue parte senza scatti. Prima di
+   is-hidden, che deve vincere. */
+.gate.is-handoff { opacity: 0.999; }
 
 .gate.is-hidden {
   opacity: 0;
@@ -23,15 +38,12 @@
   pointer-events: none;
 }
 
-/* Leaving: drop hit-testing immediately so the Worlds / launcher
-   underneath can take clicks during the fade-out (is-hidden arrives
-   only after the warp finishes ~900ms later). */
-.gate.is-leaving {
-  pointer-events: none;
-}
+/* In uscita il gate non intercetta più i click: il Worlds View
+   sottostante li riceve già durante la dissolvenza. */
+.gate.is-leaving { pointer-events: none; }
 
-/* Ritorno nella stessa sessione o deep-link ?w=: niente rito, il gate
-   non compare proprio (e il suo canvas non viene mai avviato). */
+/* Ritorno nella stessa sessione o deep-link: il gate non compare
+   proprio (e il corridoio WebGL non viene mai avviato). */
 .gate.is-skipped { display: none; }
 
 #gateCanvas {
@@ -39,213 +51,174 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
-}
-
-.gate-vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: radial-gradient(120% 85% at 50% 50%, transparent 34%, rgba(2, 8, 20, 0.68) 100%);
-}
-
-.gate-flash {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
   opacity: 0;
-  background: radial-gradient(circle at 50% 50%, #EAF0FF 0%, var(--gli-blue) 32%, transparent 68%);
-  mix-blend-mode: screen;
+  transition: opacity 240ms var(--ease-out);
 }
-.gate.is-leaving .gate-flash {
-  animation: gate-flash-burst 900ms var(--ease-out) both;
-}
-@keyframes gate-flash-burst {
-  0%   { opacity: 0;    transform: scale(0.4); }
-  55%  { opacity: 1;    transform: scale(1.35); }
-  100% { opacity: 0;    transform: scale(2.4); }
-}
-
-.gate-noise {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.028 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+#gateCanvas.is-live { opacity: 1; }
 
 /* --- Contenuto ---
-   L'identità GLI (monolite + wordmark + sottotitolo) è l'unica cosa
-   nel flusso centrato: cade quindi al centro esatto del viewport, in
-   asse con l'occhio del wormhole. CTA ed endorsement sono ancorati in
-   basso (fuori dal flusso), così non spingono GLI verso l'alto. */
+   La firma GLI è l'unico elemento nel flusso centrato: il corridoio
+   la usa come punto di fuga. CTA ed endorsement sono ancorati in
+   basso, fuori dal flusso. Le entrate animano `translate`/`scale`,
+   così `transform` resta libero per hover e uscita. */
 .gate-content {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: clamp(1.5rem, 4vh, 3rem);
   text-align: center;
-  transition: opacity 560ms ease-in, transform 620ms cubic-bezier(0.4, 0, 1, 1), filter 620ms ease-in;
-}
-.gate.is-leaving .gate-content {
-  opacity: 0;
-  transform: scale(1.6);
-  filter: blur(3px);
 }
 
-/* Firma GLI come nel deck branding: monolite + wordmark come lockup.
-   Il monolite è dimensionato sull'altezza-maiuscola del wordmark così
-   i due pesi si leggono come un unico segno, con gap contenuto. */
+/* Finché Sora e Geist non sono pronti (al massimo 1.5 s, gate.js) il
+   contenuto resta nascosto e l'ingresso fermo al primo fotogramma: il
+   wordmark non compare mai nel font di ripiego. */
+.gate:not(.is-ready) .gate-content { visibility: hidden; }
+.gate:not(.is-ready) :is(.gate-mark, .gate-word, .gate-sub, .gate-cta, .gate-endorse) {
+  animation-play-state: paused;
+}
+
+/* Uscita: la firma vola verso chi guarda dal punto di fuga (il suo
+   centro), accelerando, e svanisce prima che la luce del corridoio
+   riempia lo schermo; il resto si spegne subito. Si anima solo la firma:
+   scalare e sfocare un layer a schermo intero costa troppa GPU. Per il
+   resto filter e non opacity: l'opacità la tiene l'animazione d'ingresso
+   (fill both). */
+.gate.is-leaving .gate-signature {
+  opacity: 0;
+  transform: scale(3);
+  filter: blur(10px);
+  transition:
+    opacity 380ms cubic-bezier(0.5, 0, 0.75, 0) 260ms,
+    transform 760ms cubic-bezier(0.45, 0, 0.8, 0.3),
+    filter 640ms cubic-bezier(0.5, 0, 0.75, 0);
+}
+.gate.is-leaving :is(.gate-sub, .gate-cta, .gate-endorse) {
+  filter: opacity(0);
+  transition: filter 220ms var(--ease-out);
+}
+
+/* Monolite + wordmark come un unico segno: il monolite segue
+   l'altezza delle maiuscole del wordmark (rapporto 0.77). L'alone
+   scuro stacca il monolite blu dalla luce blu del corridoio senza
+   alterare il logo. */
 .gate-signature {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.85rem, 2.4vw, 1.7rem);
+  gap: clamp(0.8rem, 2.2vw, 1.5rem);
 }
 
 .gate-mark {
-  width: clamp(4.4rem, 11vw, 7.4rem);
+  width: clamp(2.9rem, 10.4vw, 6.8rem);
   height: auto;
   flex: none;
-  filter:
-    drop-shadow(0 18px 44px rgba(var(--gli-blue-rgb), 0.30))
-    drop-shadow(0 4px 26px rgba(2, 8, 20, 0.6));
-  animation: gate-word-in 1200ms var(--ease-out) both;
+  filter: drop-shadow(0 0 16px rgba(2, 8, 20, 0.85));
+  animation: gate-arrive 1300ms 100ms var(--ease-expo) both;
 }
 
+/* Nessun text-shadow: un'ombra scura finirebbe nell'occhiello della G
+   sopra la luce blu del corridoio. */
 .gate-word {
   font-family: var(--font-display);
-  font-size: clamp(4.2rem, 15vw, 9.6rem);
+  font-size: clamp(3.8rem, 13.5vw, 8.8rem);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.92;
-  color: #EEF3FA;
-  text-shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
-  filter: drop-shadow(0 4px 26px rgba(2, 8, 20, 0.82));
-  animation: gate-word-in 1200ms var(--ease-out) both;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  color: var(--text-1);
+  animation: gate-arrive 1300ms 200ms var(--ease-expo) both;
 }
-@keyframes gate-word-in {
-  from { opacity: 0; transform: translateY(22px) scale(0.94); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+
+@keyframes gate-arrive {
+  from { opacity: 0; translate: 0 14px; scale: 0.88; }
+  to   { opacity: 1; translate: 0 0;    scale: 1; }
+}
+@keyframes gate-rise {
+  from { opacity: 0; translate: 0 12px; }
+  to   { opacity: 1; translate: 0 0; }
 }
 
 .gate-sub {
-  margin-top: clamp(0.6rem, 1.6vh, 1.1rem);
-  font-family: var(--font-mono);
-  font-size: clamp(0.72rem, 1.5vw, 0.98rem);
+  margin-top: clamp(0.9rem, 2.2vh, 1.4rem);
+  font-family: var(--font-ui);
+  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
   font-weight: 500;
-  letter-spacing: 0.4em;
-  margin-right: -0.4em;
+  letter-spacing: 0.34em;
+  margin-right: -0.34em;   /* compensa il tracking finale: resta centrato */
   text-transform: uppercase;
   color: var(--text-2);
-  text-shadow: 0 0 16px rgba(2, 8, 20, 0.92), 0 2px 8px rgba(2, 8, 20, 0.85);
-  animation: gate-fade-in 900ms 220ms var(--ease-out) both;
+  text-shadow: 0 0 18px rgba(2, 8, 20, 0.95), 0 2px 8px rgba(2, 8, 20, 0.9);
+  animation: gate-rise 1000ms 550ms var(--ease-expo) both;
 }
-.gate-sub span { color: #8FA8E8; }
+.gate-sub span { color: var(--gli-blue-tint); }
 
-@keyframes gate-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* --- CTA "Open Nexus" ---
-   Ancorata nel terzo inferiore (fuori dal flusso, così l'identità GLI
-   resta il centro). Centratura orizzontale via left/right+auto per
-   lasciare libero `transform` all'hover.
-   Liquid glass: corpo traslucido con blur sul canvas, highlight
-   speculare lungo il bordo superiore e ombra di contatto sotto — il
-   peso viene da vetro + gravità, non da un alone che segue la forma
-   (il glow è una bloom ambientale larga e diffusa, senza bordo ovale). */
+/* --- CTA "Open Nexus": pillola GLI blue piena ---
+   Testo bianco su #2F5EFF = 5:1. Centratura orizzontale via
+   left/right + margin auto. */
 .gate-cta {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: clamp(6rem, 19vh, 11rem);
+  bottom: clamp(6rem, 18vh, 10.5rem);
   margin-inline: auto;
   width: fit-content;
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.1rem 1.9rem 1.1rem 2.3rem;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem 0.95rem 1.9rem;
+  border: 0;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(var(--gli-blue-rgb), 0.55);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 45%, rgba(var(--gli-blue-rgb), 0.12) 100%),
-    linear-gradient(180deg, rgba(var(--gli-blue-rgb), 0.16), rgba(8, 18, 42, 0.7));
-  -webkit-backdrop-filter: blur(12px) saturate(1.3);
-  backdrop-filter: blur(12px) saturate(1.3);
-  color: var(--text-1);
-  font-family: var(--font-mono);
-  font-size: 0.88rem;
+  background: var(--gli-blue);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.28em;
-  padding-right: calc(1.9rem - 0.28em);   /* compensa il tracking finale, resta centrata */
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
+  /* a riposo solo elevazione neutra: il bagliore blu arriva con hover e
+     focus, insieme alla carica del corridoio */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.32),
-    inset 0 -1px 0 rgba(2, 8, 20, 0.4),
-    0 18px 40px rgba(2, 8, 20, 0.55),
-    0 3px 10px rgba(2, 8, 20, 0.4);
-  animation: gate-fade-in 900ms 380ms var(--ease-out) both;
-  transition: transform 200ms var(--ease-out), box-shadow 260ms var(--ease-out), border-color 260ms var(--ease-out);
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 0 0 1px rgba(161, 183, 255, 0.22),
+    0 14px 36px rgba(2, 8, 20, 0.55);
+  animation: gate-rise 1000ms 800ms var(--ease-expo) both;
+  transition: transform 260ms var(--ease-expo), box-shadow 320ms var(--ease-out);
 }
-.gate-cta:hover, .gate-cta:focus-visible {
-  transform: translateY(-2px);
-  border-color: rgba(158, 184, 255, 0.85);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.42),
-    inset 0 -1px 0 rgba(2, 8, 20, 0.4),
-    0 24px 52px rgba(2, 8, 20, 0.6),
-    0 0 48px rgba(var(--gli-blue-rgb), 0.3);
-}
-/* La CTA riceve il focus all'avvio: l'anello resta visibile ma parla
-   GLI blue, non il cyan globale del portfolio. */
+.gate-cta:hover,
 .gate-cta:focus-visible {
-  outline-color: rgba(var(--gli-blue-rgb), 0.85);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 0 0 1px rgba(161, 183, 255, 0.45),
+    0 20px 44px rgba(2, 8, 20, 0.6),
+    0 0 64px rgba(var(--gli-blue-rgb), 0.55);
+}
+.gate-cta:focus-visible {
+  outline: 2px solid var(--gli-blue-tint);
+  outline-offset: 4px;
 }
 .gate-cta:active {
-  transform: translateY(0);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(2, 8, 20, 0.45),
-    0 8px 20px rgba(2, 8, 20, 0.5);
-}
-
-/* Bloom ambientale: così larga e sfumata da non avere un bordo
-   leggibile — luce che esce dal wormhole, non una sagoma del bottone. */
-.gate-cta-glow {
-  position: absolute;
-  inset: -80px;
-  z-index: -1;
-  border-radius: inherit;
-  background: radial-gradient(closest-side, rgba(var(--gli-blue-rgb), 0.28), transparent 100%);
-  opacity: 0.5;
+  transform: translateY(0) scale(0.98);
 }
 
 .gate-cta-chev {
   display: grid;
   place-items: center;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(158, 184, 255, 0.5);
-  color: #C9D6FF;
-  transition: transform 220ms var(--ease-out);
+  background: rgba(255, 255, 255, 0.16);
+  transition: transform 260ms var(--ease-expo);
 }
-.gate-cta-chev svg { width: 0.9rem; height: 0.9rem; }
-.gate-cta:hover .gate-cta-chev { transform: translateX(4px); }
+.gate-cta-chev svg { width: 0.85rem; height: 0.85rem; }
+.gate-cta:hover .gate-cta-chev,
+.gate-cta:focus-visible .gate-cta-chev { transform: translateX(3px); }
 
-/* --- Endorsement parent company: "part of" + logo EssilorLuxottica ---
-   Ancorato in fondo alla schermata, fuori dal flusso centrato. */
+/* --- Endorsement parent company: "part of" + logo EssilorLuxottica --- */
 .gate-endorse {
   position: absolute;
   left: 0;
@@ -253,24 +226,24 @@
   bottom: clamp(1.6rem, 4.5vh, 3rem);
   margin-inline: auto;
   width: fit-content;
-  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
-  animation: gate-fade-in 900ms 560ms var(--ease-out) both;
+  gap: 0.6rem;
+  animation: gate-rise 1000ms 1000ms var(--ease-expo) both;
 }
 .gate-endorse-label {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.36em;
-  margin-right: -0.36em;
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
+  text-shadow: 0 0 14px rgba(2, 8, 20, 0.95), 0 1px 6px rgba(2, 8, 20, 0.9);
 }
-/* Logo ufficiale (bianco): nessuna alterazione di colore/forma; solo
-   un'ombra scura di sicurezza per il contrasto sullo sfondo animato. */
+/* Logo ufficiale (bianco): nessuna alterazione di colore o forma,
+   solo un'ombra scura di sicurezza per il contrasto. */
 .gate-endorse-logo {
   display: block;
   width: clamp(132px, 15vw, 172px);
@@ -278,12 +251,15 @@
   filter: drop-shadow(0 2px 10px rgba(2, 8, 20, 0.9));
 }
 
-/* --- Nexus app sottostante: nascosta finché il gate non si apre --- */
+/* --- Nexus app sottostante: nascosta finché il gate non si apre ---
+   Dal warp compare di colpo sotto la luce piena del gate, che poi
+   sfuma: la dissolvenza è una sola. */
 .nexus-app {
   opacity: 0;
   pointer-events: none;
   transition: opacity 900ms var(--ease-out);
 }
+.gate.is-leaving ~ .nexus-app { transition: none; }
 body.gate-done .nexus-app {
   opacity: 1;
   pointer-events: auto;
@@ -291,8 +267,7 @@ body.gate-done .nexus-app {
 
 @media (max-width: 480px) {
   .gate-cta {
-    padding: 0.95rem 1.5rem 0.95rem 1.8rem;
-    padding-right: calc(1.5rem - 0.28em);
+    padding: 0.85rem 0.9rem 0.85rem 1.6rem;
     font-size: 0.78rem;
   }
 }
@@ -300,17 +275,16 @@ body.gate-done .nexus-app {
 @media (max-height: 560px) {
   .gate-content { padding-block: 0.75rem; }
   .gate-signature { gap: 0.75rem; }
-  .gate-mark { width: 3rem; }
+  .gate-mark { width: 2.6rem; }
   .gate-word { font-size: 3.4rem; }
   .gate-sub {
-    margin-top: 0.35rem;
-    font-size: 0.62rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
   }
   .gate-cta {
     bottom: 3.5rem;
-    padding: 0.65rem 1.1rem 0.65rem 1.35rem;
-    padding-right: calc(1.1rem - 0.28em);
-    font-size: 0.7rem;
+    padding: 0.6rem 0.75rem 0.6rem 1.3rem;
+    font-size: 0.75rem;
   }
   .gate-cta-chev { width: 1.4rem; height: 1.4rem; }
   .gate-endorse { bottom: 0.6rem; gap: 0.2rem; }
@@ -319,7 +293,8 @@ body.gate-done .nexus-app {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gate-word, .gate-sub, .gate-cta { animation: none; }
-  .gate-cta:hover { transform: none; }
-  .gate-content, .gate { transition: none; }
+  .gate-mark, .gate-word, .gate-sub, .gate-cta, .gate-endorse { animation: none; }
+  .gate-cta:hover, .gate-cta:focus-visible, .gate-cta:active { transform: none; }
+  .gate, .gate-content, #gateCanvas,
+  .gate.is-leaving :is(.gate-signature, .gate-sub, .gate-cta, .gate-endorse) { transition: none; }
 }

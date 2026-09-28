@@ -66,6 +66,44 @@ class PortalContractTests(unittest.TestCase):
             self.assertIn(expected, html)
         self.assertFalse((PORTAL / "index-single.html").exists())
 
+    def test_portal_uses_gli_type_system(self) -> None:
+        """Geist for UI, Sora for display, IBM Plex Mono for data; no Avenir."""
+        tokens = (PORTAL / "css" / "tokens.css").read_text(encoding="utf-8")
+        for token, family in (
+            ("--font-ui", "Geist"),
+            ("--font-display", "Sora"),
+            ("--font-mono", "IBM Plex Mono"),
+        ):
+            with self.subTest(token=token):
+                self.assertRegex(tokens, rf'{token}:\s*"{family}"')
+        html = (PORTAL / "index.html").read_text(encoding="utf-8")
+        for family in ("family=Geist:", "family=Sora:", "family=IBM+Plex+Mono:"):
+            self.assertIn(family, html)
+        self.assertFalse((PORTAL / "css" / "fonts.css").exists())
+        sources = [
+            PORTAL / "index.html",
+            *sorted((PORTAL / "css").glob("*.css")),
+            *sorted((PORTAL / "js").glob("*.js")),
+        ]
+        stale = [p.name for p in sources if "avenir" in p.read_text(encoding="utf-8").lower()]
+        self.assertEqual(stale, [])
+
+    def test_gate_markup_and_script_order(self) -> None:
+        """The gate keeps the GLI lockup and the endorsement; the corridor
+        (gate-bg.js) loads before its controller, the launcher after it."""
+        html = (PORTAL / "index.html").read_text(encoding="utf-8")
+        for expected in (
+            'id="gate"',
+            'id="gateCanvas"',
+            'id="gateOpen"',
+            'class="gate-signature"',
+            'src="assets/gli-monolite.png"',
+            'src="assets/essilorluxottica-logo-white.png"',
+        ):
+            self.assertIn(expected, html)
+        order = [html.index(f'src="js/{name}"') for name in ("gate-bg.js", "gate.js", "launcher.js")]
+        self.assertEqual(order, sorted(order))
+
     def test_detail_mode_switch_markup(self) -> None:
         """La scheda dettaglio mostra un racconto per volta: storia, poi demo.
 
@@ -278,6 +316,31 @@ class PortalFrontendGuardTests(unittest.TestCase):
         js = (PORTAL / "js" / "single.js").read_text(encoding="utf-8")
         self.assertIn("intake", js)
         self.assertIn("data-entry", js)
+
+    def test_gate_covers_panels_and_degrades(self) -> None:
+        """The suite opens under the warp, so the gate must stack above the
+        launcher and detail layers; without WebGL it falls back to a static
+        background, and it honours reduced motion."""
+        def z_index(css_file: str, selector: str) -> int:
+            css = (PORTAL / "css" / css_file).read_text(encoding="utf-8")
+            block = re.search(rf"^{re.escape(selector)} \{{([^}}]*)\}}", css, re.MULTILINE)
+            self.assertIsNotNone(block, selector)
+            value = re.search(r"z-index:\s*(\d+)", block.group(1))
+            self.assertIsNotNone(value, selector)
+            return int(value.group(1))
+
+        gate = z_index("gate.css", ".gate")
+        self.assertGreater(gate, z_index("launcher.css", ".launcher"))
+        self.assertGreater(gate, z_index("detail.css", ".detail-layer"))
+
+        gate_css = (PORTAL / "css" / "gate.css").read_text(encoding="utf-8")
+        gate_js = (PORTAL / "js" / "gate.js").read_text(encoding="utf-8")
+        gate_bg = (PORTAL / "js" / "gate-bg.js").read_text(encoding="utf-8")
+        self.assertIn('classList.add("is-static")', gate_js)
+        self.assertIn(".gate.is-static", gate_css)
+        for name, source in (("gate.css", gate_css), ("gate.js", gate_js), ("gate-bg.js", gate_bg)):
+            with self.subTest(name=name):
+                self.assertIn("prefers-reduced-motion: reduce", source)
 
 
 class KellyRouteTests(unittest.TestCase):

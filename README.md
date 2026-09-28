@@ -219,9 +219,10 @@ Le schede Galileo, Kelly, Cortana e Intake incorporano gli intake ricevuti in
 aperte dove non firmate). Laplace e Prism restano contenuti dimostrativi:
 tutte le schede devono essere approvate dai product owner prima del rilascio.
 `Project Details/` conserva gli intake originali e le catture distinte; le copie
-identiche agli screenshot pubblicati sono state rimosse. Loghi e font hanno
+identiche agli screenshot pubblicati sono state rimosse. I loghi hanno
 una sola copia nel portale; i vecchi URL `/GLI-Branding/...` restano disponibili
-come alias, senza duplicare i file.
+come alias, senza duplicare i file. I font GLI del portale (Geist, Sora,
+IBM Plex Mono) arrivano da Google Fonts: nessun file font nel portale.
 
 **Cortana Usage Monitor** (`/cortana/`): legge
 `sbx-logistics.gli_nexus.cortana_usage` (env `CORTANA_USAGE_TABLE`), cache

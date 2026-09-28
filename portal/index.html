@@ -8,12 +8,11 @@
 
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Cpath d='M18 18 L62 18 L78 34 L78 78 L34 78 L18 62 Z' fill='%232F5EFF'/%3E%3C/svg%3E">
 
-  <!-- Mono only from Google Fonts: brand sans is self-hosted Avenir LT Std -->
+  <!-- GLI Product System faces: Geist (UI), Sora (display), IBM Plex Mono (data) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400..800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/single.css">
@@ -24,11 +23,8 @@
 <body class="nexus-single">
 
   <!-- GATE — apertura identitaria -->
-  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-label="Enter GLI Nexus">
+  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-label="Enter GLI Nexus" tabindex="-1">
     <canvas id="gateCanvas" aria-hidden="true"></canvas>
-    <div class="gate-vignette" aria-hidden="true"></div>
-    <div class="gate-flash" aria-hidden="true"></div>
-    <div class="gate-noise" aria-hidden="true"></div>
 
     <div class="gate-content">
       <div class="gate-signature">
@@ -39,7 +35,6 @@
       <p class="gate-sub">Group Logistics <span>Intelligence</span></p>
 
       <button class="gate-cta" id="gateOpen" type="button">
-        <span class="gate-cta-glow" aria-hidden="true"></span>
         <span class="gate-cta-label">Open Nexus</span>
         <span class="gate-cta-chev" aria-hidden="true">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"

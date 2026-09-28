@@ -14,6 +14,7 @@
   /* Master accent GLI (deck GLI-Branding): usato dall'index. */
   --gli-blue:     #2F5EFF;
   --gli-blue-rgb: 47, 94, 255;
+  --gli-blue-tint: #A1B7FF;   /* GLI blue schiarito (45% + 55% bianco): luce, focus */
 
   /* --- Surface / UI --- */
   --glass:              rgba(8, 24, 42, 0.72);
@@ -32,10 +33,10 @@
   --critical: #FF5A7A;
 
   /* --- Typography ---
-     Brand face: Avenir LT Std (self-hosted, css/fonts.css).
-     Mono: IBM Plex Mono from Google Fonts (no mono cut in brand pack). */
-  --font-ui:      "Avenir LT Std", "Avenir", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Avenir LT Std", "Avenir", "Segoe UI", system-ui, sans-serif;
+     GLI Product System: Geist (UI), Sora (display), IBM Plex Mono
+     (dati, codici, micro-label), tutti da Google Fonts (index.html). */
+  --font-ui:      "Geist", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Sora", "Geist", "Segoe UI", system-ui, sans-serif;
   --font-mono:    "IBM Plex Mono", Consolas, ui-monospace, monospace;
   --track-hero:  0.34em;  /* wordmark */
   --track-micro: 0.24em;  /* micro-label uppercase */
@@ -46,6 +47,7 @@
 
   /* --- Motion --- */
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 180ms;
   --dur-med:  320ms;
   --dur-slow: 560ms;

@@ -287,8 +287,10 @@
      ?d=1 alla sua scheda (?all=1 resta supportato: è il default). */
   const params = new URLSearchParams(location.search);
   if (!params.has("w") && params.get("d") !== "1") {
-    const run = () => window.setTimeout(open, reduced ? 0 : 420);
-    if (gateDone()) run();
-    else document.addEventListener("nexus:gate-done", run, { once: true });
+    if (gateDone()) window.setTimeout(open, reduced ? 0 : 420);
+    /* Dal gate la suite si apre subito, sotto la luce piena del warp: la
+       dissolvenza del gate la rivela già pronta. Nel rAF dopo quello di
+       gate.js che porta il focus sull'hero, così chiudendo torna lì. */
+    else document.addEventListener("nexus:gate-done", () => requestAnimationFrame(() => open()), { once: true });
   }
 })();

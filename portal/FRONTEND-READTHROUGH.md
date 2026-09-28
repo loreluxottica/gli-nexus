@@ -35,7 +35,8 @@ Nexus is **one HTML page, three stacked experiences**, not three routes.
 
 Published screenshots have one canonical copy in `portal/assets/details/`;
 `Project Details/` retains the original intake documents and distinct source
-captures. Fonts likewise live only in `portal/assets/fonts/`. Legacy branding
+captures. Fonts are not bundled: Geist, Sora and IBM Plex Mono load from
+Google Fonts (`index.html`). Legacy branding
 URLs are aliases in `app.py`, not a second asset directory.
 
 **Script load order** (from `index.html` — keep this order if you add scripts):
@@ -57,7 +58,7 @@ Controllers expose small APIs (`window.NexusSingle`, `window.NexusAccess`, `Nexu
 | `--navy-*`, `--cyan`, `--azure`, `--gli-blue` | Brand surfaces and accents |
 | `--text-1/2/3` | Primary / secondary / muted copy |
 | `--glass`, `--card-border*` | Glass cards and chrome |
-| `--font-ui`, `--font-mono`, `--track-*` | Type and micro-labels |
+| `--font-ui` (Geist), `--font-display` (Sora), `--font-mono` (IBM Plex Mono), `--track-*` | Type and micro-labels |
 | `--radius-card`, `--radius-pill` | Shape language |
 | `--ease-out`, `--dur-fast/med/slow` | Motion |
 | `--z-bg/page/nav` | Layering (detail/launcher may add local stacking on top) |
@@ -70,7 +71,7 @@ Controllers expose small APIs (`window.NexusSingle`, `window.NexusAccess`, `Nexu
 |------|------|
 | `tokens.css` | Variables only |
 | `base.css` | Reset, body, wordmark, shared focus, selection, page enter |
-| `gate.css` | Gate overlay and CTA |
+| `gate.css` | Gate overlay, lockup entrance, warp exit, CTA |
 | `single.css` | Header, hero, nav, product stage |
 | `detail.css` | Detail layer, mode bar, story panes, demo slider |
 | `launcher.css` | Launcher dialog, search, grid |
@@ -88,9 +89,13 @@ Walk the product **in user order**, then **in code order**. Do not start by grep
 Do this in a browser (local: `python app.py` → `http://localhost:8000/`).
 
 1. **Cold open**  
-   Gate visible? Focus on “Open Nexus”? Canvas ambient without jank?
+   Gate visible? The corridor lights up from the far end behind the GLI lockup,
+   never in a fallback font. Focus is on the gate dialog: Enter/Space open,
+   Tab reaches “Open Nexus”. Ambient motion without jank?
 2. **Enter Nexus**  
-   Gate exits cleanly; hero shows a product; background matches product; keyboard focus lands sensibly.
+   The warp ends in full light and the gate fades onto the open suite
+   (launcher); closing it shows the hero with a product; background matches
+   product; keyboard focus lands sensibly.
 3. **Browse products**  
    Prev/next (or arrows), category filters, deep link `?w=galileo`.
 4. **Open detail**  
@@ -316,6 +321,7 @@ Do **not** fork `index.html` per product. Do **not** copy a whole CSS file for o
 | CTA always restricted locally | Access API failure or `project` key mismatch |
 | Focus lost after close | Missing `lastFocus` restore or `inert` not cleared |
 | Gate shows every time | Deep-link / seen-session logic in `gate.js` |
+| Suite covers the gate warp | Gate z-index fell below launcher/detail (60) in `gate.css` |
 | Double warp / stuck nav | Click during warp; check `isWarping` |
 | Horizontal scroll on mobile | Absolute/fixed layer width; canvas or card min-width |
 | Flash of wrong accent | Accent CSS vars set after paint; set on fill/open |
@@ -402,7 +408,7 @@ portal/
 │   ├── single.js           hero / navigation
 │   ├── detail.js           detail controller
 │   ├── launcher.js         grid / search
-│   ├── gate.js / gate-bg.js
+│   ├── gate.js / gate-bg.js  gate controller / WebGL corridor
 │   ├── worlds-bg.js        canvas worlds
 │   └── kelly-egg.js        product easter egg
 └── assets/                 logos + details shots
