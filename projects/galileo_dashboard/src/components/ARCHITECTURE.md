@@ -61,6 +61,10 @@ still provide the denominator for the selected site's contribution.
 Search and ordering share one control row. Selection is a count badge plus
 row tint, not an explanatory sentence; the count stays visible while a search
 hides unselected rows. A filtered count uses the accent; YoY stays color.
+The selection strip holds only Clear and Compare; individual sites can still
+be deselected in the list or comparison. A contextual Selected data disclosure
+beside the period and Copy view link offers View records and Download CSV
+for the current selection without adding actions to the list footer.
 On desktop the site list and detail panes share one height, so their bottoms
 align; the list scrolls inside that height. The site-detail scope note is not
 shown.

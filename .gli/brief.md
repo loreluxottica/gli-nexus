@@ -70,6 +70,11 @@ Search and ordering sit on one row so the site list keeps the height. Do not
 explain persistent selection with a sentence: show it with the count badge,
 selected-row tint and the count remaining while search changes the list.
 Prefer color, size and state over explanatory copy in this workspace.
+The selection footer contains only the count, Clear and Compare; remove the
+Manage selected sites disclosure. Keep the Database record drill-through and
+Database-format CSV available for the selected scope, but group them in a
+single contextual Selected data disclosure by the workspace period and
+Copy view link, not in the selection footer.
 On desktop the list box and the detail box end on the same bottom edge.
 Do not restore the site-detail scope sentence.
 Selected sites can download a Database-format CSV: same columns and monthly

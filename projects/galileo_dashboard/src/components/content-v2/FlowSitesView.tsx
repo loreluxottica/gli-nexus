@@ -109,6 +109,7 @@ function SiteWorkspace({ scope, row, cell, view }: {
   const toggle = (site: string) => {
     const current = new Set(new URLSearchParams(window.location.search).getAll("selected"));
     current.has(site) ? current.delete(site) : current.add(site);
+    setExportMessage("");
     update({ selected: [...current] });
   };
   const openSite = (site: string) => {
@@ -198,9 +199,25 @@ function SiteWorkspace({ scope, row, cell, view }: {
         <PeriodSelect options={view.period_options} value={scope.period} year={view.year}
           onChange={(n) => update({ period: String(n), page: null }, true)} />
         <Button onClick={copyLink}>Copy view link</Button>
+        {!dataError && selected.length > 0 && <details className={styles.dataActions}>
+          <summary>Selected data <span className={styles.dataBadge}>{selected.length}</span>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+          <div className={styles.dataMenu}>
+            <Link className={styles.dataMenuAction}
+              href={flowRecordsHref(params.toString(), scope, year)}>View records</Link>
+            <Button className={styles.dataMenuAction} disabled={exporting} aria-busy={exporting || undefined}
+              aria-label={`Download CSV of ${selected.length} selected sites`} onClick={() => { void downloadCsv(); }}>
+              {exporting ? "Downloading" : "Download CSV"}
+            </Button>
+          </div>
+        </details>}
       </div>
     </header>
     {copyMessage && <p className={styles.message} role={copyError ? "alert" : "status"}>{copyMessage}</p>}
+    {selected.length > 0 && exportMessage && <p className={styles.exportNote} role="alert">{exportMessage}</p>}
     {dataError ? <section className={styles.notice} role="alert"><h2>Site detail unavailable</h2><p>{dataError} Reload to retry, or return to Content.</p><Button onClick={() => window.location.reload()}>Reload data</Button></section> : <>
       {rawSort !== sort && <p className={styles.notice} role="status">The sort in this link is not supported. Showing Pieces, highest first.</p>}
       <div className={styles.split}>
@@ -249,19 +266,9 @@ function SiteWorkspace({ scope, row, cell, view }: {
             </nav>}
             <div className={styles.selection} data-active={selected.length > 0 ? "true" : undefined}>
               <strong className={styles.selectionCount} role="status"><span className={styles.selectionBadge}>{selected.length}</span> selected</strong>
-              <Button disabled={!selected.length} onClick={() => update({ selected: [], compare: null })}>Clear</Button>
-              {selected.length > 0 && <Link className={styles.recordsLink}
-                href={flowRecordsHref(params.toString(), scope, year)}>View records</Link>}
-              <Button disabled={!selected.length || exporting} aria-busy={exporting || undefined}
-                aria-label={`Download CSV of ${selected.length} selected sites`} onClick={() => { void downloadCsv(); }}>
-                {exporting ? "Downloading" : "Download CSV"}
-              </Button>
+              <Button disabled={!selected.length} onClick={() => { setExportMessage(""); update({ selected: [], compare: null }); }}>Clear</Button>
               <Button variant="accent" disabled={selected.length < 2} onClick={openComparison}>Compare ({selected.length})</Button>
             </div>
-            {exportMessage && <p className={styles.exportNote} role="alert">{exportMessage}</p>}
-            {selected.length > 0 && <details className={styles.selectedNames}><summary>Manage selected sites</summary>
-              <ul>{selected.map((name) => <li key={name}><span>{name}</span><button type="button" onClick={() => toggle(name)} aria-label={`Remove ${name} from comparison`}>Remove</button></li>)}</ul>
-            </details>}
           </div>
         </section>
         <section id="flow-site-detail" ref={detailRef} tabIndex={-1} className={styles.inspection} aria-label={comparing ? "Site comparison" : "Site detail"}>

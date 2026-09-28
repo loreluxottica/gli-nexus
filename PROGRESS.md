@@ -1,6 +1,7 @@
 # Progress
 
 ## Done
+- 2026-09-28 Galileo Sites selection: footer reduced to count, Clear and Compare; the Manage selected sites disclosure removed. Records and CSV remain available through a contextual Selected data menu by the period, with their scope and error feedback preserved. `out/` rebuilt.
 - 2026-09-28 Galileo Content entry: geographical Category names link to scoped sites with a persistent arrow instead of a second `View sites` line; 44px target, keyboard focus, Export Labs expansion and Accounting behavior preserved. `out/` rebuilt.
 - 2026-09-28 Galileo Content table: wider responsive Category and Sub-category columns reclaim unused space beside monthly trends; 112px plot minimum and narrow-screen scrolling retained. `out/` rebuilt.
 - 2026-09-25 Galileo connected investigation: `View records` opens selected sites in the existing Database with the CSV's exact scope; namespaced filters and return navigation preserve the site workspace. Reuses the cache, table and helpers; no new dependencies or backend changes. `out/` rebuilt and browser journeys verified with synthetic records.
