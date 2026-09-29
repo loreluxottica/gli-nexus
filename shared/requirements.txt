@@ -1,0 +1,4 @@
+flask>=3.0
+werkzeug>=3.0
+databricks-sql-connector>=3.7,<4
+databricks-sdk>=0.38

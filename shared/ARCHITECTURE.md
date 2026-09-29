@@ -3,6 +3,10 @@
 **Owns:** runtime helpers used by every project, imported as `from shared
 import auth` and `from shared.db import ...`.
 
+`requirements.txt` owns the shared Flask/Werkzeug and Databricks dependencies.
+Both the unified root install and Kelly's standalone install include it;
+version ranges are declared once, without upgrading packages during cleanup.
+
 **Interfaces:**
 - `db._sql_http_path()`, `db._sql_connect_kwargs()`, `db._IDENTIFIER_PART_RE`:
   Databricks SQL connection built from environment only (App service

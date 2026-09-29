@@ -14,7 +14,8 @@ montato a un subpath (es. Project Kelly a `/kelly/`).
 gli-nexus/
 ├── app.py                 ← entry point unificato: portale a / + mount subapp
 ├── app.yaml               ← command Databricks (gunicorn app:application)
-├── requirements.txt       ← deps root + include quelle dei progetti
+├── requirements.txt       ← server + dipendenze condivise e dei progetti
+├── shared/requirements.txt← Flask/Werkzeug e Databricks, anche per Kelly standalone
 ├── portal/
 │   ├── index.html           ← launcher, vista prodotto e schede dettaglio
 │   ├── assets/             ← monoliti e immagini del portale
@@ -27,13 +28,13 @@ gli-nexus/
 │   │   ├── pages/ components/ assets/ ...
 │   ├── cortana_dashboard/ ← Cortana Usage Monitor (HTML + render server-side)
 │   │   ├── server.py      ← blueprint Flask: /cortana/ (gated, project CORTANA)
-│   │   └── cortana.html   ← template str.format (Chart.js, tema neon)
+│   │   └── cortana.html   ← placeholder __TOKEN__ (Chart.js, tema neon)
 │   ├── galileo_dashboard/ ← Galileo Observatory (Next.js static export)
 │   │   ├── server.py      ← blueprint Flask: /galileo/ (gated, project GALILEO)
 │   │   ├── out/           ← build statico committato (servito così com'è)
-│   │   ├── src/data/*.json← dati "baked" a build-time (rigenerati dal pipeline)
-│   │   └── data_pipeline/ ← offline: Databricks → JSON (dev, non a runtime)
-│   └── laplace_dashboard/ ← Laplace Pipeline Monitor (report HTML da tabella UC)
+│   │   ├── src/data/      ← loader API e contratti dati tipizzati
+│   │   └── data_pipeline/ ← Databricks → JSON, a runtime o per ispezione offline
+│   └── laplace_dashboard/ ← Laplace Pipeline Monitor (report HTML da volume UC)
 │       ├── server.py      ← blueprint Flask: /laplace/ (gated, project LAPLACEPIPELINE)
 │       └── data_pipeline/ ← publish_to_nexus.py: cella notebook di publish
 └── reference/             ← materiale frontend di riferimento (gitignored)
@@ -44,8 +45,10 @@ gli-nexus/
 ## Prerequisiti
 
 - **Python 3.11** (consigliato) o 3.10+
+- **Node.js 20** per sviluppare Galileo ed eseguire i controlli; non serve nel
+  runtime Databricks, che usa l'export committato.
 - Connessione internet (dati meteo di Project Kelly: una chiamata Open-Meteo
-  per plant al giorno, tenuta in memoria — niente cache su disco)
+  per plant al giorno, tenuta in memoria; festività da Nager per paese/anno).
 
 ---
 
@@ -79,7 +82,7 @@ Poi apri:
 
 ## Avvio locale — un solo progetto (standalone)
 
-Ogni progetto resta eseguibile da solo, senza il portale:
+Project Kelly resta eseguibile da solo, senza il portale:
 
 ```bash
 cd projects/kelly_dashboard
@@ -90,6 +93,26 @@ python app.py
 
 In standalone Project Kelly usa il prefix di default `/` (comportamento
 identico a prima della ristrutturazione).
+
+### Verificare una modifica
+
+Dopo il setup Python, installare il frontend dal lockfile:
+
+```bash
+npm --prefix projects/galileo_dashboard ci
+npm --prefix projects/galileo_dashboard run typecheck
+python -m unittest discover -s tests
+node scripts/check-structure.mjs --module-root . --module-root projects --module-root projects/galileo_dashboard/src
+```
+
+Servono anche Git e Node per i controlli sugli asset e sugli helper TypeScript.
+`make check` esegue gli stessi controlli; su Windows usare i comandi diretti.
+Il typecheck rileva anche simboli e parametri inutilizzati. `npm run lint` è un
+alias di questo controllo, non un linter Python.
+I controlli restano locali; l'automazione GitHub Actions è rinviata.
+Non rigenerano `out/` né eseguono deploy. Le regressioni usano
+sorgenti simulate per cache, report e autorizzazioni; non sostituiscono una
+verifica dei servizi reali in staging.
 
 ### Dati reali in locale
 
@@ -125,7 +148,7 @@ traffico verso di esso.
    - SQL warehouse con resource key `sql-warehouse` (permesso *Can use*) —
      **obbligatorio**: senza, Project Kelly non ha dati;
    - secret con resource key `secret` → `kelly/mapbox_token` (token Mapbox).
-   Poi decommenta le voci `valueFrom` corrispondenti in `app.yaml`.
+   Le voci `valueFrom` in `app.yaml` fanno già riferimento a queste due chiavi.
 4. **Dati reali**: concedi al service principal dell'app `USE CATALOG` su
    `sbx-logistics` e `USE SCHEMA` + `SELECT` sullo schema `kelly`. Le tabelle
    per-plant (`kelly_col_forecast`, `kelly_atl_forecast`, …) sono mappate in
@@ -190,10 +213,16 @@ Databricks Apps): raggiungibili solo da chi è sulla rete/VPN aziendale: hanno
 già `link`/`project`, ma nessuna demo (`preview` assente in
 `detail-data.js`) — la scheda dettaglio mostra solo la storyline.
 I deep link supportati sono `?w=<id>`, `?w=<id>&d=1&s=<step>` e `?all=1`.
-Le schede Galileo, Kelly, Cortana e Intake incorporano gli intake e gli
-screenshot ricevuti in `Project Details/` (checklist di approvazione ancora
+Le schede Galileo, Kelly, Cortana e Intake incorporano gli intake ricevuti in
+`Project Details/` e gli screenshot canonici in `portal/assets/details/`
+(checklist di approvazione ancora
 aperte dove non firmate). Laplace e Prism restano contenuti dimostrativi:
 tutte le schede devono essere approvate dai product owner prima del rilascio.
+`Project Details/` conserva gli intake originali e le catture distinte; le copie
+identiche agli screenshot pubblicati sono state rimosse. I loghi hanno
+una sola copia nel portale; i vecchi URL `/GLI-Branding/...` restano disponibili
+come alias, senza duplicare i file. I font GLI del portale (Geist, Sora,
+IBM Plex Mono) arrivano da Google Fonts: nessun file font nel portale.
 
 **Cortana Usage Monitor** (`/cortana/`): legge
 `sbx-logistics.gli_nexus.cortana_usage` (env `CORTANA_USAGE_TABLE`), cache
@@ -203,29 +232,41 @@ tabella accessi (403 con box "Access restricted" altrimenti).
 **Galileo Observatory** (`/galileo/`): dashboard Next.js esportata come sito
 statico. Il blueprint (`projects/galileo_dashboard/server.py`) serve la cartella
 `out/` committata — Databricks Apps non esegue build Node — gated dal progetto
-`GALILEO`. **Nessuna query a runtime**: i dati sono "baked" in `src/data/*.json`
-a build-time. Per aggiornarli (offline, con Node ≥18 e un profilo Databricks):
+`GALILEO`, inclusi gli asset statici. **I dati arrivano a runtime** dalle API
+`/galileo/api/*.json`: `data_service.py` legge Unity Catalog tramite la pipeline
+esistente e conserva i payload in memoria (`GALILEO_CACHE_TTL`, default 600 s).
+Il caricamento di nuovi dati nelle tabelle non richiede build o commit.
+
+I JSON derivati sono gitignorati: non reinserirli nel repository. La pipeline
+offline resta disponibile per ispezioni autorizzate; vincoli e contratti sono in
+`projects/galileo_dashboard/CONSTRAINTS.md` e `DATA_PIPELINE_READTHROUGH.md`.
+
+Solo per una modifica frontend esplicitamente autorizzata alla pubblicazione:
 
 ```bash
 cd projects/galileo_dashboard
-DATABRICKS_CONFIG_PROFILE=luxottica DATABRICKS_WAREHOUSE_ID=<wh> \
-  python data_pipeline/run.py     # legge galileo / coverage_galileo / mapping_galileo → JSON
-npm install && npm run build      # rigenera out/ (basePath /galileo)
-# committa src/data/*.json + out/
+npm ci
+npm run build                    # rigenera out/ (basePath /galileo)
+# committa sorgenti e out/, non i payload derivati
 ```
 
-Dettagli e assunzioni (finestra YTD, coverage %) in
-`projects/galileo_dashboard/data_pipeline/README.md`. Il pipeline usa
-`databricks-sql-connector` **solo offline**: non è nelle deps di runtime.
+Il server dell'export è Flask (`python app.py` dalla root), non `next start`.
+Il connettore SQL Databricks è una dipendenza di runtime condivisa.
 
 **Laplace Pipeline Monitor** (`/laplace/`): report doganale (pipeline
 LAPLACE → THAI → REGIONS → PENDING → GARAGE) generato dal notebook Databricks
-"Laplace Pipeline Monitor". Il notebook, nell'ultima cella (vedi
-`projects/laplace_dashboard/data_pipeline/publish_to_nexus.py`), appende l'HTML
-completo a `sbx-logistics.gli_nexus.laplace_report` (env
-`LAPLACE_REPORT_TABLE`); il blueprint serve l'ultima riga con cache 5 min
-(`LAPLACE_CACHE_TTL_S`). Ogni run del notebook (manuale o job schedulato)
-aggiorna la dashboard **senza redeploy**. Pagina gated dal progetto `LAPLACEPIPELINE`.
+"Laplace Pipeline Monitor". Il server cerca il file HTML più recente con
+prefisso `LAPLACE_HTML_PREFIX` (default `laplace_pipeline_tutorial_`) nel volume
+`LAPLACE_HTML_DIR` (default `/Volumes/sbx-logistics/gli_nexus/nexus_volume`).
+Legge tramite Databricks Files API, con cache 5 min (`LAPLACE_CACHE_TTL_S`);
+un nuovo report nel volume diventa disponibile senza redeploy.
+La pagina richiede il grant `LAPLACEPIPELINE`; `/laplace/flags-download`
+richiede separatamente `FLAGS` e scarica il file indicato da `RUBY_XLSX_PATH`.
+
+**Publisher da confermare:** `data_pipeline/publish_to_nexus.py` è una copia
+storica che scrive ancora nella tabella `laplace_report`, non il percorso letto
+dal server. Non usarla come procedura di pubblicazione corrente e non modificarla
+senza conferma del notebook owner.
 
 ---
 
@@ -251,9 +292,7 @@ Poi aggiungi il prodotto a `NEXUS_WORLDS` in `portal/js/worlds-data.js`, con
 
 - **Asset dei progetti Dash** (CSS/JS/font) sono serviti con il prefix corretto
   automaticamente (`requests_pathname_prefix`).
-- **Navigazione deep-link interna** dei progetti (es. link `/forecast/...` in
-  Project Kelly) usa ancora path assoluti: sotto mount va cablata in una fase
-  successiva. La landing e gli asset funzionano; i link interni sono il prossimo
-  passo di wiring.
+- **Navigazione Kelly**: i link interni usano `dash.get_relative_path` e
+  funzionano sia sotto `/kelly/` sia in standalone.
 - `reference/` contiene build frontend di riferimento con token Mapbox
   hardcoded: è gitignored e non fa parte del deploy.

@@ -18,12 +18,22 @@ from __future__ import annotations
 import os
 import sys
 
-from flask import Flask, send_file, send_from_directory
+from flask import Flask, abort, send_file, send_from_directory
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 _PORTAL_DIR = os.path.join(_ROOT, "portal")
 _PORTAL = os.path.join(_PORTAL_DIR, "index.html")
+_LEGACY_BRANDING_ASSETS = {
+    "assets/essilorluxottica-logo-white.png": "essilorluxottica-logo-white.png",
+    **{
+        f"assets/web/gli-{name}.png": f"gli-{name}.png"
+        for name in (
+            "cortana", "data-entry", "doppler", "galileo", "kelly", "laplace",
+            "lms", "monolite", "prism", "synchro",
+        )
+    },
+}
 
 # Make the sub-projects importable as top-level packages
 # (e.g. `import kelly_dashboard`), matching each project's own sys.path shim.
@@ -61,11 +71,13 @@ def portal_assets(filename):
     return send_from_directory(os.path.join(_PORTAL_DIR, "assets"), filename)
 
 
-# Kept for one compatibility cycle so cached copies of the previous portal can
-# still resolve their branding assets after the new portal is released.
+# Cached portal pages keep their URLs; the bytes live only in portal/assets.
 @root.route("/GLI-Branding/<path:filename>")
 def portal_branding(filename):
-    return send_from_directory(os.path.join(_PORTAL_DIR, "GLI-Branding"), filename)
+    canonical = _LEGACY_BRANDING_ASSETS.get(filename)
+    if canonical is None:
+        abort(404)
+    return send_from_directory(os.path.join(_PORTAL_DIR, "assets"), canonical)
 
 
 @root.route("/healthz")
